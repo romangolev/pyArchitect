@@ -10,34 +10,27 @@ __context__ = 'zero-doc'
 
 
 import pyrevit
-from pyrevit import *
+from pyrevit import script
+from pyrevit import output
 import rpw
 from rpw import revit, ui
+import os
+
+parent = os.path.dirname
+svg = parent(__file__) + r"\ba.svg"
+
+style = 'img {max-width: 589px; padding: 25px 0} span {display: block; text-align: center;}'
+output.get_output().add_style(style)
+output.get_output().set_width(500)
+output.get_output().set_height(500)
+output.get_output().center()
+out = script.get_output()
+out.print_image(svg)
+out.print_html('<h1 style="text-align:center;">Blank Architects Tools for Revit</h1>' +\
+              '<p style="text-align:center;">version 0.1.2</p>')
 
 #name = pyrevit._HostApplication.username()
-
-
-Info = "Blank Architects Tools for Revit\nversion 0.1.0"
-
-
-print(Info)
 print('Имя пользователя: {}'.format(revit.username))
-print(revit.doc)
-
-
-#import clr
-#clr.AddReference('System.Windows.Forms')
-#clr.AddReference('IronPython.Wpf')
-
-#from pyrevit import script 
-#xamlfile = script.get_bundle_file('ui.xaml')
-
-#import wpf
-#from System import Windows
-
-#class MyWindow(Windows.Window):
-#    def __init__(self,sender,args):
-#            wpf.LoadComponent(self,xamlfile)
-
-
-#MyWindow().ShowDialog()
+#print(revit.doc)
+#print(revit.app)
+#print(revit.docs)
