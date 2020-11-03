@@ -34,3 +34,4 @@ print('Имя пользователя: {}'.format(revit.username))
 #print(revit.doc)
 #print(revit.app)
 #print(revit.docs)
+#
