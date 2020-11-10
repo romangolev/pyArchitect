@@ -27,7 +27,7 @@ output.get_output().center()
 out = script.get_output()
 out.print_image(svg)
 out.print_html('<h1 style="text-align:center;">Blank Architects Tools for Revit</h1>' +\
-              '<p style="text-align:center;">version 0.1.2</p>')
+              '<p style="text-align:center;">version 0.1.3</p>')
 
 #name = pyrevit._HostApplication.username()
 print('Имя пользователя: {}'.format(revit.username))
