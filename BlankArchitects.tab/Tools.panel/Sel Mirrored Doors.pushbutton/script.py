@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 SelectMirroredDoors
 Selects All Door Instances that have been Mirrored.
@@ -16,9 +17,9 @@ pyRevit: repository at https://github.com/eirannejad/pyRevit
 
 """
 
-__doc__ = "Selects All Door Instances that have been Mirrored."
+__doc__ = "Выделить все отзеркаленные двери на выбранном виде / Selects All Door Instances that have been Mirrored."
 __author__ = '@gtalarico'
-__title__ = "Select Mirrored\nDoors"
+__title__ = "Отзеркаленные\nДвери"#"Select Mirrored\nDoors"
 
 from rpw import doc, uidoc, DB, UI, db, ui
 

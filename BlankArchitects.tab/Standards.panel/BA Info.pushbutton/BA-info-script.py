@@ -3,8 +3,19 @@
 # by Roman Golev 
 # Blank Architects
 
-__doc__ = """ Базовая информация о проекте и плагине / Basic Information about current project and plug-in"""
-__title__ = "BA Инфо"
+from pyrevit import HOST_APP
+from Autodesk.Revit.ApplicationServices import LanguageType
+if HOST_APP.language == LanguageType.Russian:
+    user = "Имя пользователя"
+    Rvers = "Версия Ревит"
+    lang = "RU"
+else:
+    user = "Username"
+    Rvers = "Revit Version"
+    lang = "EN"
+
+__doc__ = """ Информация о проекте, программе и расширении / Basic Information about current project and plug-in"""
+__title__ = "BA Info"
 __author__ = "Roman Golev"
 __context__ = 'zero-doc'
 
@@ -27,11 +38,10 @@ output.get_output().center()
 out = script.get_output()
 out.print_image(svg)
 out.print_html('<h1 style="text-align:center;">Blank Architects Tools for Revit</h1>' +\
-              '<p style="text-align:center;">version 0.1.3</p>')
+              '<p style="text-align:center;">version 0.1.4</p>')
 
 #name = pyrevit._HostApplication.username()
-print('Имя пользователя: {}'.format(revit.username))
-#print(revit.doc)
+print(str(user) + ' : {}'.format(revit.username))
+print(str(Rvers) + ' : {}'.format(revit.version))
 #print(revit.app)
 #print(revit.docs)
-#
