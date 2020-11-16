@@ -5,7 +5,7 @@
 
 #TODO:Create Shared Parameter if there is no such parameter in project
 
-__doc__ = """Создание отделки пола/потолка для выбранных помещений иструментом Перекрытие
+__doc__ = """Создание отделки пола для выбранных помещений иструментом Перекрытие
 ------------------------------------
 Принцип работы инструмента:
 Шаг 1 — Выделить в проекте необходимые помещения
@@ -17,7 +17,7 @@ __doc__ = """Создание отделки пола/потолка для вы
 
 """
 __author__ = 'Roman Golev'
-__title__ = "Отделка\nПола/Потолка"
+__title__ = "Отделка\nПола"
 
 import sys
 import os
@@ -34,7 +34,9 @@ from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator
 #Select Rooms
 selection = ui.Selection()
 selected_rooms = [e for e in selection.get_elements(wrapped=False) if isinstance(e, Room)]
-
+if not selected_rooms:
+    UI.TaskDialog.Show('Создать отделку потолка', 'Необходимо выбрать помещение.')
+    sys.exit()
 
 
 #Get floor_types
@@ -42,6 +44,8 @@ floor_types = rpw.db.Collector(of_category='OST_Floors', is_type=True).get_eleme
 #Select floor type
 floor_type_options = {DB.Element.Name.GetValue(t): t for t in floor_types}
 #Select floor types UI
+
+floor_type_id = ""
 
 components = [Label('Выберите тип отделки:'),
               ComboBox('fl_type', floor_type_options),
@@ -54,10 +58,17 @@ components = [Label('Выберите тип отделки:'),
               Label('при выборе только одного помещения'),
               Button('Select')]
 form = FlexForm('Создать отделку пола', components)
-form.show()
+win = form.show()
+
+if win == False:
+    sys.exit()
 
 #Get the ID of floor type
 floor_type_id = form.values['fl_type'].Id
+if form.values['h_offset'] != "":
+    offset3 = float(form.values['h_offset'])
+else:
+    offset3 = 0
 
 f ,fls = [], []
 co = []
@@ -79,7 +90,7 @@ def make_floor(new_floor):
     elif form.values['checkbox3'] == True :
         db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(new_floor.room_offset2)
     else:
-        db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(float(form.values['h_offset'])/304.8)
+        db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(offset3/304.8)
     db.Element(f).parameters['BA_AI_RoomName'].value = new_floor.room_name
     db.Element(f).parameters['BA_AI_RoomNumber'].value = new_floor.room_number
     db.Element(f).parameters['BA_AI_RoomID'].value = new_floor.room_id
