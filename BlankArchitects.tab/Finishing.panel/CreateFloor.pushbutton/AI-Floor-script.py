@@ -29,7 +29,7 @@ from Autodesk.Revit.DB import Document
 import rpw
 from rpw import doc, uidoc, DB, UI, db, ui
 from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator, Button, CheckBox)
-
+from pyrevit import forms 
 
 #Select Rooms
 selection = ui.Selection()
@@ -91,7 +91,11 @@ def make_floor(new_floor):
         db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(new_floor.room_offset2)
     else:
         db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(offset3/304.8)
-    db.Element(f).parameters['BA_AI_RoomName'].value = new_floor.room_name
+    try:
+        db.Element(f).parameters['BA_AI_RoomName'].value = new_floor.room_name
+    except:
+        forms.alert('You need to add shared parameter "BA_AI_RoomName" first')
+        sys.exit()
     db.Element(f).parameters['BA_AI_RoomNumber'].value = new_floor.room_number
     db.Element(f).parameters['BA_AI_RoomID'].value = new_floor.room_id
     db.Element(room).parameters['BA_AI_RoomID'].value = room.Id

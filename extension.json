@@ -1,0 +1,14 @@
+{
+    "builtin": "False",
+    "default_enabled": "True",
+    "type": "extension",
+    "rocket_mode_compatible": "True",
+    "name": "BlankArchitects",
+    "description": "Blank Architects tools package for pyRevit",
+    "author": "Roman Golev",
+    "author_profile": "",
+    "url": "https://github.com/BlankArchitects/pyBlank.git",
+    "website": "",
+    "image": "",
+    "dependencies": []
+}
