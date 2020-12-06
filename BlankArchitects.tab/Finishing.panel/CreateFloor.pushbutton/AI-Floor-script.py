@@ -93,12 +93,13 @@ def make_floor(new_floor):
         db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(offset3/304.8)
     try:
         db.Element(f).parameters['BA_AI_RoomName'].value = new_floor.room_name
+        db.Element(f).parameters['BA_AI_RoomNumber'].value = new_floor.room_number
+        db.Element(f).parameters['BA_AI_RoomID'].value = new_floor.room_id
+        db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
     except:
-        forms.alert('You need to add shared parameter "BA_AI_RoomName" first')
-        sys.exit()
-    db.Element(f).parameters['BA_AI_RoomNumber'].value = new_floor.room_number
-    db.Element(f).parameters['BA_AI_RoomID'].value = new_floor.room_id
-    db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
+        forms.alert('You need to add shared parameters for BA finishing')
+        pass
+
 
 
 
