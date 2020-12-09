@@ -43,7 +43,7 @@ sec_type_options = {DB.Element.Name.GetValue(t): t for t in sec_types}
 
 components = [Label('Выберите тип разреза:'),
               ComboBox('s_type', sec_type_options),
-              Label('Введите привязку разреза, мм'),
+              Label('Введите привязку разреза к стене, мм'),
               Label('(по умолчанию 50мм):'),
               TextBox('s_offset', sec_offset="50.0"),
               CheckBox('flip', 'Развернуть разрез на 180'),
