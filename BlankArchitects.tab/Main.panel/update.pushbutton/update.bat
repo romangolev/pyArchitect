@@ -4,4 +4,3 @@ pyrevit extend ui BlankArchitects https://github.com/BlankArchitects/pyBlank.git
 @ECHO ----------------------------------------------------------
 @ECHO -----------------RESTART--PYREVIT-------------------------
 @ECHO ----------------------------------------------------------
-@PAUSE
