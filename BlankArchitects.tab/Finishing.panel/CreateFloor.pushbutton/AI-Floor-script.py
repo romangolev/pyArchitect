@@ -52,7 +52,6 @@ components = [Label('Выберите тип отделки:'),
               Label('Введите привязку пола к уровню :'),
               TextBox('h_offset', base_offset="50.0"),
               CheckBox('checkbox1', 'Брать смещение пола из свойств помещения'),
-              CheckBox('checkbox3', 'Брать смещение потолка из свойств помещения'),
               CheckBox('checkbox2', 'Вырезать отверстия'),
               Label('Вырезание отверстий работает корректно'),
               Label('при выборе только одного помещения'),
@@ -87,20 +86,17 @@ def make_floor(new_floor):
     # Input parameter values from rooms
     if form.values['checkbox1'] == True :
         db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(new_floor.room_offset1)
-    elif form.values['checkbox3'] == True :
-        db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(new_floor.room_offset2)
     else:
         db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(offset3/304.8)
     try:
         db.Element(f).parameters['BA_AI_RoomName'].value = new_floor.room_name
         db.Element(f).parameters['BA_AI_RoomNumber'].value = new_floor.room_number
         db.Element(f).parameters['BA_AI_RoomID'].value = new_floor.room_id
+        db.Element(f).parameters['BA_AI_FinishingType'].value = "Floor Finishing"
         db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
     except:
         forms.alert('You need to add shared parameters for BA finishing')
         pass
-
-
 
 
 def make_opening(new_floor):
