@@ -29,6 +29,7 @@ from Autodesk.Revit.DB import Document
 import rpw
 from rpw import doc, uidoc, DB, UI, db, ui
 from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator, Button, CheckBox)
+from pyrevit import forms 
 
 selection = ui.Selection()
 selected_rooms = [e for e in selection.get_elements(wrapped=False) if isinstance(e, Room)]
@@ -74,13 +75,20 @@ def make_ceiling(new_ceiling):
     level = doc.GetElement(new_ceiling.level_id)
     normal_plane = DB.XYZ.BasisZ
     f = doc.Create.NewFootPrintRoof(ceiling_curves, level, ceilingType, clr.StrongBox[ModelCurveArray](ModelCurveArray()))
-    db.Element(f).parameters['BA_AI_RoomName'].value = room_name[c]
-    db.Element(f).parameters['BA_AI_RoomNumber'].value = room_number[c]
-    db.Element(f).parameters['BA_AI_RoomID'].value = room_id[c]
+
     if form.values['checkbox1'] == True :
         db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(float(form.values['h_offset'])/304.8)
     else:
         db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(float(form.values['h_offset'])/304.8)
+    try:
+        db.Element(f).parameters['BA_AI_RoomName'].value = room_name[c]
+        db.Element(f).parameters['BA_AI_RoomNumber'].value = room_number[c]
+        db.Element(f).parameters['BA_AI_RoomID'].value = room_id[c]
+        db.Element(f).parameters['BA_AI_FinishingType'].value = "Ceiling Finishing"
+        db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
+    except:
+        forms.alert('You need to add shared parameters for BA finishing')
+        pass   
 
 
 def make_opening(new_floor):
@@ -91,24 +99,28 @@ def make_opening(new_floor):
 
 
 
-NewCeiling = namedtuple('NewCeiling', ['ceiling_type_id', 'boundary', 'level_id'])
+NewCeiling = namedtuple('NewCeiling', ['ceiling_type_id', 'boundary', 'level_id','count', 'opening_boundary', 'openings',
+                                    'room_offset','room_offset2', 'room_name', 'room_number', 'room_id'])
+
 new_ceilings = []
-room_name  = []
-room_number = []
-room_id = []
 room_boundary_options = DB.SpatialElementBoundaryOptions()
+r = 0
 
 for room in selected_rooms:
     room_level_id = room.Level.Id
+    room_offset = room.get_Parameter(BuiltInParameter.ROOM_UPPER_OFFSET).AsDouble()
+    room_name = room.get_Parameter(BuiltInParameter.ROOM_NAME).AsString()
+    room_number = room.get_Parameter(BuiltInParameter.ROOM_NUMBER).AsString()
+    room_id = room.Id
     # List of Boundary Segment comes in an array by itself.
     room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
     new_ceiling = NewCeiling(ceiling_type_id=ceiling_type_id, boundary=room_boundary,
-                         level_id=room_level_id)
+                         level_id=room_level_id, count = r, opening_boundary = all_boundaries1,
+                         openings = n-1, room_offset = room_offset, room_offset2 = room_offset2, 
+                         room_name = room_name, room_number = room_number, room_id = room_id)
     new_ceilings.append(new_ceiling)
-    room_name.append(room.get_Parameter(BuiltInParameter.ROOM_NAME).AsString())
-    room_number.append(room.get_Parameter(BuiltInParameter.ROOM_NUMBER).AsString())
-    room_id.append(room.Id)
-    room_height.append(rrom)
+
+    #room_height.append(room)
 
 
 c = 0
