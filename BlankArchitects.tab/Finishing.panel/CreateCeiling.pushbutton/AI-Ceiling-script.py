@@ -60,6 +60,11 @@ if win == False:
 
 #Get the ID of ceiling ( NewFootPrintRoof )
 ceiling_type_id = form.values['cl_type'].Id
+if form.values['h_offset'] != "":
+    offset3 = float(form.values['h_offset'])
+else:
+    offset3 = 2000
+
 f = []
 
 @rpw.db.Transaction.ensure('Создать отделку потолка')
@@ -77,13 +82,13 @@ def make_ceiling(new_ceiling):
     f = doc.Create.NewFootPrintRoof(ceiling_curves, level, ceilingType, clr.StrongBox[ModelCurveArray](ModelCurveArray()))
 
     if form.values['checkbox1'] == True :
-        db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(float(form.values['h_offset'])/304.8)
+        db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(new_ceiling.room_offset)
     else:
-        db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(float(form.values['h_offset'])/304.8)
+        db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(offset3/304.8)
     try:
-        db.Element(f).parameters['BA_AI_RoomName'].value = room_name[c]
-        db.Element(f).parameters['BA_AI_RoomNumber'].value = room_number[c]
-        db.Element(f).parameters['BA_AI_RoomID'].value = room_id[c]
+        db.Element(f).parameters['BA_AI_RoomName'].value = new_ceiling.room_name
+        db.Element(f).parameters['BA_AI_RoomNumber'].value = new_ceiling.room_number
+        db.Element(f).parameters['BA_AI_RoomID'].value = new_ceiling.room_id
         db.Element(f).parameters['BA_AI_FinishingType'].value = "Ceiling Finishing"
         db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
     except:
@@ -100,10 +105,12 @@ def make_opening(new_floor):
 
 
 NewCeiling = namedtuple('NewCeiling', ['ceiling_type_id', 'boundary', 'level_id','count', 'opening_boundary', 'openings',
-                                    'room_offset','room_offset2', 'room_name', 'room_number', 'room_id'])
+                                    'room_offset', 'room_name', 'room_number', 'room_id'])
 
 new_ceilings = []
 room_boundary_options = DB.SpatialElementBoundaryOptions()
+all_boundaries = []
+all_boundaries1 = []
 r = 0
 
 for room in selected_rooms:
@@ -114,9 +121,15 @@ for room in selected_rooms:
     room_id = room.Id
     # List of Boundary Segment comes in an array by itself.
     room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
+    all_boundaries = room.GetBoundarySegments(room_boundary_options)
+    n = 0
+    for bound_set in all_boundaries:
+        all_boundaries1.append(room.GetBoundarySegments(room_boundary_options)[n])
+        n += 1
+    all_boundaries1.pop(0)
     new_ceiling = NewCeiling(ceiling_type_id=ceiling_type_id, boundary=room_boundary,
                          level_id=room_level_id, count = r, opening_boundary = all_boundaries1,
-                         openings = n-1, room_offset = room_offset, room_offset2 = room_offset2, 
+                         openings = n-1, room_offset = room_offset,
                          room_name = room_name, room_number = room_number, room_id = room_id)
     new_ceilings.append(new_ceiling)
 

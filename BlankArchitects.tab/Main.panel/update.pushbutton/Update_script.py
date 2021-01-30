@@ -64,9 +64,9 @@ else:
 	notification = forms.alert( 'Обнаружена новая версия расширения\n'
 								'BlankArchitects for Revit\n'
 								''
-								'Для обновления необходимо продолжить'
-								'Новая версия будет распакована'
-								'приложение pyRevit будет перезапустится',
+								'Для обновления необходимо продолжить\n'
+								'Новая версия будет распакована\n'
+								'приложение pyRevit перезапустится',
 								ok=False, yes=True, no=True)
 	if notification:
 		parent = op.dirname
