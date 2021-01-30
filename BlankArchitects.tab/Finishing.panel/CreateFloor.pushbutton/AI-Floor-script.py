@@ -109,7 +109,6 @@ def make_opening(new_floor):
 
 NewFloor = namedtuple('NewFloor', ['floor_type_id', 'boundary', 'level_id', 'count', 'opening_boundary', 'openings',
                                     'room_offset1','room_offset2', 'room_name', 'room_number', 'room_id'])
-#FlData = namedtuple('FlData',['room_offset', 'room_name', 'room_number', 'room_id'])
 
 
 new_floors = []

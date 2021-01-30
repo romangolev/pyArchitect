@@ -71,13 +71,8 @@ def duplicate_wall_type(type_of_wall):
 
 #@rpw.db.Transaction.ensure('Make Wall')
 def make_wall(new_wall, temp_type):
-#	wall_curves = DB.CurveArray()
 	wall_curves = new_wall.curve
-#	for boundary_segment in new_wall.curve:
-#	wall_curves.Append(boundary_segment.GetCurve())
-#	wall_type = new_wall.wall_type_id
 	level = new_wall.level_id
-	print(new_wall.room_height)
 	if new_wall.room_height > 0:
 		wall_height = float(new_wall.room_height)/304.8
 	else:
@@ -85,16 +80,22 @@ def make_wall(new_wall, temp_type):
 	
 	if new_wall.plug == 1:
 		w = Wall.Create(doc, wall_curves, temp_type.Id, level, wall_height, 0.0, False, False)
-		#Check if the value wall_height from forms works!!!
-		#w.get_Parameter(BuiltInParameter.WALL_ATTR_ROOM_BOUNDING).Set(1)
 		w.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
+		try:
+			db.Element(w).parameters['BA_AI_RoomName'].value = new_wall.room_name
+			db.Element(w).parameters['BA_AI_RoomNumber'].value = new_wall.room_number
+			db.Element(w).parameters['BA_AI_RoomID'].value = new_wall.room_id
+			db.Element(w).parameters['BA_AI_FinishingType'].value = "Wall Finishing"
+			db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
+		except:
+			forms.alert('You need to add shared parameters for BA finishing')
 		wallz.append(w)
 	else:
 		0
 	return wallz
 
 
-NewWall = namedtuple('NewWall', ['wall_type_id', 'wall_type', 'curve', 'level_id', 'room_name', 'room_number','room_id', 'plug', 'room_height'])
+NewWall = namedtuple('NewWall', ['wall_type_id', 'wall_type', 'curve', 'level_id', 'room_name', 'room_number','room_id', 'plug', 'room_height', 'bound_walls'])
 # plug variable defines if there a need if creating finishing 
 # wall or not based on the line's lenght (line lenght filtering)
 w = []
@@ -108,21 +109,19 @@ for room in selected_rooms:
 	room_number = room.get_Parameter(BuiltInParameter.ROOM_NUMBER).AsString()
 	room_id = room.Id
 	if form.values['checkbox1']==True:
-		#room_height = room.UnboundedHeight
 		room_height = room.get_Parameter(BuiltInParameter.ROOM_HEIGHT).AsDouble()*304.8
 	else:
 		room_height = form.values['h_offset']
 
 	plug = 1
-	#lines = []
-	#pcurve = []
-	#new_pcurv = []
+	bound_walls =[]
 
 	# Filtering by hostwall type
 	for bound in room_boundary:
 		try :
 			if doc.GetElement(bound.ElementId).Category.Name.ToString() == "Walls":
 				if doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
+					bound_walls.append(doc.GetElement(bound.ElementId))
 					plug = 1
 				else:
 					plug = 0
@@ -132,8 +131,6 @@ for room in selected_rooms:
 			0
 		
 		line = bound.GetCurve()
-		#new_pcurv = line.CreateTransformed(Transform.CreateTranslation(1*XYZ.BasisZ))
-		#lines.append(line)
 	
 		# Filtering small lines less than 10 mm Lenght
 		if line.ApproximateLength < 10/304.8:
@@ -145,7 +142,7 @@ for room in selected_rooms:
 		new_wall = NewWall(wall_type_id=wall_type_id, wall_type=wall_type, curve=line,
 						 level_id=room_level_id, room_name=room_name, 
 						 room_number=room_number, room_id=room_id, plug=plug,
-						 room_height=room_height)
+						 room_height=room_height, bound_walls=bound_walls)
 		new_walls.append(new_wall)
 
 
@@ -164,6 +161,19 @@ with db.Transaction('Create walls'):
 	for n in wallz:
 		#changetype(n,new_wall.wall_type)
 		n.ChangeTypeId(new_wall.wall_type.Id)
-		#n.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(3)
+		n.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(3)
+
+
+
 	# Deleting temp wall type
 	tmp.Dispose()
+	#Check another method for deleting wall type
+
+
+	#Joining finishing walls with it's host objects
+	for	wall1 in new_wall.bound_walls:
+		for wall2 in wallz:
+			try:
+				Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc,wall1,wall2)
+			except:
+				0
