@@ -6,7 +6,7 @@
 #TODO:Create Shared Parameter of there is no such parameter in project
 #TODO:RU/EN Autoswitch depending on the Revit version used
 
-__doc__ = 'Создаёт отделку стен для выбранного помещения. /Makes Wall objects from selected rooms.'
+__doc__ = 'Создаёт отделку стен для выбранного помещения. /Makes skirting board for selected rooms.'
 __author__ = 'Roman Golev'
 __title__ = "Отделка\nСтен"
 
@@ -28,14 +28,12 @@ from collections import namedtuple
 #import pyrevit modules
 from pyrevit import forms
 
-
 # Select rooms with rpw ui
 selection = ui.Selection()
 selected_rooms = [e for e in selection.get_elements(wrapped=False) if isinstance(e, Room)]
 if not selected_rooms:
     UI.TaskDialog.Show('MakeWalls', 'You need to select at lest one Room.')
     sys.exit()
-
 
 #Get wall_types
 wall_types = rpw.db.Collector(of_category='OST_Walls', is_type=True).get_elements(wrapped=False)
@@ -55,8 +53,6 @@ form.show()
 wall_type = form.values['wl_type']
 wall_type_id = wall_type.Id
 
-
-
 # Duplicating wall type creating the same layer set with double width
 # to deal with the offset API issue
 def duplicate_wall_type(type_of_wall):
@@ -68,7 +64,6 @@ def duplicate_wall_type(type_of_wall):
 	wall_type1.SetCompoundStructure(cs1)
 	return wall_type1
 
-
 #@rpw.db.Transaction.ensure('Make Wall')
 def make_wall(new_wall, temp_type):
 	wall_curves = new_wall.curve
@@ -76,8 +71,7 @@ def make_wall(new_wall, temp_type):
 	if new_wall.room_height > 0:
 		wall_height = float(new_wall.room_height)/304.8
 	else:
-		wall_height = 1500/304.8
-	
+		wall_height = 1500/304.8	
 	if new_wall.plug == 1:
 		w = Wall.Create(doc, wall_curves, temp_type.Id, level, wall_height, 0.0, False, False)
 		w.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
@@ -131,7 +125,6 @@ for room in selected_rooms:
 			0
 		
 		line = bound.GetCurve()
-	
 		# Filtering small lines less than 10 mm Lenght
 		if line.ApproximateLength < 10/304.8:
 			plug = 0
@@ -163,13 +156,8 @@ with db.Transaction('Create walls'):
 		n.ChangeTypeId(new_wall.wall_type.Id)
 		n.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(3)
 
-
-
 	# Deleting temp wall type
-	tmp.Dispose()
-	#Check another method for deleting wall type
-
-
+	doc.Delete(tmp.Id)
 	#Joining finishing walls with it's host objects
 	for	wall1 in new_wall.bound_walls:
 		for wall2 in wallz:

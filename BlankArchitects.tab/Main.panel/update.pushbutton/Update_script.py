@@ -3,7 +3,9 @@
 # by Roman Golev 
 # Blank Architects
 
-__doc__ = 'Обновляет плагин до последней версии.\n / \n Updates extension to the latest version in casse the update is applicable.'
+__doc__ = """Обновляет плагин до последней версии.\n
+ ////////////////////////////////////// \n 
+ Updates extension to the latest version in case if the update is applicable."""
 __author__ = 'Roman Golev'
 __title__ = "Обновить\nПлагин"
 __context__ = 'zero-doc'
@@ -70,7 +72,8 @@ else:
 								ok=False, yes=True, no=True)
 	if notification:
 		parent = op.dirname
-		bat_updater_location = parent(__file__) + r"\reload.bat"
+		#bat_updater_location = parent(__file__) + r"\update.bat"
+		bat_updater_location = r"\\10.10.50.30\shared$\Standards\01.BA STANDARDS\08.BIM STANDARDS\04.TEMPLATE\02.INSTALL_BA_PLUGIN\reinstall\update.bat"
 		p = Process()
 		p.StartInfo.UseShellExecute = False
 		p.StartInfo.RedirectStandardOutput = False
