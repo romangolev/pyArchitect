@@ -21,7 +21,6 @@ import sys
 #import revitpythonwrapper by guitalarico 
 import rpw
 from rpw import doc, uidoc, DB, UI, db, ui
-from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator, Button, CheckBox)
 from Autodesk.Revit.DB.Architecture import Room
 from collections import namedtuple
 
