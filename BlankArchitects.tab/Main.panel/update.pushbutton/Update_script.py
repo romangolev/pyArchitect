@@ -5,9 +5,9 @@
 
 __doc__ = """Обновляет плагин до последней версии.\n
  ////////////////////////////////////// \n 
- Updates extension to the latest version in case if the update is applicable."""
+ Updates the extension to the latest version in case if the update is applicable."""
 __author__ = 'Roman Golev'
-__title__ = "Обновить\nПлагин"
+__title__ = "Update\nExtension"
 __context__ = 'zero-doc'
 
 import os
