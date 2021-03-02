@@ -156,6 +156,6 @@ if 1 in runtype:
 	run(param_set2)
 elif 2 in runtype:
 	forms.alert("In development")
-	print("runtype2")
+	#print("runtype2")
 else:
 	pass
