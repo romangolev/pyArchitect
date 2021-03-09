@@ -1,9 +1,9 @@
-#
-#
-#
 import pyrevit
 from pyrevit import forms
 from pyrevit import HOST_APP
+
+import blank
+
 
 # Toast notifier example
 #TODO Notify user on update
