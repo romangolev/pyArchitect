@@ -95,7 +95,8 @@ def make_floor(new_floor):
         db.Element(f).parameters['BA_AI_FinishingType'].value = "Floor Finishing"
         db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
     except:
-        forms.alert('You need to add shared parameters for BA finishing')
+        forms.toaster.send_toast('You need to add shared parameters for BA finishing')
+        #forms.alert('You need to add shared parameters for BA finishing')
         pass
 
 
@@ -108,7 +109,7 @@ def make_opening(new_floor):
 
 
 NewFloor = namedtuple('NewFloor', ['floor_type_id', 'boundary', 'level_id', 'count', 'opening_boundary', 'openings',
-                                    'room_offset1','room_offset2', 'room_name', 'room_number', 'room_id'])
+                                    'room_offset1', 'room_name', 'room_number', 'room_id'])
 
 
 new_floors = []
@@ -121,7 +122,6 @@ r = 0
 for room in selected_rooms:
     room_level_id = room.Level.Id
     room_offset1 = room.get_Parameter(BuiltInParameter.ROOM_LOWER_OFFSET).AsDouble()
-    room_offset2 = room.get_Parameter(BuiltInParameter.ROOM_UPPER_OFFSET).AsDouble()
     room_name = room.get_Parameter(BuiltInParameter.ROOM_NAME).AsString()
     room_number = room.get_Parameter(BuiltInParameter.ROOM_NUMBER).AsString()
     room_id = room.Id
@@ -137,7 +137,7 @@ for room in selected_rooms:
     all_boundaries1.pop(0)
     new_floor = NewFloor(floor_type_id = floor_type_id, boundary = room_boundary,
                          level_id = room_level_id, count = r, opening_boundary = all_boundaries1,
-                         openings = n-1, room_offset1 = room_offset1, room_offset2 = room_offset2, room_name = room_name,
+                         openings = n-1, room_offset1 = room_offset1, room_name = room_name,
                          room_number = room_number, room_id = room_id)
     new_floors.append(new_floor)
 

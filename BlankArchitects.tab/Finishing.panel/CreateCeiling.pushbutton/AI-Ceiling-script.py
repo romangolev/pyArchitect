@@ -3,19 +3,23 @@
 # by Roman Golev 
 # Blank Architects
 
-#TODO:Create Shared Parameter if there is no such parameter in project
-
 __doc__ = """Создание отделки потолка для выбранных помещений иструментом Крыша
 ------------------------------------    
 Принцип работы инструмента:
 Шаг 1 — Выделить в проекте необходимые помещения
 Шаг 2 — В сплывающем окне выбрать тип отделки и указать смещение от уровня
 
+
+При выборе функции "Из помещения" отделка потолка создаётся на основе верхней
+высотной отметки помещения. Для корректной работы необходимо настроить 
+высоту помещений.
+"""
+"""
 При создании потолка, в новый элемент записываются параметры номера, названия и ID помещения.
 Функция "Вырезание отверстий" работает корректно только при выборе одного
 помещения. Выбор множественных помещений может привести к ошибке.
-
 """
+
 __author__ = 'Roman Golev'
 __title__ = "Отделка\nПотолка"
 
@@ -49,14 +53,13 @@ components = [Label('Выберите тип потолка:'),
               ComboBox('cl_type', ceiling_type_options),
               Label('Введите привязку потолка к уровню :'),
               TextBox('h_offset', ceiling_offset="50.0"),
-              CheckBox('checkbox1', 'Учитывать привязку потолка к уровню'),
+              CheckBox('checkbox1', 'Из помещения'),
               Button('Select')]
 form = FlexForm('Создать отделку потолка',components)
 win = form.show()
 
 if win == False:
     sys.exit()
-
 
 #Get the ID of ceiling ( NewFootPrintRoof )
 ceiling_type_id = form.values['cl_type'].Id
@@ -75,14 +78,12 @@ def make_ceiling(new_ceiling):
             ceiling_curves.Append(boundary_segment.Curve)       # 2015, dep 2016
         except AttributeError:
             ceiling_curves.Append(boundary_segment.GetCurve())  # 2017
-
     ceilingType = doc.GetElement(new_ceiling.ceiling_type_id)
+    ceil_thick = ceilingType.get_Parameter(BuiltInParameter.ROOF_ATTR_DEFAULT_THICKNESS_PARAM).AsDouble()
     level = doc.GetElement(new_ceiling.level_id)
-    normal_plane = DB.XYZ.BasisZ
     f = doc.Create.NewFootPrintRoof(ceiling_curves, level, ceilingType, clr.StrongBox[ModelCurveArray](ModelCurveArray()))
-
     if form.values['checkbox1'] == True :
-        db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(new_ceiling.room_offset)
+        db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(new_ceiling.room_offset - ceil_thick)
     else:
         db.Element(f).parameters.builtins['ROOF_LEVEL_OFFSET_PARAM'].value = float(offset3/304.8)
     try:
@@ -92,8 +93,9 @@ def make_ceiling(new_ceiling):
         db.Element(f).parameters['BA_AI_FinishingType'].value = "Ceiling Finishing"
         db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
     except:
-        forms.alert('You need to add shared parameters for BA finishing')
-        pass   
+        forms.toaster.send_toast('You need to add shared parameters for BA finishing')
+        #forms.alert('You need to add shared parameters for BA finishing')
+        pass
 
 
 def make_opening(new_floor):
@@ -101,8 +103,6 @@ def make_opening(new_floor):
     for bounds in i:
         co_curves.Append(bounds.GetCurve())
     co = doc.Create.NewOpening(fls[new_floor.count-1], co_curves, False)
-
-
 
 NewCeiling = namedtuple('NewCeiling', ['ceiling_type_id', 'boundary', 'level_id','count', 'opening_boundary', 'openings',
                                     'room_offset', 'room_name', 'room_number', 'room_id'])
@@ -115,7 +115,7 @@ r = 0
 
 for room in selected_rooms:
     room_level_id = room.Level.Id
-    room_offset = room.get_Parameter(BuiltInParameter.ROOM_UPPER_OFFSET).AsDouble()
+    room_offset = room.get_Parameter(BuiltInParameter.ROOM_HEIGHT).AsDouble()
     room_name = room.get_Parameter(BuiltInParameter.ROOM_NAME).AsString()
     room_number = room.get_Parameter(BuiltInParameter.ROOM_NUMBER).AsString()
     room_id = room.Id
@@ -133,11 +133,7 @@ for room in selected_rooms:
                          room_name = room_name, room_number = room_number, room_id = room_id)
     new_ceilings.append(new_ceiling)
 
-    #room_height.append(room)
-
-
-c = 0
 #Create ceiling
 for new_ceiling in new_ceilings:
     make_ceiling(new_ceiling)
-    c += 1
+    #forms.toaster.send_toast("Hello World")
