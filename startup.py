@@ -9,4 +9,3 @@ import blank
 #TODO Notify user on update
 #print(forms.toaster.get_toaster())
 #forms.toaster.send_toast("Hello World")
-
