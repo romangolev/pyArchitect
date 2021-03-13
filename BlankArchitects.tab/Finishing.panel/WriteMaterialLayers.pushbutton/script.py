@@ -42,12 +42,15 @@ def add_data(m_WallTypeInfo):
     n = 1
     matt = ''
     for mat in m_WallTypeInfo.t_materialid:
-        m = doc.GetElement(mat).get_Parameter(BuiltInParameter.ALL_MODEL_DESCRIPTION).AsString()
+        try:
+            m = doc.GetElement(mat).get_Parameter(BuiltInParameter.ALL_MODEL_DESCRIPTION).AsString()
+        except:
+            m = "No material"
         matt += str(n) + '.' + m + "\r\n"
         n = n + 1 
     db.Element(m_WallTypeInfo.t_walltype).parameters['BA_AI_WallStructure'].value = matt
 
-with db.Transaction('Add Data'):
+with db.Transaction('BA_Wall Layers'):
     for wallinfo in wallinfoall:
         add_data(wallinfo)
     forms.alert('Operation completed')
