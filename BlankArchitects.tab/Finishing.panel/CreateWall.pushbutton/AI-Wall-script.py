@@ -3,10 +3,25 @@
 # by Roman Golev 
 # Blank Architects
 
-#TODO:Create Shared Parameter of there is no such parameter in project
 #TODO:RU/EN Autoswitch depending on the Revit version used
 
-__doc__ = 'Создаёт отделку стен для выбранного помещения. /Makes skirting board for selected rooms.'
+__doc__ = """Создаёт отделку стен для выбранного помещения. /Makes skirting board for selected rooms.
+------------------------------------
+Принцип работы инструмента:
+Шаг 1 — Выделить в проекте необходимые помещения
+Шаг 2 — В сплывающем окне выбрать тип отделки и указать смещение от уровня
+
+
+При выборе функции "Из помещения" отделка потолка создаётся на основе верхней
+высотной отметки помещения. Для корректной работы необходимо настроить 
+высоту помещений.
+
+Используются параметры / Shared parameters used:
+BA_AI_RoomName
+BA_AI_RoomNumber
+BA_AI_RoomID
+BA_AI_FinishingType
+"""
 __author__ = 'Roman Golev'
 __title__ = "Отделка\nСтен"
 
@@ -47,12 +62,16 @@ components = [Label('Выберите тип отделки стен:'),
               TextBox('h_offset', wall_custom_height="50.0"),
               CheckBox('checkbox1', 'Брать высоту стены из помещений'),
               Button('Select')]
-form = FlexForm('Создать отделку пола',components)
-form.show()
+form = FlexForm('Создать отделку стен',components)
+win = form.show()
+
 
 #Get the ID of wall type
-wall_type = form.values['wl_type']
-wall_type_id = wall_type.Id
+if win == True:
+	wall_type = form.values['wl_type']
+	wall_type_id = wall_type.Id
+else:
+	sys.exit()
 
 # Duplicating wall type creating the same layer set with double width
 # to deal with the offset API issue
@@ -105,8 +124,10 @@ for room in selected_rooms:
 	room_id = room.Id
 	if form.values['checkbox1']==True:
 		room_height = room.get_Parameter(BuiltInParameter.ROOM_HEIGHT).AsDouble()*304.8
-	else:
+	elif form.values['h_offset'] != '':
 		room_height = form.values['h_offset']
+	else:
+		room_height = 1500
 
 	plug = 1
 	bound_walls =[]
@@ -159,10 +180,17 @@ with db.Transaction('Create walls'):
 
 	# Deleting temp wall type
 	doc.Delete(tmp.Id)
+
 	#Joining finishing walls with it's host objects
 	for	wall1 in new_wall.bound_walls:
 		for wall2 in wallz:
 			try:
 				Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc,wall1,wall2)
 			except:
-				0
+				pass
+	for n in wallz:
+		for m in wallz:
+			try:
+				Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc,n,m)
+			except:
+				pass

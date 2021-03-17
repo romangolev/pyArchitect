@@ -3,7 +3,12 @@
 # by Roman Golev 
 # Blank Architects
 
-__doc__ = 'Записывает состав слоёв стены в параметр типа. / Writes down the information about Wall layers inside type.'
+__doc__ = """Записывает состав слоёв стены в параметр типа. / Writes down the information about Wall layers inside type.'
+
+Берёт информацию из типа отделки. Считывает значение 'Type Mark' (Марка типа) и 'Description' (Описание) 
+для каждого из материала, который назначен слоям конструкции. Объединяет информацию в многострочный текст и
+записывает в параметр BA_AI_Structure
+"""
 __author__ = 'Roman Golev'
 __title__ = "Wall\nLayers"
 
@@ -13,7 +18,6 @@ from Autodesk.Revit import DB
 import clr
 clr.AddReference("System")
 from collections import namedtuple
-import rpw
 from rpw import db
 from pyrevit import forms
 
@@ -31,24 +35,28 @@ for type in types:
             for layer in layers:
                 layerid.append(layer.LayerId)
                 materialid.append(layer.MaterialId)
-            wallinfo = WallTypeInfo(type, layerid, materialid)
-            wallinfoall.append(wallinfo)
         except:
-            pass
+            layerid = []
+            materialid = []
+        wallinfo = WallTypeInfo(type, layerid, materialid)
+        wallinfoall.append(wallinfo)
     else:
         pass
 
 def add_data(m_WallTypeInfo):
     n = 1
-    matt = ''
+    #Add TypeMark parameter
+    mark = m_WallTypeInfo.t_walltype.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_MARK).AsString()
+    matt = str(mark) + '\r\n'
     for mat in m_WallTypeInfo.t_materialid:
         try:
             m = doc.GetElement(mat).get_Parameter(BuiltInParameter.ALL_MODEL_DESCRIPTION).AsString()
         except:
-            m = "No material"
-        matt += str(n) + '.' + m + "\r\n"
+            m = "No material or description"
+        matt += '-  ' + str(m) + "\r\n"
+        #matt += str(n) + '.' + m + "\r\n"
         n = n + 1 
-    db.Element(m_WallTypeInfo.t_walltype).parameters['BA_AI_WallStructure'].value = matt
+    db.Element(m_WallTypeInfo.t_walltype).parameters['BA_AI_Structure'].value = matt
 
 with db.Transaction('BA_Wall Layers'):
     for wallinfo in wallinfoall:

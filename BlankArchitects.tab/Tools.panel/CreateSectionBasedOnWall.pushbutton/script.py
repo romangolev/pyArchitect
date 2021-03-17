@@ -18,6 +18,7 @@ from collections import namedtuple
 import rpw
 from rpw import doc, uidoc, DB, UI, db, ui
 from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator, Button, CheckBox)
+import sys
 
 def units(mmToFeets):
 	dut = DisplayUnitType.DUT_MILLIMETERS
@@ -49,7 +50,10 @@ components = [Label('Выберите тип разреза:'),
               CheckBox('flip', 'Развернуть разрез на 180'),
               Button('Start')]
 form = FlexForm('Создать развёртку стены',components)
-form.show()
+win = form.show()
+
+if win == False:
+    sys.exit()
 
 # user offset (crop region = far clip)
 if form.values['s_offset'] != "":
