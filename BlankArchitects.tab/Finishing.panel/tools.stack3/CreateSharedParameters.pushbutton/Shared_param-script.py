@@ -4,7 +4,7 @@
 # Blank Architects
 
 
-__doc__ = """TEST MODE
+__doc__ = """
 Добавить общие параметры проекта /
 Adds shared parameters used for interior finishing scheduling.
 ------------------------------------
@@ -37,19 +37,12 @@ uidoc = __revit__.ActiveUIDocument
 uiapp = __revit__
 app = uiapp.Application
 
-import sys
 import os.path as op
-import os
-import rpw
 from rpw import  DB, UI, db, ui
-
-import pyrevit
 from pyrevit import forms
 from pyrevit import UI
-from pyrevit import script
 from pyrevit.forms import WPFWindow
 from collections import namedtuple
-
 from collections import namedtuple
 
 runtype = []
@@ -109,8 +102,7 @@ gr = spfile.Groups
 cats1 = [Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Walls),
 	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Floors),
 	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Ceilings),
-	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Roofs)
-	]
+	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Roofs)]
 catset1 = app.Create.NewCategorySet()
 [catset1.Insert(j) for j in cats1]
 
@@ -118,10 +110,20 @@ cats2 = [Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCat
 	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Floors),
 	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Ceilings),
 	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Roofs),
-	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Rooms)
-	]
+	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Rooms)]
 catset2 = app.Create.NewCategorySet()
 [catset2.Insert(i) for i in cats2]
+
+cats3 = [Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Rooms)]
+catset3 = app.Create.NewCategorySet()
+[catset3.Insert(i) for i in cats3]
+
+cats4 = [Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Walls),
+	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Floors),
+	Autodesk.Revit.DB.Category.GetCategory(doc,Autodesk.Revit.DB.BuiltInCategory.OST_Roofs)]
+catset4 = app.Create.NewCategorySet()
+[catset4.Insert(i) for i in cats4]
+
 
 
 defp = [g.Definitions for g in gr]
@@ -134,6 +136,15 @@ param1 = [param[param_name.index('BA_AI_RoomName')], \
           param[param_name.index('BA_AI_FinishingType')], \
 		  param[param_name.index('BA_AI_RoomNumber')]]
 param2 = [param[param_name.index('BA_AI_RoomID')]]
+param3 = [param[param_name.index('BA_AI_RoomFinishingArea-Floor')], \
+		  param[param_name.index('BA_AI_RoomFinishingDescription-Ceiling')], \
+		  param[param_name.index('BA_AI_RoomFinishingArea-Ceiling')], \
+		  param[param_name.index('BA_AI_RoomFinishingDescription-Wall')], \
+		  param[param_name.index('BA_AI_RoomFinishingArea-Wall')], \
+		  param[param_name.index('BA_AI_RoomFinishingDescription-Floor')]]
+param4 = [param[param_name.index('BA_AI_Structure')]]
+
+
 
 # №96 — PG_TEXT Group
 #Parameter groups
@@ -145,17 +156,24 @@ except:
 
 param_option = True
 
+
 #print(param_option, catset, parameters, group)
 Set = namedtuple('Param_settings', ['t_param_option','t_catset','t_parameters','t_group'])
 param_set1 = Set(t_param_option = param_option, t_catset = catset1, t_parameters = param1, t_group = group)
 param_set2 = Set(t_param_option = param_option, t_catset = catset2, t_parameters = param2, t_group = group)
+param_set3 = Set(t_param_option = param_option, t_catset = catset3, t_parameters = param3, t_group = group)
+param_set4 = Set(t_param_option = False, t_catset = catset4, t_parameters = param4, t_group = group)
 
-
-if 1 in runtype:
+if 1 and 2 in runtype:
+	run(param_set1)
+	run(param_set2)
+	run(param_set3)
+	run(param_set4)
+elif 1 in runtype:
 	run(param_set1)
 	run(param_set2)
 elif 2 in runtype:
-	forms.alert("In development")
-	#print("runtype2")
+	run(param_set3)
+	run(param_set4)
 else:
 	pass

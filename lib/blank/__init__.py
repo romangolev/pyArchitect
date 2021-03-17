@@ -13,11 +13,15 @@ from pyrevit import forms
 from pyrevit.loader import sessionmgr
 from pyrevit.loader import sessioninfo
 
-class BlankArchitectsEXT():
+class Blank :
    """
    BA Extension class
    """
-   
+   @staticmethod
+   def return_ext_dir():
+      return BLANK_EXT_DIR
+
+BLANK_EXT_DIR = op.dirname(op.dirname(__file__))
 
 
 def get_local_version():
