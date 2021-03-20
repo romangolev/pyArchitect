@@ -9,5 +9,7 @@ __title__ = "BIM Стандарт"
 __author__ = "Roman Golev"
 __context__ = 'zero-doc'
 
+#Opens folder in explorer
+
 import subprocess
-subprocess.Popen(r'explorer "\\10.10.50.30\shared$\Standards\01.BA STANDARDS\08.BIM STANDARDS\01.BA_BIM-STANDARD"')
+subprocess.Popen(r'explorer "#Here is the location of folder"')

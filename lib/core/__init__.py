@@ -13,7 +13,7 @@ from pyrevit import forms
 from pyrevit.loader import sessionmgr
 from pyrevit.loader import sessioninfo
 
-class Blank :
+class Core :
    """
    BA Extension class
    """
@@ -26,8 +26,8 @@ BLANK_EXT_DIR = op.dirname(op.dirname(__file__))
 
 def get_local_version():
     with open(op.join(op.dirname(__file__), 'version'), 'r') as version_file:
-       BA_version = version_file.read()
-    return BA_version
+       version = version_file.read()
+    return version
 
 def start_reload():
    logger = script.get_logger()
