@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev 
-# Blank Architects
+
 
 __doc__ = """Считает общую площадь по типу отделки и записывает параметры 
 

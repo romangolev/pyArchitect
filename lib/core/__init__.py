@@ -15,13 +15,14 @@ from pyrevit.loader import sessioninfo
 
 class Core :
    """
-   BA Extension class
+   Extension Coreclass
    """
    @staticmethod
    def return_ext_dir():
-      return BLANK_EXT_DIR
+      A_EXT_DIR = op.dirname(op.dirname(__file__))
+      return A_EXT_DIR
 
-BLANK_EXT_DIR = op.dirname(op.dirname(__file__))
+
 
 
 def get_local_version():
@@ -40,7 +41,7 @@ def start_reload():
 
 # Get version inside the github repository
 def get_git_version():
-   data = urllib2.urlopen('https://raw.githubusercontent.com/BlankArchitects/pyBlank/main/lib/blank/version')
+   data = urllib2.urlopen('https://raw.githubusercontent.com/romangolev/pyArchitect/main/lib/core/version')
    for line in data: 
       blankgitversion = line
    return blankgitversion

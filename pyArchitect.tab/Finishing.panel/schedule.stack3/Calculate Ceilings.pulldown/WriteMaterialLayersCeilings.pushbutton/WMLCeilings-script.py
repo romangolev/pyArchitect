@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev 
-# Blank Architects
+
 
 __doc__ = """Записывает состав слоёв потолка (категорией кровля) в параметр типа. / Writes down the information about Roof layers inside type.
 

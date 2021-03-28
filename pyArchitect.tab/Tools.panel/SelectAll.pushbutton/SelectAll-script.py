@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev 
-# Blank Architects
 
 __doc__ = """Select all element of desired category / Выбирает все элементы заданной категории на виде
 -----------------------------------

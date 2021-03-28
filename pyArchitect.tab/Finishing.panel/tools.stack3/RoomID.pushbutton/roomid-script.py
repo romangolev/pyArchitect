@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev 
-# Blank Architects
-
 
 __doc__ = 'Записывает параметр ID помещения. / Retrieves Room ID and put it into properties.'
 __author__ = 'Roman Golev'

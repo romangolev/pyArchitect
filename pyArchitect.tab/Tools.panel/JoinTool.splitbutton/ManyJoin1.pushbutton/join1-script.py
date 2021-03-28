@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev 
-# Blank Architects
+
 #TODO: Implement the procedure of checking if elements are joined or not before executing command.
 
 __doc__ = """Joins multiple elements / Присоединяет множественные элементы 

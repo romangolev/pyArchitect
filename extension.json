@@ -10,5 +10,5 @@
     "url": "https://github.com/romangolev/pyArchitect.git",
     "website": "",
     "image": "",
-    "dependencies": []
+    "dependencies": ["pyRevit","RevitPythonWrapper"]
 }
