@@ -43,7 +43,7 @@ output.get_output().set_height(500)
 output.get_output().center()
 out = script.get_output()
 #out.print_image(svg)
-out.print_html('<h1 style="text-align:center;">pyArchitects Extension Tools for Revit</h1>')
+out.print_html('<h1 style="text-align:center;"> pyArchitect Extension Tools for pyRevit</h1>')
 
 #name = pyrevit._HostApplication.username()
 print(str(user) + ' : {}'.format(revit.username))

@@ -14,146 +14,123 @@ __doc__ = """Создание отделки пола для выбранных 
 Функция "Вырезание отверстий" работает корректно только при выборе одного
 помещения. Выбор множественных помещений может привести к ошибке.
 
-Используются параметры / Shared parameters used:
-BA_AI_RoomName
-BA_AI_RoomNumber
-BA_AI_RoomID
-BA_AI_FinishingType
 """
 __author__ = 'Roman Golev'
 __title__ = "Отделка\nПола"
 
 import sys
 import os
+import Autodesk
 from collections import namedtuple
 from Autodesk.Revit.DB.Architecture import Room
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.DB import Document
-
-import rpw
-from rpw import doc, uidoc, DB, UI, db, ui
-from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator, Button, CheckBox)
 from pyrevit import forms 
+
+doc = __revit__.ActiveUIDocument.Document
+uidoc = __revit__.ActiveUIDocument
+uiapp = __revit__
+app = uiapp.Application
+t = Autodesk.Revit.DB.Transaction(doc)
+tg = Autodesk.Revit.DB.TransactionGroup(doc)
+
+
+from rpw import ui, DB
 
 #Select Rooms
 selection = ui.Selection()
 selected_rooms = [e for e in selection.get_elements(wrapped=False) if isinstance(e, Room)]
 if not selected_rooms:
-    UI.TaskDialog.Show('Создать отделку потолка', 'Необходимо выбрать помещение.')
+    forms.alert('Создать отделку потолка', 'Необходимо выбрать помещение.')
     sys.exit()
 
+def make_opening(nf,boundary):
+    co_curves = DB.CurveArray()
+    for bounds in boundary:
+        co_curves.Append(bounds.GetCurve())
+    co = doc.Create.NewOpening(nf, co_curves, False)
 
 #Get floor_types
-floor_types = rpw.db.Collector(of_category='OST_Floors', is_type=True).get_elements(wrapped=False)
-#Select floor type
-floor_type_options = {DB.Element.Name.GetValue(t): t for t in floor_types}
-#Select floor types UI
+def collect_floors(doc):
+    cl = FilteredElementCollector(doc) \
+            .OfCategory(BuiltInCategory.OST_Floors) \
+            .OfClass(FloorType) \
+            .ToElements()
+            
+    return cl
 
-floor_type_id = ""
 
-components = [Label('Выберите тип отделки:'),
-              ComboBox('fl_type', floor_type_options),
-              Label('Введите привязку пола к уровню :'),
-              TextBox('h_offset', base_offset="50.0"),
-              CheckBox('checkbox1', 'Брать смещение пола из свойств помещения'),
-              CheckBox('checkbox2', 'Вырезать отверстия'),
-              Label('Вырезание отверстий работает корректно'),
-              Label('при выборе только одного помещения'),
-              Button('Select')]
-form = FlexForm('Создать отделку пола', components)
-win = form.show()
+floor_types = collect_floors(doc)
+floor_type_options = []
+for i in floor_types:
+    floor_type_options.append(i.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_NAME).AsString())
 
-if win == False:
+res = dict(zip(floor_type_options,floor_types))
+for key in floor_types:
+    res[key] = key.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_NAME)
+
+switches = ['Смещение из помещения', 'Floor or Ceiling']
+cfgs = {'option1': { 'background': '0xFF55FF'}}
+rops, rswitches = forms.CommandSwitchWindow.show(floor_type_options, message='Select Option',switches=switches,config=cfgs,)
+
+if rops == None:
     sys.exit()
 
-#Get the ID of floor type
-floor_type_id = form.values['fl_type'].Id
-if form.values['h_offset'] != "":
-    offset3 = float(form.values['h_offset'])
-else:
-    offset3 = 0
-
-f ,fls = [], []
-co = []
-
-#@rpw.db.Transaction.ensure('Создание отделки пола')
-def make_floor(new_floor):
-    floor_curves = DB.CurveArray()
-    for boundary_segment in new_floor.boundary:
-        floor_curves.Append((boundary_segment).GetCurve())
-    floorType = doc.GetElement(new_floor.floor_type_id)
-    level = doc.GetElement(new_floor.level_id)
-    normal_plane = DB.XYZ.BasisZ
-    f = doc.Create.NewFloor(floor_curves, floorType, level, False, normal_plane)
-    fls.append(f)
-
-    # Input parameter values from rooms
-    if form.values['checkbox1'] == True :
-        db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(new_floor.room_offset1)
-    else:
-        db.Element(f).parameters.builtins['FLOOR_HEIGHTABOVELEVEL_PARAM'].value = float(offset3/304.8)
-    try:
-        db.Element(f).parameters['BA_AI_RoomName'].value = new_floor.room_name
-        db.Element(f).parameters['BA_AI_RoomNumber'].value = new_floor.room_number
-        db.Element(f).parameters['BA_AI_RoomID'].value = new_floor.room_id
-        db.Element(f).parameters['BA_AI_FinishingType'].value = "Floor Finishing"
-        db.Element(room).parameters['BA_AI_RoomID'].value = room.Id
-    except:
-        forms.toaster.send_toast('You need to add shared parameters for BA finishing')
-        #forms.alert('You need to add shared parameters for BA finishing')
-        pass
-
-
-def make_opening(new_floor):
-    co_curves = DB.CurveArray()
-    for bounds in i:
-        co_curves.Append(bounds.GetCurve())
-    co = doc.Create.NewOpening(fls[new_floor.count-1], co_curves, False)
-
-
-
-NewFloor = namedtuple('NewFloor', ['floor_type_id', 'boundary', 'level_id', 'count', 'opening_boundary', 'openings',
-                                    'room_offset1', 'room_name', 'room_number', 'room_id'])
-
-
-new_floors = []
+floor_type_id = res[rops].Id
 room_boundary_options = DB.SpatialElementBoundaryOptions()
-opening_boundary = []
-all_boundaries = []
-all_boundaries1 = []
-r = 0
 
-for room in selected_rooms:
+def make_floor(room):
     room_level_id = room.Level.Id
     room_offset1 = room.get_Parameter(BuiltInParameter.ROOM_LOWER_OFFSET).AsDouble()
+    room_offset2 = room.get_Parameter(BuiltInParameter.ROOM_UPPER_OFFSET).AsDouble()
     room_name = room.get_Parameter(BuiltInParameter.ROOM_NAME).AsString()
     room_number = room.get_Parameter(BuiltInParameter.ROOM_NUMBER).AsString()
     room_id = room.Id
-    # List of Boundary Segment comes in an array by itself.
-    r += 1
-    #opening_boundary = room.GetBoundarySegments(room_boundary_options)[1]
     room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
+    floor_curves = DB.CurveArray()
+    for boundary_segment in room_boundary:
+        floor_curves.Append((boundary_segment).GetCurve())
+    floorType = doc.GetElement(floor_type_id)
+    level = doc.GetElement(room_level_id)
+    normal_plane = DB.XYZ.BasisZ
+    f = doc.Create.NewFloor(floor_curves, floorType, level, False, normal_plane)
+    offset2 = doc.GetElement(floor_type_id).get_Parameter(BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM).AsDouble()
+    # Input parameter values from rooms
+    if rswitches['Floor or Ceiling'] == False:
+        if rswitches['Смещение из помещения'] == False:
+            f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset1 + offset2)
+        if rswitches['Смещение из помещения'] == True:
+            f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset1)
+
+    if  rswitches['Floor or Ceiling'] == True:
+        if rswitches['Смещение из помещения'] == True:
+            f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset2)
+        if rswitches['Смещение из помещения'] == False:
+            f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset2 + offset2)
+    # Here we can add parameters for floors and ceilings
+    # try:
+		# w.get_Parameter().Set()
+	# except:
+	# 	forms.alert('You need to add shared parameters for finishing')
+    return f
+
+
+tg.Start("Make Floor/Ceiling finishing")
+for room in selected_rooms:
+    # Create floor
+    t.Start('Create Floor/Ceiling')
+    new_floor = make_floor(room)
     all_boundaries = room.GetBoundarySegments(room_boundary_options)
-    n = 0
-    for bound_set in all_boundaries:
-        all_boundaries1.append(room.GetBoundarySegments(room_boundary_options)[n])
-        n += 1
-    all_boundaries1.pop(0)
-    new_floor = NewFloor(floor_type_id = floor_type_id, boundary = room_boundary,
-                         level_id = room_level_id, count = r, opening_boundary = all_boundaries1,
-                         openings = n-1, room_offset1 = room_offset1, room_name = room_name,
-                         room_number = room_number, room_id = room_id)
-    new_floors.append(new_floor)
+    t.Commit()
 
-
-
-c = 0
-#Create floor
-for new_floor in new_floors:
-    with db.Transaction('Create Floor'):
-        make_floor(new_floor)
-        c += 1
-    if form.values['checkbox2'] and new_floor.openings != 0 :
-        for i in new_floor.opening_boundary:
-            with db.Transaction('Create Openeing'):
-                make_opening(new_floor)
+    #Create floor opening if needed
+    if len(all_boundaries) >1:
+        t.Start('Create Opening(s)')
+        i = 1
+        while i < len(all_boundaries):
+            make_opening(new_floor, all_boundaries[i])
+            i += 1
+        t.Commit()
+    else:
+        pass
+tg.Assimilate()
