@@ -1,3 +1,4 @@
+"""
 import pyrevit
 from pyrevit import forms
 from pyrevit import HOST_APP
@@ -13,3 +14,4 @@ if core.update_needed() == True:
     forms.toaster.send_toast("New update for pyArchitect extension available: {}".format(core.get_git_version()))
 else:
     pass
+"""
