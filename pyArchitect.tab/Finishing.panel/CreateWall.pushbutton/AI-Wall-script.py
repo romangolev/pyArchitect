@@ -17,7 +17,7 @@ __doc__ = """Создаёт отделку стен для выбранного 
 
 """
 __author__ = 'Roman Golev'
-__title__ = "Отделка\nСтен"
+__title__ = "Wall\nFinishing"
 
 #Load Revit API and system
 from hashlib import new
@@ -32,10 +32,7 @@ import sys
 clr.AddReference("System")
 from System.Collections.Generic import List
 import uuid
-
-#import revitpythonwrapper by guitalarico 
-import rpw
-from rpw import ui
+from System import Guid
 
 from collections import namedtuple
 
@@ -49,12 +46,15 @@ app = uiapp.Application
 t = Autodesk.Revit.DB.Transaction(doc)
 tg = Autodesk.Revit.DB.TransactionGroup(doc)
 
-# Select rooms with rpw ui
-selection = ui.Selection()
-selected_rooms = [e for e in selection.get_elements(wrapped=False) if isinstance(e, Room)]
+# Select rooms 
+selobject = uidoc.Selection.GetElementIds()
+selected_rooms = [doc.GetElement(sel) for sel in selobject if doc.GetElement(sel).Category.Name == "Rooms"]
 if not selected_rooms:
     forms.alert('MakeWalls', 'You need to select at lest one Room.')
     sys.exit()
+
+
+
 
 #Get floor_types
 def collect_walls(doc):
@@ -73,7 +73,7 @@ for i in wall_types:
 
 res = dict(zip(wall_type_options,wall_types))
 
-switches = ['Inside loops finishing']
+switches = ['Inside loops finishing', 'Include Room Separation Lines']
 rops, rswitches = forms.CommandSwitchWindow.show(wall_type_options, message='Select Option',switches=switches)
 
 if rops == None:
@@ -81,7 +81,7 @@ if rops == None:
 
 wall_type = res[rops]
 wall_type_id = wall_type.Id
-
+notifications = 0
 
 # Duplicating wall type creating the same layer set with double width
 # to deal with the offset API issue
@@ -113,6 +113,13 @@ def make_wall(room, temp_type, line):
 
 	w = Wall.Create(doc, line, temp_type.Id, level, wall_height, 0.0, False, False)
 	w.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
+	global notifications
+	try:
+		w.get_Parameter(Guid("608a4305-6289-46d7-aa4c-d751919385f1")).Set(room_number)
+		w.get_Parameter(Guid("6a351a5d-c39f-4b49-8db0-af97260c32c0")).Set(room_name)
+		w.get_Parameter(Guid("a3ebba98-ddb7-40f3-b5a4-389f24a0e26b")).Set('Отделка стен')
+	except:
+		notifications += 1
 	# Here we can add parameter values for wall finishing
 	# try:
 		# w.get_Parameter().Set()
@@ -138,19 +145,35 @@ for room in selected_rooms:
 
 	for bound in room_boundary:
 		try :
-			if doc.GetElement(bound.ElementId).Category.Name.ToString() == "Walls" or \
-			   doc.GetElement(bound.ElementId).Category.Name.ToString() == "Structural Columns" or \
-			   doc.GetElement(bound.ElementId).Category.Name.ToString() == "Columns":
-				if doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
-					# Filtering small lines less than 10 mm Lenght
-					if bound.GetCurve().Length > 10/304.8:
-						bound_walls.append(doc.GetElement(bound.ElementId))
-						new_wall = make_wall(room, tmp,bound.GetCurve())
-						wallzz.append(new_wall)
-						wallz.append(new_wall.Id)
-						new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-				else:
-					pass
+			if doc.GetElement(bound.ElementId).Category.Name.ToString() == "Walls" \
+				and doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
+				# Filtering small lines less than 10 mm Lenght
+				if bound.GetCurve().Length > 10/304.8:
+					bound_walls.append(doc.GetElement(bound.ElementId))
+					new_wall = make_wall(room, tmp,bound.GetCurve())
+					wallzz.append(new_wall)
+					wallz.append(new_wall.Id)
+					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+
+			elif doc.GetElement(bound.ElementId).Category.Name.ToString() == "Structural Columns" or \
+			     doc.GetElement(bound.ElementId).Category.Name.ToString() == "Columns" :
+				# Filtering small lines less than 10 mm Lenght
+				if bound.GetCurve().Length > 10/304.8:
+					bound_walls.append(doc.GetElement(bound.ElementId))
+					new_wall = make_wall(room, tmp,bound.GetCurve())
+					wallzz.append(new_wall)
+					wallz.append(new_wall.Id)
+					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+					
+			elif rswitches['Include Room Separation Lines'] == True and \
+				doc.GetElement(bound.ElementId).Category.Name.ToString() == "<Room Separation>":
+				# Filtering small lines less than 10 mm Lenght
+				if bound.GetCurve().Length > 10/304.8:
+					bound_walls.append(doc.GetElement(bound.ElementId))
+					new_wall = make_wall(room, tmp,bound.GetCurve())
+					wallzz.append(new_wall)
+					wallz.append(new_wall.Id)
+					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
 			else:
 				pass
 		except :
@@ -164,19 +187,25 @@ for room in selected_rooms:
 			while i < len(room_boundary2):
 				for bound in room_boundary2[i]:
 					try :
-						if doc.GetElement(bound.ElementId).Category.Name.ToString() == "Walls" or \
-						   doc.GetElement(bound.ElementId).Category.Name.ToString() == "Structural Columns" or \
-						   doc.GetElement(bound.ElementId).Category.Name.ToString() == "Columns" :
-							# if doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
-								# Filtering small lines less than 10 mm Lenght
+						if doc.GetElement(bound.ElementId).Category.Name.ToString() == "Walls" \
+							and doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
+							# Filtering small lines less than 10 mm Lenght
 							if bound.GetCurve().Length > 10/304.8:
 								bound_walls.append(doc.GetElement(bound.ElementId))
 								new_wall = make_wall(room, tmp,bound.GetCurve())
 								wallzz.append(new_wall)
 								wallz.append(new_wall.Id)
 								new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-							# else:
-							# 	pass
+
+						elif doc.GetElement(bound.ElementId).Category.Name.ToString() == "Structural Columns" or \
+						doc.GetElement(bound.ElementId).Category.Name.ToString() == "Columns":
+							# Filtering small lines less than 10 mm Lenght
+							if bound.GetCurve().Length > 10/304.8:
+								bound_walls.append(doc.GetElement(bound.ElementId))
+								new_wall = make_wall(room, tmp,bound.GetCurve())
+								wallzz.append(new_wall)
+								wallz.append(new_wall.Id)
+								new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
 						else:
 							pass
 					except :
@@ -199,7 +228,10 @@ t.Commit()
 
 t.Start('Join Walls with hosts')
 for i in res:
-	Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc, i, res[i])
+	try:
+		Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc, i, res[i])
+	except:
+		pass
 t.Commit()
 
 
@@ -209,3 +241,8 @@ doc.Delete(tmp.Id)
 t.Commit()
 
 tg.Assimilate()
+
+
+if notifications > 0:
+    forms.toaster.send_toast('You need to add shared parameters for finishing', \
+            title=None, appid=None, icon=None, click=None, actions=None)
