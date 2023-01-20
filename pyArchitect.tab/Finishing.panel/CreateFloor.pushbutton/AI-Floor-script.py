@@ -12,9 +12,6 @@ Step 2 / Шаг 2 — Select offset option and choose finishing type /  Выбр
 
 Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
 Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
-
-Функция "Вырезание отверстий" работает корректно только при выборе одного
-помещения. Выбор множественных помещений может привести к ошибке.
 """
 
 __author__ = 'Roman Golev'
@@ -40,11 +37,12 @@ tg = Autodesk.Revit.DB.TransactionGroup(doc)
 
 notifications = 0
 #Select Rooms
-#TODO pick rooms with selector object and filter by category
+#TODO pick rooms with selector object and filter by category (click, then select)
+
 selobject = uidoc.Selection.GetElementIds()
 selected_rooms = [doc.GetElement(sel) for sel in selobject if doc.GetElement(sel).Category.Name == "Rooms"]
 if not selected_rooms:
-    forms.alert( 'Необходимо выбрать помещение','Создать отделку пола')
+    forms.alert('Please select room','Create floor finishing')
     sys.exit()
 
 def make_opening(nf,boundary):
@@ -99,7 +97,7 @@ def make_floor(room):
 
         normal_plane = Autodesk.Revit.DB.XYZ.BasisZ
         f = doc.Create.NewFloor(floor_curves, floorType, level, False, normal_plane)
-    elif app.VersionNumber == "2023":
+    elif app.VersionNumber == "2023" or app.VersionNumber == "2024" or app.VersionNumber == "2025":
         floor_curves_loop = Autodesk.Revit.DB.CurveLoop()
         floor_curves = List[Autodesk.Revit.DB.Curve]()
         for boundary_segment in room_boundary:
@@ -152,6 +150,3 @@ tg.Assimilate()
 if notifications > 0:
     forms.toaster.send_toast('You need to add shared parameters for finishing', \
             title=None, appid=None, icon=None, click=None, actions=None)
-
-
-#TODO: version 2023 API update
