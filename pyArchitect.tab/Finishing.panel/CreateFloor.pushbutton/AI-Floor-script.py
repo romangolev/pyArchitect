@@ -4,17 +4,19 @@
 
 #TODO:Create Shared Parameter if there is no such parameter in project
 
-__doc__ = """Создание отделки пола для выбранных помещений иструментом "Перекрытие"
+__doc__ = """Creates floors for selected rooms / Создание отделки пола для выбранных помещений
 ------------------------------------
-Принцип работы инструмента:
-Шаг 1 — Выделить в проекте необходимые помещения
-Шаг 2 — В сплывающем окне выбрать тип отделки и указать смещение от уровня
+Follow the steps / Принцип работы инструмента:
+Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
+Step 2 / Шаг 2 — Select offset option and choose finishing type /  Выбрать опцию смещения и тип отделки
 
-При создании пола, в новый пол записываются параметры номера, названия и ID помещения.
+Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
+Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
+
 Функция "Вырезание отверстий" работает корректно только при выборе одного
 помещения. Выбор множественных помещений может привести к ошибке.
-
 """
+
 __author__ = 'Roman Golev'
 __title__ = "Floor\nFinishing"
 
@@ -70,7 +72,7 @@ res = dict(zip(floor_type_options,floor_types))
 for key in floor_types:
     res[key] = key.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_NAME)
 
-switches = ['Смещение из помещения']
+switches = ['Consider Thickness']
 cfgs = {'option1': { 'background': '0xFF55FF'}}
 rops, rswitches = forms.CommandSwitchWindow.show(floor_type_options, message='Select Option',switches=switches,config=cfgs,)
 
@@ -110,23 +112,16 @@ def make_floor(room):
                                             floorType.Id, 
                                             level.Id)
     # Input parameter values from rooms
-    if rswitches['Смещение из помещения'] == False:
+    if rswitches['Consider Thickness'] == False:
         offset2 = doc.GetElement(floor_type_id).get_Parameter(BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM).AsDouble()
         f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset1 + offset2)
-    if rswitches['Смещение из помещения'] == True:
+    if rswitches['Consider Thickness'] == True:
         f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset1)
-        
-    # if  rswitches['Floor or Ceiling'] == True:
-    #     if rswitches['Смещение из помещения'] == True:
-    #         f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset2)
-    #     if rswitches['Смещение из помещения'] == False:
-    #         f.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset2 + offset2)
-    # Here we can add custom parameters for floors or ceilings
+
     global notifications
+    # Here we can add custom parameters for floors or ceilings
     try:
-        f.get_Parameter(Guid("608a4305-6289-46d7-aa4c-d751919385f1")).Set(room_number)
-        f.get_Parameter(Guid("6a351a5d-c39f-4b49-8db0-af97260c32c0")).Set(room_name)
-        f.get_Parameter(Guid("a3ebba98-ddb7-40f3-b5a4-389f24a0e26b")).Set('Отделка пола')
+         f.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Floor Finishing')
 
     except:
         notifications += 1
@@ -159,4 +154,4 @@ if notifications > 0:
             title=None, appid=None, icon=None, click=None, actions=None)
 
 
-#TODO: vesrion 2023 API update
+#TODO: version 2023 API update
