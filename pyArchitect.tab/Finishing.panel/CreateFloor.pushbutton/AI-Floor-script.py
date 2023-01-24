@@ -8,7 +8,7 @@ __doc__ = """Creates floors for selected rooms / Создание отделки
 ------------------------------------
 Follow the steps / Принцип работы инструмента:
 Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
-Step 2 / Шаг 2 — Select offset option and choose finishing type /  Выбрать опцию смещения и тип отделки
+Step 2 / Шаг 2 — Select offset option and choose finishing type / Выбрать опцию смещения и тип отделки
 
 Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
 Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
@@ -119,7 +119,7 @@ def make_floor(room):
     global notifications
     # Here we can add custom parameters for floors or ceilings
     try:
-         f.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Floor Finishing')
+        f.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Floor Finishing')
 
     except:
         notifications += 1

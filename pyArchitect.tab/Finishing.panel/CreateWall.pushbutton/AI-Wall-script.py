@@ -4,16 +4,12 @@
 
 #TODO:RU/EN Autoswitch depending on the Revit version used
 
-__doc__ = """Создаёт отделку стен для выбранного помещения. /Makes skirting board for selected rooms.
+__doc__ = """Creates wall finishing for selected rooms / Создаёт отделку стены для выбранного помещения
 ------------------------------------
-Принцип работы инструмента:
-Шаг 1 — Выделить в проекте необходимые помещения
-Шаг 2 — В сплывающем окне выбрать тип отделки и указать смещение от уровня
+Follow the steps / Принцип работы инструмента:
+Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
+Step 2 / Шаг 2 — Select offset option and choose finishing type / Выбрать опцию смещения и тип отделки
 
-
-При выборе функции "Из помещения" отделка потолка создаётся на основе верхней
-высотной отметки помещения. Для корректной работы необходимо настроить 
-высоту помещений.
 
 """
 __author__ = 'Roman Golev'
@@ -115,9 +111,7 @@ def make_wall(room, temp_type, line):
 	w.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 	global notifications
 	try:
-		w.get_Parameter(Guid("608a4305-6289-46d7-aa4c-d751919385f1")).Set(room_number)
-		w.get_Parameter(Guid("6a351a5d-c39f-4b49-8db0-af97260c32c0")).Set(room_name)
-		w.get_Parameter(Guid("a3ebba98-ddb7-40f3-b5a4-389f24a0e26b")).Set('Отделка стен')
+		w.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Отделка стен')
 	except:
 		notifications += 1
 	# Here we can add parameter values for wall finishing
@@ -215,6 +209,9 @@ for room in selected_rooms:
 	elif rswitches['Inside loops finishing'] == False:
 		pass
 t.Commit()
+
+
+
 #TODO: Supress warning with win32api 
 # https://thebuildingcoder.typepad.com/blog/2018/01/gathering-and-returning-failure-information.html
 
