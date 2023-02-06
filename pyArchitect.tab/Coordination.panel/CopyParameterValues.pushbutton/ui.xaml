@@ -1,0 +1,22 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av"
+        Title="Ccopy parameters"
+        Width="500" ResizeMode="NoResize" Height="150">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250" />
+            <!-- Or Auto -->
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" >
+            <TextBlock Text="Initial parameters:" Margin="5,5" />
+            <ComboBox x:Name="drop1" Margin="5,5" />
+            <Button Content="Rewrite ---->" Width="165" Click="rewrite" Margin="7,10,7,7"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" >
+            <TextBlock Text="Parameters to rewrite:" Margin="5,5" />
+            <ComboBox x:Name="drop2" Margin="5,5" />
+        </StackPanel>
+    </Grid>
+</Window>

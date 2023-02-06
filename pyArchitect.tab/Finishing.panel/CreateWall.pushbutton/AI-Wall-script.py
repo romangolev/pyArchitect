@@ -4,12 +4,13 @@
 
 #TODO:RU/EN Autoswitch depending on the Revit version used
 
-__doc__ = """Creates wall finishing for selected rooms / Создаёт отделку стены для выбранного помещения
+__doc__ = """Creates second layer of walls inside selected rooms / Создаёт отделку стены для выбранного помещения
 ------------------------------------
 Follow the steps / Принцип работы инструмента:
 Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
-Step 2 / Шаг 2 — Select offset option and choose finishing type / Выбрать опцию смещения и тип отделки
+Step 2 / Шаг 2 — Select offset option and choose wall type / Выбрать опцию смещения и тип отделки
 
+Useful for creating specifications for interior works. 
 
 """
 __author__ = 'Roman Golev'
@@ -147,7 +148,8 @@ for room in selected_rooms:
 					new_wall = make_wall(room, tmp,bound.GetCurve())
 					wallzz.append(new_wall)
 					wallz.append(new_wall.Id)
-					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+					#new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 
 			elif doc.GetElement(bound.ElementId).Category.Name.ToString() == "Structural Columns" or \
 			     doc.GetElement(bound.ElementId).Category.Name.ToString() == "Columns" :
@@ -157,8 +159,9 @@ for room in selected_rooms:
 					new_wall = make_wall(room, tmp,bound.GetCurve())
 					wallzz.append(new_wall)
 					wallz.append(new_wall.Id)
-					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-					
+					#new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
+
 			elif rswitches['Include Room Separation Lines'] == True and \
 				doc.GetElement(bound.ElementId).Category.Name.ToString() == "<Room Separation>":
 				# Filtering small lines less than 10 mm Lenght
@@ -167,7 +170,8 @@ for room in selected_rooms:
 					new_wall = make_wall(room, tmp,bound.GetCurve())
 					wallzz.append(new_wall)
 					wallz.append(new_wall.Id)
-					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+					#new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+					new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 			else:
 				pass
 		except :
@@ -189,7 +193,8 @@ for room in selected_rooms:
 								new_wall = make_wall(room, tmp,bound.GetCurve())
 								wallzz.append(new_wall)
 								wallz.append(new_wall.Id)
-								new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+								#new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+								new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 
 						elif doc.GetElement(bound.ElementId).Category.Name.ToString() == "Structural Columns" or \
 						doc.GetElement(bound.ElementId).Category.Name.ToString() == "Columns":
@@ -199,7 +204,8 @@ for room in selected_rooms:
 								new_wall = make_wall(room, tmp,bound.GetCurve())
 								wallzz.append(new_wall)
 								wallz.append(new_wall.Id)
-								new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+								#new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
+								new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 						else:
 							pass
 					except :
@@ -217,6 +223,7 @@ t.Commit()
 
 
 res = dict(zip(bound_walls,wallzz))
+print(res)
 t.Start('Change Type and Join Walls with hosts')
 col1 = List[ElementId](wallz)
 Autodesk.Revit.DB.Element.ChangeTypeId(doc,col1,wall_type_id)
