@@ -4,6 +4,8 @@
 # Reference information:
 #(https://forums.autodesk.com/t5/revit-api-forum/hide-unhide-revitlinkinstance-in-visibility-settings/td-p/8194955)
 
+#TODO: Remake a logic based on dll version of script
+
 __doc__ = """Создаёт координационный план. /Creates Coordination Plan.
 
 Creates new Coordination Plan based on the selected plan\
@@ -19,7 +21,7 @@ Shift+Click\
 Показывает базовую точку на выбранном виде
 """
 __author__ = 'Roman Golev'
-__title__ = "Create Coord\nPlan"
+__title__ = "Coord\nPlan"
 #__helpurl__ = ""
 
 import clr

@@ -2,7 +2,6 @@
 # pylint: skip-file
 # by Roman Golev 
 
-#TODO:RU/EN Autoswitch depending on the Revit version used
 
 __doc__ = """Creates second layer of walls inside selected rooms / Создаёт отделку стены для выбранного помещения
 ------------------------------------

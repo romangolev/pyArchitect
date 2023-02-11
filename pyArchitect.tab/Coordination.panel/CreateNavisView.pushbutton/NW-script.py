@@ -21,7 +21,7 @@ Shift+Click — Оставляет включенными связи RVT (для
 координации EFM)
 """
 __author__ = 'Roman Golev'
-__title__ = "Create Navis View"
+__title__ = "Navis View"
 #__helpurl__ = ""
 
 import clr
