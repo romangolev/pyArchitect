@@ -21,7 +21,7 @@ Shift+Click — Оставляет включенными связи RVT (для
 координации EFM)
 """
 __author__ = 'Roman Golev'
-__title__ = "Navis View"
+__title__ = "Navis\nView"
 #__helpurl__ = ""
 
 import clr
@@ -41,14 +41,8 @@ uidoc = __revit__.ActiveUIDocument
 uiapp = __revit__
 app = uiapp.Application
 t = Autodesk.Revit.DB.Transaction(doc)
-
-
 from pyrevit import HOST_APP
 from Autodesk.Revit.ApplicationServices import LanguageType
-
-msg = """Existing Navisworks view detected. Do you want to delete existing and create new one?"""
-ops = ['Delete all and create new View','Keep existing']
-cfgs = {'option1': { 'background': '0xFF55FF'}}
 
 
 def get3D_viewtype():
@@ -240,8 +234,11 @@ def main():
         
 
     elif nwex != []:
+        msg = """Existing Navisworks view detected. Do you want to delete existing and create new one?"""
+        ops = ['Delete all and create new View','Keep existing']
+        cfgs = {'option1': { 'background': '0xFF55FF'}}
         options = forms.CommandSwitchWindow.show(ops,
-            message="""What would you like to do? / Что выполнить далее? """,
+            message=msg,
             config=cfgs,)
         if options == "Delete all and create new View":
 

@@ -1,24 +1,16 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev
-# Reference information:
-#(https://forums.autodesk.com/t5/revit-api-forum/hide-unhide-revitlinkinstance-in-visibility-settings/td-p/8194955)
-
-#TODO: Remake a logic based on dll version of script
 
 __doc__ = """Создаёт координационный план. /Creates Coordination Plan.
 
 Creates new Coordination Plan based on the selected plan\
 (Reveals Base Point, Survey Point and Internal Origin) \
 
-Shift+Click\
-Reveals Base Point in active view
 ---------------------------------------------------------------------
 
-Создаёт новый план координации  \
+Создаёт новый план координации  
 
-Shift+Click\
-Показывает базовую точку на выбранном виде
 """
 
 #TODO: Add lang driven dialogs
@@ -37,6 +29,7 @@ clr.AddReference("System.Core")
 clr.AddReference('System')
 clr.AddReference('RevitAPIUI')
 import pyrevit
+from pyrevit import forms
 from pyrevit import HOST_APP
 import System.Collections.Generic 
 import sys
@@ -153,25 +146,60 @@ def create_coord_plan(doc, vft, lvl):
     return elem
 
 def main():
+    #Get viewtype and default level
     vf = get_viewtype(t,a)
     level = Autodesk.Revit.DB.FilteredElementCollector(doc)\
             .OfCategory(Autodesk.Revit.DB.BuiltInCategory.OST_Levels)\
             .WhereElementIsNotElementType().ToElements().FirstOrDefault()
 
-    print(vf)
-    print(level.Id)
     #Find existing coorfination plans
     ex = find_coord(doc)
     if len(ex) == 0:
         t.Start("Create Coordination Plan")
-
         new_plan = create_coord_plan(doc, vf.Id, level.Id)
-
         t.Commit()
         make_active(new_plan)
     else:
-        #TODO: Implement options for what to do next
-        print("choose what to do next")
+        msg = """Existing Coordination plan(s) detected. Do you want to delete existing and create new one?"""
+        ops = ['Delete old and create new','Keep existing']
+        cfgs = {'option1': { 'background': '0xFF55FF'}} 
+        options = forms.CommandSwitchWindow.show(ops,
+            message=msg,
+            config=cfgs,)
+        if options == "Delete old and create new":
+            #Create dummy view 
+            try:
+
+                t.Start("Create dummy plan")
+                dummy = Autodesk.Revit.DB.ViewPlan.Create(doc, vf.Id, level.Id)
+                t.Commit()
+                make_active(dummy)
+            except:
+                t.RollBack()
+                pyrevit.forms.alert("Error in creating dummy plan")
+
+            # Create new Coord plan and delete old plans
+            try:
+                t.Start("Create Coordination Plan")
+                for view in ex:
+                    doc.Delete(view.Id)
+                new_plan = create_coord_plan(doc, vf.Id, level.Id)
+                t.Commit()
+                make_active(new_plan)
+            except:
+                t.RollBack()
+                pyrevit.forms.alert("Error in creating new coord plan")
+
+            #Delete dummy plan
+            try:
+                t.Start("Delete dummy 3D view")
+                doc.Delete(dummy.Id)
+                t.Commit()
+            except:
+                t.RollBack()
+                pyrevit.forms.alert("Error in deleting dummy")
+        else:
+            make_active(ex[0])
 
 
 if __name__ == '__main__':
