@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev
-# Reference information:
-#(https://forums.autodesk.com/t5/revit-api-forum/hide-unhide-revitlinkinstance-in-visibility-settings/td-p/8194955)
 
 __doc__ = """Создаёт 3D вид Navis. /Creates Navis 3D view.
 

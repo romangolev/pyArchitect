@@ -70,7 +70,9 @@ for i in wall_types:
 res = dict(zip(wall_type_options,wall_types))
 
 switches = ['Inside loops finishing', 'Include Room Separation Lines']
-rops, rswitches = forms.CommandSwitchWindow.show(wall_type_options, message='Select Option',switches=switches)
+rops, rswitches = forms.CommandSwitchWindow.show( wall_type_options, 
+										message='Select Option',
+										switches=switches)
 
 if rops == None:
     sys.exit()
