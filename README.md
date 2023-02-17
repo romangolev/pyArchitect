@@ -22,7 +22,12 @@ To use the extension follow the steps:
 
 ### Features / Функции
 
-Main features of extension are 
+Main extension itself looks the following way: ![ribbon logo](/docs/static/ribbon.png)
+Extension has several panels in the tab:
+* Main — control panel, information about the extension
+* Coordination — tools for model coordination
+* Finishing — bundle for achetecture interior works
+* Tools — miscellaneous tools
 
 
 Основные функции расширения представлены на вкладке pyArchitect.
@@ -32,7 +37,6 @@ Main features of extension are
 * Coordination — набор инструментов для координации проекта
 * Finishing — панель инструментов по созданию/специфицированию элементов отделки
 * Tools — панель вспомогательных инструментов
-
 
 Каждый инструмент обладает встроенной подсказкой. Для того, чтобы увидеть её, необходимо навести на инструмент и немного подождать.
 
