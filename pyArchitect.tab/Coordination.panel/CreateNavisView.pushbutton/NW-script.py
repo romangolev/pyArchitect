@@ -7,16 +7,10 @@ __doc__ = """Создаёт 3D вид Navis. /Creates Navis 3D view.
 Creates new 3D View for Navisworks export (Hides all annotations, imports, etc.) \
 Searches for existing 3D Views, gives an option to delete existing view and \
 create new one or preserve existed.
-
-Shift+Click — Keeps linked RVT files visible (for EFM coordination files) \
 ---------------------------------------------------------------------
-
 Создаёт новый 3D вид Navisworks (скрывает аннотации, импорт DWG и т.д) \
 Производит поиск существующих 3D видов и в случае наличия существуюего вида \
 даёт возможность удалить и создать новый или оставить текущий.
-
-Shift+Click — Оставляет включенными связи RVT (для файлов промежуточной \
-координации EFM)
 """
 __author__ = 'Roman Golev'
 __title__ = "Navis\nView"

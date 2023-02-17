@@ -6,7 +6,7 @@ __doc__ = """Joins multiple elements / Присоединяет множеств
 
 First you need to choose host element or elements to be joined to.\
 Then you need to choose a second group or element that should be connected to host.
-		/
+--------------------------------------------------------------------------
 Необходимо выбрать первую группу элементов для множественного присоединения, \
 затем выбирается вторая группа элементов, к которым данное присоединение \
 необходимо применить. 

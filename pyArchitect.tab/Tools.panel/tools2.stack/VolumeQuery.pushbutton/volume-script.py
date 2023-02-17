@@ -3,7 +3,7 @@
 # by Roman Golev
 
 
-__doc__ = "Returns element Volume for a selected element"
+__doc__ = "Returns element Volume for a selected elements. Calculate totals in square meters"
 __author__ = 'Roman Golev'
 __title__ = "Volume\nQuery"
 
@@ -14,9 +14,6 @@ clr.AddReference("RevitAPI")
 import Autodesk
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *
-from Autodesk.Revit.DB import UnitUtils
-from Autodesk.Revit.DB import UnitTypeId
-
 from Autodesk.Revit.UI import Selection
 
 clr.AddReference('System')
@@ -31,7 +28,10 @@ uiapp = __revit__
 app = uiapp.Application
 t = Autodesk.Revit.DB.Transaction(doc)
 versionNumber = uiapp.Application.VersionNumber
-
+if "2019" in versionNumber or "2020" in versionNumber:
+        from Autodesk.Revit.DB import UnitUtils
+if "2021" in versionNumber or "2022" in versionNumber or "2023" in versionNumber:
+         from Autodesk.Revit.DB import UnitUtils, UnitTypeId
 categories = doc.Settings.Categories
 n = categories.Size
 #print(n)

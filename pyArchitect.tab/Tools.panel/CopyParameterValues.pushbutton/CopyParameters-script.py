@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Copy Values'
-__doc__ = """"""
-
+__doc__ = """Batch copy parameter values from one property to another / Копирует значения параметра для выбранных элементов из одного свойства в другое
+"""
 __helpurl__ = ""
 
 import clr

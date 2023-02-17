@@ -5,12 +5,10 @@
 __doc__ = """Создаёт координационный план. /Creates Coordination Plan.
 
 Creates new Coordination Plan based on the selected plan\
-(Reveals Base Point, Survey Point and Internal Origin) \
-
+(Reveals Base Point, Survey Point) \
 ---------------------------------------------------------------------
-
-Создаёт новый план координации  
-
+Создаёт новый план координации
+(Включает видимость Базовой точки и Точки съёмки)
 """
 
 #TODO: Add lang driven dialogs

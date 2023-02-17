@@ -9,7 +9,7 @@ __doc__ = """Joins multiple elements / Присоединяет множеств
 First you need to choose the category of elements to join\
 (script collects all elements of category). Then you need to choose \
 an element or elements to be joined to with the previous selected set of elements by category.
-		/
+---------------------------------------------------------------------------
 Необходимо выбрать категорию элементов для множественного присоединения, \
 затем выбирается элемент или элементы к которым данное присоединение \
 необходимо применить. 

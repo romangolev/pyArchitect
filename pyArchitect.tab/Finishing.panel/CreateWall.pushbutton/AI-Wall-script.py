@@ -10,7 +10,6 @@ Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
 Step 2 / Шаг 2 — Select offset option and choose wall type / Выбрать опцию смещения и тип отделки
 
 Useful for creating specifications for interior works. 
-
 """
 __author__ = 'Roman Golev'
 __title__ = "Wall\nFinishing"

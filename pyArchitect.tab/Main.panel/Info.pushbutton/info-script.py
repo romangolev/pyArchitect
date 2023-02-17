@@ -4,7 +4,7 @@
 
 
 from pyrevit import HOST_APP
-from Autodesk.Revit.ApplicationServices import LanguageType
+from Autodesk.Revit.ApplicationServices import LanguageType,Application
 if HOST_APP.language == LanguageType.Russian:
     user = "Имя пользователя"
     Rvers = "Версия Ревит"
@@ -21,7 +21,6 @@ __title__ = "Info"
 __author__ = "Roman Golev"
 __context__ = 'zero-doc'
 
-
 import pyrevit
 from pyrevit import script
 from pyrevit import output
@@ -34,7 +33,6 @@ import os.path as op
 import core
 
 parent = op.dirname
-#svg = parent(__file__) + r"\logo.svg"
 
 style = 'img {max-width: 589px; padding: 25px 0} span {display: block; text-align: center;}'
 output.get_output().add_style(style)
@@ -42,13 +40,9 @@ output.get_output().set_width(500)
 output.get_output().set_height(500)
 output.get_output().center()
 out = script.get_output()
-#out.print_image(svg)
 out.print_html('<h1 style="text-align:center;"> pyArchitect Extension Tools for pyRevit</h1>')
 
-#name = pyrevit._HostApplication.username()
 print(str(user) + ' : {}'.format(revit.username))
 print(str(Rvers) + ' : {}'.format(revit.version))
 print(str(Rvers) + ' : {}'.format(HOST_APP.subversion))
 print(str(Bvers) + ' : {}'.format(core.get_local_version()))
-#print(revit.app)
-#print(revit.docs)

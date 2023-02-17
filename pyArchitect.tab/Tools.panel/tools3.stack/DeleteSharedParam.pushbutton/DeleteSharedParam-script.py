@@ -3,7 +3,7 @@
 # by Roman Golev
 
 
-__doc__ = """Удаляет выбранный общий параметр польностью из проекта"""
+__doc__ = """Удаляет выбранный общий параметр польностью из проекта / Completely removes shared parameter from project"""
 __author__ = 'Roman Golev'
 __title__ = "Delete\nShared Parameter"
 
@@ -42,18 +42,14 @@ collector = FilteredElementCollector(doc).WhereElementIsNotElementType()\
 
 
 for param in collector:
-    # param_def = param.GetDefinition()
     dict[param.Name] = param.GuidValue
 
-choose = ""
 choose = forms.CommandSwitchWindow.show(dict.keys(), message='Select Option')
-print(choose)
-print(dict[choose])
 
-if choose != "":
-        sParamElement = SharedParameterElement.Lookup(doc, dict[choose])
-        t.Start("Delete WBS Parameter")
-        doc.Delete(sParamElement.Id)
-        t.Commit()
-else:
+if choose is None:
     sys.exit()
+else:
+    sParamElement = SharedParameterElement.Lookup(doc, dict[choose])
+    t.Start("Delete WBS Parameter")
+    doc.Delete(sParamElement.Id)
+    t.Commit()
