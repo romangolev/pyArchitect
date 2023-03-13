@@ -223,7 +223,7 @@ t.Commit()
 
 
 res = dict(zip(bound_walls,wallzz))
-print(res)
+# print(res)
 t.Start('Change Type and Join Walls with hosts')
 col1 = List[ElementId](wallz)
 Autodesk.Revit.DB.Element.ChangeTypeId(doc,col1,wall_type_id)
