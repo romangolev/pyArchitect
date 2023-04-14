@@ -6,7 +6,7 @@ Fix these issues
 Проверяет закреплены ли связи и находится ли связь на отдельном рабочем наборе (начинающемся с ##Link_)
 Исправляет эти ошибки 
 """
-
+__title__ = "Review Links"
 
 try:
     from pyrevit.versionmgr import PYREVIT_VERSION

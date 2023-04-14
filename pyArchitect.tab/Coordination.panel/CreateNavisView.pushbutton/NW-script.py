@@ -227,7 +227,7 @@ def main():
 
     elif nwex != []:
         msg = """Existing Navisworks view detected. Do you want to delete existing and create new one?"""
-        ops = ['Delete all and create new View','Keep existing']
+        ops = ['Delete all and create new View','Keep existing and open it']
         cfgs = {'option1': { 'background': '0xFF55FF'}}
         options = forms.CommandSwitchWindow.show(ops,
             message=msg,
@@ -264,7 +264,7 @@ def main():
             except:
                 t.RollBack()
                 pyrevit.forms.alert("Error")
-        elif options == "Keep existing":
+        elif options == "Keep existing and open it":
             try:
                 make_active(nwex[0])
             except:
