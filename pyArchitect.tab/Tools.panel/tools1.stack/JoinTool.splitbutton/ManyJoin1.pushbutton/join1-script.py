@@ -15,7 +15,7 @@ an element or elements to be joined to with the previous selected set of element
 необходимо применить. 
 """
 __author__ = 'Roman Golev'
-__title__ = "Multiple\nJoinByCat"
+__title__ = "Batch Join\nBy Category"
 
 import clr
 clr.AddReference('RevitAPI')
@@ -23,67 +23,42 @@ import Autodesk
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI.Selection import ObjectType
 import sys
-
-#import revitpythonwrapper by guitalarico 
-import rpw
-from rpw import DB, UI, db, ui
-from rpw.ui.forms import (FlexForm, Label, ComboBox, TextBox, TextBox, Separator, Button, CheckBox)
-
-
+from core.catlistenum import get_catlist
+from pyrevit import forms
 
 uidoc = __revit__.ActiveUIDocument
 doc = __revit__.ActiveUIDocument.Document
+transaction = Autodesk.Revit.DB.Transaction(doc)
 
-wall_cat = DB.FilteredElementCollector(doc) \
-			.OfCategory(DB.BuiltInCategory.OST_Walls) \
-			.WhereElementIsNotElementType() \
-			.ToElements() 
-floor_cat = DB.FilteredElementCollector(doc) \
-			.OfCategory(DB.BuiltInCategory.OST_Floors) \
-			.WhereElementIsNotElementType() \
-			.ToElements() 		
-roof_cat = DB.FilteredElementCollector(doc) \
-			.OfCategory(DB.BuiltInCategory.OST_Roofs) \
-			.WhereElementIsNotElementType() \
-			.ToElements() 		
-ceil_cat = DB.FilteredElementCollector(doc) \
-			.OfCategory(DB.BuiltInCategory.OST_Ceilings) \
-			.WhereElementIsNotElementType() \
-			.ToElements() 		
-gen_cat = DB.FilteredElementCollector(doc) \
-			.OfCategory(DB.BuiltInCategory.OST_GenericModel) \
-			.WhereElementIsNotElementType() \
-			.ToElements() 	
+def main():
+	catlist = get_catlist(doc)
+	ops = ['Columns', 'Walls', 'Floors', 'Roofs','Structural Columns', 'Structural Foundations', 'Structural Framing']
+	choice1 = forms.CommandSwitchWindow.show(ops, message='Select First Category to join')
+	try :
+		elements1 = catlist[choice1].WhereElementIsNotElementType().ToElements() 
+	except:
+		sys.exit()
+	ops.remove(choice1)
+	choice2 = forms.CommandSwitchWindow.show(ops, message='Select Option')
+	try :
+		elements2 = catlist[choice2].WhereElementIsNotElementType().ToElements() 
+	except:
+		sys.exit()
 
 
-#db.Collector(of_class)
-cats = {"Walls":wall_cat,
-	"Floors":floor_cat,
-	"Roofs":roof_cat,
-	"Ceilings":ceil_cat,
-	"Generic Models":gen_cat}
-components = [Label('Выберите категорию элементов для присоединения:'),
-              ComboBox('categories', cats),
-              Button('Select')]
-form = FlexForm('Choose element category ',components)
-form.show()
+	# TODO: Supress "Highlighted elements are joined but do not intersect." warning
 
-if form == False:
-    sys.exit()
-else:
-	selected_cat = form.values['categories']
-
-obj_type = ObjectType.Element
-selection = ui.Selection().PickObjects(obj_type,"Choose elements to join")
-
-results = []
-with db.Transaction('Multiple join'):
-	for A in selected_cat:
-		#print(A)
-		for B in selection:
-			#print(doc.GetElement(B.ElementId))
+	results = []
+	transaction.Start('Multiple Join')
+	for A in elements1:
+		for B in elements2:
 			try:
-				result = Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc,A,doc.GetElement(B.ElementId))
+				result = Autodesk.Revit.DB.JoinGeometryUtils.JoinGeometry(doc,A,B)
 				results.append(result)
 			except:
 				pass
+
+	transaction.Commit()
+
+if __name__ == '__main__':
+    main()

@@ -1,11 +1,10 @@
-# Blank architects extension library file
+# extension library file
 
 import os
 import sys
 import os.path as op
 import urllib2
-
-#import blank.update
+import selectionhelpers
 
 from pyrevit import EXEC_PARAMS
 from pyrevit import script
@@ -43,8 +42,8 @@ def start_reload():
 def get_git_version():
    data = urllib2.urlopen('https://raw.githubusercontent.com/romangolev/pyArchitect/main/lib/core/version')
    for line in data: 
-      blankgitversion = line
-   return blankgitversion
+      gitversion = line
+   return gitversion
 
 def update_needed():
    if get_local_version() != get_git_version():

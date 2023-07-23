@@ -16,7 +16,7 @@ import sys
 
 clr.AddReference('System')
 clr.AddReference('RevitAPIUI')
-import pyrevit
+
 from pyrevit import forms
 from System.Collections.Generic import List
 from System import Guid
@@ -49,7 +49,8 @@ choose = forms.CommandSwitchWindow.show(dict.keys(), message='Select Option')
 if choose is None:
     sys.exit()
 else:
+
     sParamElement = SharedParameterElement.Lookup(doc, dict[choose])
-    t.Start("Delete WBS Parameter")
+    t.Start("Delete Shared Parameter")
     doc.Delete(sParamElement.Id)
     t.Commit()
