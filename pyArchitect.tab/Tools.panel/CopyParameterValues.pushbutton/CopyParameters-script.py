@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Copy Values'
-__doc__ = """Batch copy parameter values from one property to another / Копирует значения параметра для выбранных элементов из одного свойства в другое
+__doc__ = """Copy parameter value from one property to another /
+Копирует значения параметра для выбранных элементов из одного свойства в другое
 """
 __helpurl__ = ""
 
@@ -10,8 +11,6 @@ from System.Windows.Forms import Clipboard
 #clr.AddReference('IronPython.Wpf')
 
 import pyrevit
-from pyrevit import script
-from pyrevit import output
 from pyrevit import forms
 from pyrevit.forms import WPFWindow
 import os.path as op
@@ -25,14 +24,16 @@ from System.Windows.Controls import(ComboBox,
 from System.Collections.ObjectModel import *
 from System.ComponentModel import *
 from System.Windows.Controls import *
+from Autodesk.Revit.UI.Selection import ObjectType
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory \
                                 ,ElementId, Transaction, BuiltInParameter\
                                 ,UnitUtils, DisplayUnitType, ParameterType\
-                                , StorageType    
+                                , StorageType, Parameter
 
 from System.Collections.Generic import *
 import collections
 import sys
+from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS
 
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
@@ -40,190 +41,210 @@ uiapp = __revit__
 app = uiapp.Application
 t = Transaction(doc)
 
-selobject = uidoc.Selection.GetElementIds()
 
-params1 = []
-params_names = []
-param_guids = []
-param_ids = []
-
-params2 = []
-tparams_names = []
-param2_ids = []
-tparam_guids = []
-
-if selobject.Count == 0:
-     pyrevit.forms.alert('Nothing selected')
-     sys.exit()
-elif selobject.Count != 0:
-     for element in selobject:
-          el = doc.GetElement(element)
-          eltype = doc.GetElement(el.GetTypeId())
-          
+# Get unput: selected by user elements
+def get_selection():
+     selobject = uidoc.Selection.GetElementIds()
+     if selobject.Count == 0:
           try:
-               params = el.GetOrderedParameters()
-               for param in params:
-                    params1.append(param)
-                    param_ids.append(param.Id)
-                    if param.IsShared == False:
-                         params_names.append(param.Definition.Name)
-                         param_guids.append('None')
-                    elif param.IsShared == True:
-                         params_names.append(str(param.Definition.Name) + ' [' +str(param.Definition.Id) + ']')
-                         param_guids.append(param.GUID)
-
+               selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdExclude(ID_MODEL_ELEMENTS), "Selection Objects")
           except:
-               pass
-          
-          try:
-               tparams = eltype.GetOrderedParameters()
-               for tparam in tparams:
-                    params2.append(tparam)
-                    param2_ids.append(tparam.Id)
-                    if tparam.IsShared == False:
-                         tparams_names.append(tparam.Definition.Name)
-                         tparam_guids.append('None')
-                    elif tparam.IsShared == True:
-                         tparams_names.append(str(tparam.Definition.Name) + ' [' +str(tparam.Definition.Id) + ']')
-                         tparam_guids.append(tparam.GUID)
-          except:
-               pass
-
-# Instance parameters list
-d1 = dict(zip(params_names,range(0,len(params_names),1)))
-dictionary1 = collections.OrderedDict(sorted(d1.items()))
-# Type parameters list
-d2 = dict(zip(tparams_names,range(0,len(tparams_names),1))) # d2.update(d)
-dictionary2 = collections.OrderedDict(sorted(d2.items()))
-# Merged list
-d3 = dict(d1,**d2)
-dictionary3 = collections.OrderedDict(sorted(d3.items()))
-
-     # merged_dictionary = merge(d,d2)
-
-def getValueByName(element, param, typeorinstance):
-     inst = doc.GetElement(element)
-     type = doc.GetElement(inst.GetTypeId())
-     if typeorinstance == True:
-          val = type.GetParameters(param.Definition.Name)[0]
-     else:
-          val = inst.GetParameters(param.Definition.Name)[0]
-     return val
-
-def getValueByGuid(element, param, typeorinstance):
-     inst = doc.GetElement(element)
-     type = doc.GetElement(inst.GetTypeId())
-     if typeorinstance == True:
-          val = type.get_Parameter(param.GUID)
-     else:
-          val = inst.get_Parameter(param.GUID)
-     return val
+               sys.exit()
+     elif selobject.Count != 0:
+          selection = selobject
+     return selection
 
 
+class ManageParameters:
+     def __init__(self,selection):
+          self.selection = selection
 
+          self.inst_params = list()
+          self.type_params = list()
 
-def execute(i,j,ti,tj):
-     t.Start("Copy parameters")
-     for sel in selobject:
-          element = doc.GetElement(sel)
-          eltype = doc.GetElement(element.GetTypeId())
-          #Get and Set Value:
-          if i.StorageType == Autodesk.Revit.DB.StorageType.Integer:
+          self.collect_parameters()
+          self.inst_dict_raw = dict(zip(self.inst_params,range(0,len(self.inst_params),1)))
+          self.type_dict_raw = dict(zip(self.type_params,range(0,len(self.type_params),1)))
+          self.compile_from_params()
+          self.compile_to_dictionary()
+
+     def collect_parameters(self):
+          for element in self.selection:
+               el = doc.GetElement(element)
+               eltype = doc.GetElement(el.GetTypeId())
+               # Collect Instance parameters
                try:
-                    if i.IsShared == False:
-                         val = getValueByName(sel,i,ti).AsInteger()
-                    elif i.IsShared == True:
-                         val = getValueByGuid(sel,i,ti).AsInteger()
-               except: pass
-
-               if j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.Integer :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(val)
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(val)
-                    except: pass
-               elif j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.Double :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(val)
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(val)
-                    except: pass
-               elif j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.String :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(str(val))
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(str(val))
-                    except: pass
-
-
-               
-          elif i.StorageType == Autodesk.Revit.DB.StorageType.Double:
+                    params = el.GetOrderedParameters()
+                    for param in params:
+                         self.inst_params.append(param)
+               except:
+                    pass
+               # Collect Type parameters
                try:
-                    if i.IsShared == False:
-                         val = getValueByName(sel,i,ti).AsDouble()
-                    elif i.IsShared == True:
-                         val = getValueByGuid(sel,i,ti).AsDouble()
-               except: pass
-
-               if j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.Double :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(val)
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(val)
-
-                    except: pass
-               elif j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.String :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(str(val))
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(str(val))
-                    except: pass
-               
-
-          elif i.StorageType == Autodesk.Revit.DB.StorageType.String:
-               try:
-                    if i.IsShared == False:
-                         val = getValueByName(sel,i,ti).AsString()
-                    elif i.IsShared == True:
-                         val = getValueByGuid(sel,i,ti).AsString()
-               except: pass
-               if j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.String :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(val)
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(val)
-                    except: pass
-
-          elif i.StorageType == Autodesk.Revit.DB.StorageType.ElementId:
-               try:
-                    if i.IsShared == False:
-                         val = getValueByName(sel,i,ti).AsElementId()
-                    elif i.IsShared == True:
-                         val = getValueByGuid(sel,i,ti).AsElementId()
-               except: pass
-               if j.IsReadOnly == False and j.StorageType == Autodesk.Revit.DB.StorageType.ElementId :
-                    try:
-                         if j.IsShared == False:
-                              getValueByName(sel,j,tj).Set(val)
-                         elif j.IsShared == True:
-                              getValueByGuid(sel,j,tj).Set(val)
-                    except: pass
+                    tparams = eltype.GetOrderedParameters()
+                    for tparam in tparams:
+                         self.type_params.append(tparam)
+               except:
+                    pass
 
 
-          #TODO add support for the same types of storage units
+     @property
+     def select_from_dictionary(self):
+          return self.from_dict
+
+
+     def compile_from_params(self):
+          inst_dict = dict()
+          for elem in self.inst_dict_raw.items():
+               if elem[0].IsShared == False:
+                    inst_dict[elem[0].Definition.Name] = elem[1]
+               elif elem[0].IsShared == True:
+                    inst_dict[str(str(elem[0].Definition.Name) + ' [' + str(elem[0].Definition.Id) + ']')] = elem[1]
+          self.inst_dict_names = collections.OrderedDict(inst_dict)
+
+          type_dict = dict()
+          for elem in self.type_dict_raw.items():
+               if elem[0].IsShared == False:
+                    type_dict[elem[0].Definition.Name] = elem[1]
+               elif elem[0].IsShared == True:
+                    type_dict[str(str(elem[0].Definition.Name) + ' [' + str(elem[0].Definition.Id) + ']')] = elem[1]
+          self.type_dict_names = collections.OrderedDict(type_dict)
+
+          from_dict_raw = dict(self.inst_dict_names,**self.type_dict_names)
+          self.from_dict = collections.OrderedDict(sorted(from_dict_raw.items()))
+
+     @property
+     def select_to_dictionary(self):
+          return self.to_dict
+     
+     def compile_to_dictionary(self):
+          inst_dict = dict()
+          for elem in self.inst_dict_raw.items():
+               if elem[0].IsReadOnly == False:
+                    if elem[0].IsShared == False:
+                         inst_dict[elem[0].Definition.Name] = elem[1]
+                    elif elem[0].IsShared == True:
+                         inst_dict[str(str(elem[0].Definition.Name) + ' [' + str(elem[0].Definition.Id) + ']')] = elem[1]
+               else: 
+                    pass
+          inst_dict_names = collections.OrderedDict(inst_dict)
+
+          type_dict = dict()
+          for elem in self.type_dict_raw.items():
+               if elem[0].IsReadOnly == False:
+                    if elem[0].IsShared == False:
+                         type_dict[elem[0].Definition.Name] = elem[1]
+                    elif elem[0].IsShared == True:
+                         type_dict[str(str(elem[0].Definition.Name) + ' [' + str(elem[0].Definition.Id) + ']')] = elem[1]
+               else:
+                    pass
+          type_dict_names = collections.OrderedDict(type_dict)
+
+          to_dict_raw = dict(inst_dict_names,**type_dict_names)
+          self.to_dict = collections.OrderedDict(sorted(to_dict_raw.items()))
+     
+     @property
+     def inst_dict_names(self):
+          return self.inst_dict_names
+     @property
+     def type_dict_names(self):
+          return self.type_dict_names    
+
+     @property
+     def inst_params(self):
+          return self.inst_params
+     @property
+     def type_params(self):
+          return self.type_params
+
+
+class CopyValues:
+     def __init__(self, parameter_from, parameter_to, element_from, element_to):
+          self.param_from = parameter_from
+          self.param_to = parameter_to
+          self.element_from = element_from
+          self.element_to = element_to
+     
+     def getValueFrom(self):
+          if self.param_from.IsShared == True:
+               val = self.element_from.get_Parameter(self.param_from.GUID)
+          elif self.param_from.IsShared == False:
+               val =  self.element_from.GetParameters(self.param_from.Definition.Name)[0]
           else:
-               t.RollBack()
-               pyrevit.forms.alert('Error while copying. Maybe you tried unsupported parameter type!')
-               break
+               return None 
+                        
+          if self.param_from.StorageType == StorageType.Integer:
+               return val.AsInteger(), StorageType.Integer, None
           
-     t.Commit()
+          elif self.param_from.StorageType == StorageType.Double:
+               return val.AsDouble(), StorageType.Double, self.param_from.DisplayUnitType
 
+          elif self.param_from.StorageType == StorageType.String:
+               return val.AsString(), StorageType.String, None
+          
+          elif self.param_from.StorageType == StorageType.ElementId:
+               return val.AsElementId(), StorageType.ElementId, None
+          
+          else:
+               pass
+
+
+     def setValueTo(self, value):
+          if self.param_to.IsShared == True:
+               self.element_to.get_Parameter(self.param_to.GUID).Set(value)
+          elif self.param_to.IsShared == False:
+               self.element_to.GetParameters(self.param_to.Definition.Name)[0].Set(value)
+
+
+     def runLogic(self):
+          value, storageTypeFrom, units = self.getValueFrom()
+
+          if storageTypeFrom == StorageType.Integer:
+               if self.param_to.StorageType == StorageType.Integer:
+                    self.setValueTo(value)
+               elif self.param_to.StorageType == StorageType.Double:
+                    self.setValueTo(value)
+               elif self.param_to.StorageType == StorageType.String:
+                    self.setValueTo(str(value))
+               elif self.param_to.StorageType == StorageType.ElementId:
+                    pyrevit.forms.alert("This type of copying is not supported!")
+
+          elif storageTypeFrom == StorageType.Double:
+               if self.param_to.StorageType == StorageType.Integer:
+                    self.setValueTo(value)
+               elif self.param_to.StorageType == StorageType.Double:
+                    self.setValueTo(value)
+               elif self.param_to.StorageType == StorageType.String:
+                    self.setValueTo(str(value))
+               elif self.param_to.StorageType == StorageType.ElementId:
+                    pyrevit.forms.alert("This type of copying is not supported!")
+               # TODO Double units conversion (add unit conversion helper to the project)
+          elif storageTypeFrom == StorageType.String:
+               if self.param_to.StorageType == StorageType.Integer:
+                    try:
+                         self.setValueTo(int(value))
+                    except:
+                         pass
+               elif self.param_to.StorageType == StorageType.Double:
+                    try:
+                         self.setValueTo(float(value))
+                    except:
+                         pass
+               elif self.param_to.StorageType == StorageType.String:
+                    self.setValueTo(value)
+               elif self.param_to.StorageType == StorageType.ElementId:
+                    pyrevit.forms.alert("This type of copying is not supported!")
+
+          elif storageTypeFrom == StorageType.ElementId:
+               if self.param_to.StorageType == StorageType.Integer:
+                    pyrevit.forms.alert("This type of copying is not supported!")
+               elif self.param_to.StorageType == StorageType.Double:
+                    pyrevit.forms.alert("This type of copying is not supported!")
+               elif self.param_to.StorageType == StorageType.String:
+                    pyrevit.forms.alert("This type of copying is not supported!")
+               elif self.param_to.StorageType == StorageType.ElementId:
+                    self.setValueTo(value)
+                    
 
 
 class MyWindow(WPFWindow):
@@ -231,38 +252,64 @@ class MyWindow(WPFWindow):
           WPFWindow.__init__(self, xaml_file_name)
           self.drop1 = self.FindName('drop1')
           self.drop2 = self.FindName('drop2')
-          self.drop1.ItemsSource = dictionary3
-          self.drop2.ItemsSource = dictionary3
-
+          self.drop1.ItemsSource = paraMan.select_from_dictionary
+          self.drop2.ItemsSource = paraMan.select_to_dictionary
 
      def rewrite(self, sender, args):
           selected1 = self.drop1.SelectedItem
           selected2 = self.drop2.SelectedItem
 
-          if dictionary2.get(selected1) != None:
-               # print("Type")
-               i = params2[dictionary2.get(selected1)]
-               if dictionary2.get(selected2) != None:
-                    j = params2[dictionary2.get(selected2)]
-                    # print("Type")
-                    # print("ok")
-                    execute(i,j,True,True)
-               elif dictionary1.get(selected2) != None:
-                    j = params1[dictionary1.get(selected2)]
-                    # print("Instance")
-                    # print("ok")
-                    execute(i,j,True, False)
-          elif dictionary1.get(selected2) != None:
-               i = params1[dictionary1.get(selected1)]
-               # print("Instance")
-               if dictionary2.get(selected2) != None:
-                    j = params2[dictionary2.get(selected2)]
-                    # print("Type")
-                    # print("Cannot write date from instance to type")
-               elif dictionary1.get(selected2) != None:
-                    j = params1[dictionary1.get(selected2)]
-                    # print("Instance")
-                    # print("ok")
-                    execute(i,j,False,False)
+          t.Start("Copy parameters")
+          # From parameter is a Type parameter:
+          if paraMan.type_dict_names.get(selected1) != None:
+               from_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected1)]
 
-MyWindow('ui.xaml').ShowDialog()
+               # To parameter is Type parameter:
+               if paraMan.type_dict_names.get(selected2) != None:
+                    to_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected2)]
+                    for elem in selection:
+                         copy_result = CopyValues(from_parameter,
+                                                  to_parameter,
+                                                  doc.GetElement(elem.GetTypeId()),
+                                                  doc.GetElement(elem.GetTypeId())).runLogic()
+
+               # To parameter is Instance parameter:
+               elif paraMan.inst_dict_names.get(selected2) != None:
+                    to_parameter = paraMan.inst_params[paraMan.inst_dict_names.get(selected2)]
+                    for elem in selection:
+                         copy_result = CopyValues(from_parameter,
+                                                  to_parameter,
+                                                  doc.GetElement(elem.GetTypeId()),
+                                                  doc.GetElement(elem)).runLogic()
+          
+          # From parameter is Instance:
+          elif paraMan.inst_dict_names.get(selected2) != None:
+               from_parameter = paraMan.inst_params[paraMan.inst_dict_names.get(selected1)]
+
+               # To parameter is Type parameter:
+               if paraMan.type_dict_names.get(selected2) != None:
+                    to_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected2)]
+                    # print("Cannot write date from Instance to Type parameters")
+                    pyrevit.forms.alert("Cannot write date from Instance to Type parameters")
+
+               # To parameter is Instance parameter:             
+               elif paraMan.inst_dict_names.get(selected2) != None:
+                    to_parameter = paraMan.inst_params[paraMan.inst_dict_names.get(selected2)]
+                    for elem in selection:
+                         copy_result = CopyValues(from_parameter,
+                                                  to_parameter,
+                                                  doc.GetElement(elem),
+                                                  doc.GetElement(elem)).runLogic()
+          t.Commit()
+
+if __name__ == '__main__':
+     # Get selection
+     selection = get_selection()
+     # Determine which parameters applicable
+     paraMan = ManageParameters(selection)
+     # Run dialog window
+     MyWindow('ui.xaml').ShowDialog()
+
+
+#TODO add support for the same types of storage units
+#TODO optional report after execution with SHIFT
