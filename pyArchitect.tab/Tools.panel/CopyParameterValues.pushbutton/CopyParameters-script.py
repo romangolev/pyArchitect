@@ -27,14 +27,13 @@ from System.Windows.Controls import *
 from Autodesk.Revit.UI.Selection import ObjectType
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory \
                                 ,ElementId, Transaction, BuiltInParameter\
-                                ,UnitUtils, DisplayUnitType, ParameterType\
-                                , StorageType, Parameter
+                                ,UnitUtils, StorageType, Parameter
 
 from System.Collections.Generic import *
 import collections
 import sys
 from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS
-
+from core.unitsconverter import convertDouble
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 uiapp = __revit__
@@ -177,8 +176,12 @@ class CopyValues:
                return val.AsInteger(), StorageType.Integer, None
           
           elif self.param_from.StorageType == StorageType.Double:
-               return val.AsDouble(), StorageType.Double, self.param_from.DisplayUnitType
-
+               # 
+               try:
+                    value = val.AsDouble(), StorageType.Double, self.param_from.DisplayUnitType
+               except:
+                    value = val.AsDouble(), StorageType.Double, self.param_from.GetUnitTypeId()
+               return value
           elif self.param_from.StorageType == StorageType.String:
                return val.AsString(), StorageType.String, None
           
@@ -211,11 +214,13 @@ class CopyValues:
 
           elif storageTypeFrom == StorageType.Double:
                if self.param_to.StorageType == StorageType.Integer:
-                    self.setValueTo(value)
+                    value_converted = convertDouble(uiapp, value, units)
+                    self.setValueTo(round(value_converted))
                elif self.param_to.StorageType == StorageType.Double:
                     self.setValueTo(value)
                elif self.param_to.StorageType == StorageType.String:
-                    self.setValueTo(str(value))
+                    value_converted = convertDouble(uiapp, value, units)
+                    self.setValueTo(str(value_converted))
                elif self.param_to.StorageType == StorageType.ElementId:
                     pyrevit.forms.alert("This type of copying is not supported!")
                # TODO Double units conversion (add unit conversion helper to the project)
@@ -311,5 +316,4 @@ if __name__ == '__main__':
      MyWindow('ui.xaml').ShowDialog()
 
 
-#TODO add support for the same types of storage units
 #TODO optional report after execution with SHIFT
