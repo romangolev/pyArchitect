@@ -24,6 +24,8 @@ import sys
 
 import pyrevit
 from pyrevit import forms
+from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS
+from Autodesk.Revit.UI.Selection import ObjectType
 
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
@@ -31,6 +33,21 @@ uiapp = __revit__
 app = uiapp.Application
 t = Autodesk.Revit.DB.Transaction(doc)
 tg = Autodesk.Revit.DB.TransactionGroup(doc)
+
+
+
+# Get unput: selected by user elements
+def get_selection():
+     selobject = uidoc.Selection.GetElementIds()
+     if selobject.Count == 0:
+          try:
+               selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdInclude(ID_WALLS), "Selection Objects")
+          except:
+               sys.exit()
+     elif selobject.Count != 0:
+          selection = selobject
+     return selection
+
 
 def create_section_by_wall(el, doc, viewFamilyTypeId, t, flip):
     offset = units(100)
@@ -57,6 +74,7 @@ def create_section_by_wall(el, doc, viewFamilyTypeId, t, flip):
     # wallUnconnectedHeight = units(float(wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsString()))
     wallBaseOffset = builtInParam(wall, BuiltInParameter.WALL_BASE_OFFSET)
     wallUnconnectedHeight = builtInParam(wall, BuiltInParameter.WALL_USER_HEIGHT_PARAM)
+
 
     # XYZ(min/max section line length, min/max height of the section box, min/max far clip)
     min = XYZ(-0.5*w - offset, wallBaseOffset - offset, - offset - 0.5*d)
@@ -94,8 +112,13 @@ def create_section_by_wall(el, doc, viewFamilyTypeId, t, flip):
 
 
 def units(mmToFeets):
-	dut = DisplayUnitType.DUT_MILLIMETERS
-	return UnitUtils.ConvertToInternalUnits(mmToFeets, dut)
+    try:
+        # R19, R20, R21
+        dut = DisplayUnitType.DUT_MILLIMETERS
+        return UnitUtils.ConvertToInternalUnits(mmToFeets, dut)
+    except:
+        # R22, R22, R23 and later
+        return mmToFeets/304.8
 
 
 
@@ -104,7 +127,8 @@ def builtInParam(wall, wallParam):
 
 def main():
     # Get selection
-    sel = uidoc.Selection.GetElementIds()
+    # sel = uidoc.Selection.GetElementIds()
+    sel = get_selection()
 
     # Check selected elements
     if not sel:

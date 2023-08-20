@@ -18,16 +18,13 @@ import json
 import clr
 clr.AddReference('System.Web.Extensions')
 from System.Web.Script.Serialization import JavaScriptSerializer
-import Autodesk
-from System.Windows.Controls import(ComboBox, 
-    ComboBoxItem, ListBox, ListBoxItem)
+from System.Windows import MessageBox
+from System.Windows.Controls import (ComboBox, ComboBoxItem, ListBox, ListBoxItem)
 from System.Collections.ObjectModel import *
 from System.ComponentModel import *
 from System.Windows.Controls import *
 from Autodesk.Revit.UI.Selection import ObjectType
-from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory \
-                                ,ElementId, Transaction, BuiltInParameter\
-                                ,UnitUtils, StorageType, Parameter
+from Autodesk.Revit.DB import Transaction,StorageType
 
 from System.Collections.Generic import *
 import collections
@@ -165,32 +162,37 @@ class CopyValues:
           self.element_to = element_to
      
      def getValueFrom(self):
-          if self.param_from.IsShared == True:
-               val = self.element_from.get_Parameter(self.param_from.GUID)
-          elif self.param_from.IsShared == False:
-               val =  self.element_from.GetParameters(self.param_from.Definition.Name)[0]
-          else:
-               return None 
-                        
-          if self.param_from.StorageType == StorageType.Integer:
-               return val.AsInteger(), StorageType.Integer, None
-          
-          elif self.param_from.StorageType == StorageType.Double:
-               # 
-               try:
-                    value = val.AsDouble(), StorageType.Double, self.param_from.DisplayUnitType
-               except:
-                    value = val.AsDouble(), StorageType.Double, self.param_from.GetUnitTypeId()
-               return value
-          elif self.param_from.StorageType == StorageType.String:
-               return val.AsString(), StorageType.String, None
-          
-          elif self.param_from.StorageType == StorageType.ElementId:
-               return val.AsElementId(), StorageType.ElementId, None
-          
-          else:
-               pass
+          try:
+               if self.param_from.IsShared == True:
+                    val = self.element_from.get_Parameter(self.param_from.GUID)
+               elif self.param_from.IsShared == False:
+                    val = self.element_from.GetParameters(self.param_from.Definition.Name)[0]
+               else:
+                    val = False
+          except:
+               val = False
 
+          if val != False:
+               if self.param_from.StorageType == StorageType.Integer:
+                    return val.AsInteger(), StorageType.Integer, None
+               
+               elif self.param_from.StorageType == StorageType.Double:
+                    # 
+                    try:
+                         value = val.AsDouble(), StorageType.Double, self.param_from.DisplayUnitType
+                    except:
+                         value = val.AsDouble(), StorageType.Double, self.param_from.GetUnitTypeId()
+                    return value
+               elif self.param_from.StorageType == StorageType.String:
+                    return val.AsString(), StorageType.String, None
+               
+               elif self.param_from.StorageType == StorageType.ElementId:
+                    return val.AsElementId(), StorageType.ElementId, None
+               
+               else:
+                    return False, False, False
+          else: 
+               return False, False, False
 
      def setValueTo(self, value):
           if self.param_to.IsShared == True:
@@ -204,61 +206,116 @@ class CopyValues:
 
           if storageTypeFrom == StorageType.Integer:
                if self.param_to.StorageType == StorageType.Integer:
-                    self.setValueTo(value)
+                    try:
+                         self.setValueTo(value)
+                         return "Success"
+                    except:
+                         return "Skipped"
                elif self.param_to.StorageType == StorageType.Double:
-                    self.setValueTo(value)
+                    try:
+                         self.setValueTo(value)
+                         return "Success"
+                    except:
+                         return "Skipped"
                elif self.param_to.StorageType == StorageType.String:
-                    self.setValueTo(str(value))
+                    try:
+                         self.setValueTo(str(value))
+                         return "Success"
+                    except:
+                         return "Skipped"          
                elif self.param_to.StorageType == StorageType.ElementId:
-                    pyrevit.forms.alert("This type of copying is not supported!")
-
+                    return "Not supported"
+               else:
+                    return "Error"
           elif storageTypeFrom == StorageType.Double:
                if self.param_to.StorageType == StorageType.Integer:
-                    value_converted = convertDouble(uiapp, value, units)
-                    self.setValueTo(round(value_converted))
+                    try:                    
+                         value_converted = convertDouble(uiapp, value, units)
+                         self.setValueTo(round(value_converted))
+                         return "Success"
+                    except:
+                         return "Skipped"                       
                elif self.param_to.StorageType == StorageType.Double:
-                    self.setValueTo(value)
+                    try:
+                         self.setValueTo(value)
+                         return "Success"
+                    except:
+                         return "Skipped"                       
                elif self.param_to.StorageType == StorageType.String:
-                    value_converted = convertDouble(uiapp, value, units)
-                    self.setValueTo(str(value_converted))
+                    try:
+                         value_converted = convertDouble(uiapp, value, units)
+                         self.setValueTo(str(value_converted))
+                         return "Success"
+                    except:
+                         return "Skipped"                    
                elif self.param_to.StorageType == StorageType.ElementId:
-                    pyrevit.forms.alert("This type of copying is not supported!")
-               # TODO Double units conversion (add unit conversion helper to the project)
+                    return "Not supported"
+               else:
+                    return "Error"
           elif storageTypeFrom == StorageType.String:
                if self.param_to.StorageType == StorageType.Integer:
                     try:
                          self.setValueTo(int(value))
+                         return "Success"
                     except:
-                         pass
+                         return "Skipped"  
                elif self.param_to.StorageType == StorageType.Double:
                     try:
                          self.setValueTo(float(value))
+                         return "Success"
                     except:
-                         pass
+                         return "Skipped"
                elif self.param_to.StorageType == StorageType.String:
-                    self.setValueTo(value)
+                    try:
+                         self.setValueTo(value)
+                         return "Success"
+                    except:
+                         return "Skipped"                    
                elif self.param_to.StorageType == StorageType.ElementId:
-                    pyrevit.forms.alert("This type of copying is not supported!")
-
+                    return "Not supported"
+               else:
+                    return "Error"
           elif storageTypeFrom == StorageType.ElementId:
                if self.param_to.StorageType == StorageType.Integer:
-                    pyrevit.forms.alert("This type of copying is not supported!")
+                    return "Not supported"
                elif self.param_to.StorageType == StorageType.Double:
-                    pyrevit.forms.alert("This type of copying is not supported!")
+                    return "Not supported"
                elif self.param_to.StorageType == StorageType.String:
-                    pyrevit.forms.alert("This type of copying is not supported!")
+                    return "Not supported"
                elif self.param_to.StorageType == StorageType.ElementId:
-                    self.setValueTo(value)
-                    
+                    try:
+                         self.setValueTo(value)
+                         return "Success"
+                    except:
+                         return "Skipped"                         
+               else:
+                    return "Error"          
+          else:
+               return "Skipped"
+
 
 
 class MyWindow(WPFWindow):
      def __init__(self,xaml_file_name):
           WPFWindow.__init__(self, xaml_file_name)
+          self.set_icon(op.join(op.dirname(op.realpath(__file__)) + '/icon16.png'))
           self.drop1 = self.FindName('drop1')
           self.drop2 = self.FindName('drop2')
           self.drop1.ItemsSource = paraMan.select_from_dictionary
           self.drop2.ItemsSource = paraMan.select_to_dictionary
+          self.resultlist = []
+
+
+     def generate_report(self):
+          s = self.resultlist.count("Success")
+          sk = self.resultlist.count("Skipped")
+          e = self.resultlist.count("Error")
+          n = self.resultlist.count("Not supported")
+          text1 = "Succesufuly copied parameter values : " + str(s) + " elements"
+          text2 = "\nSkipped copying for : "  + str(sk) + " elements"
+          text3 = "\nError encounter during copying : "  + str(e) + " elements"
+          text4 = "\nCopying not supported for : "  + str(n) + " elements"
+          return text1 + text2 + text3 + text4
 
      def rewrite(self, sender, args):
           selected1 = self.drop1.SelectedItem
@@ -268,34 +325,41 @@ class MyWindow(WPFWindow):
           # From parameter is a Type parameter:
           if paraMan.type_dict_names.get(selected1) != None:
                from_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected1)]
-
                # To parameter is Type parameter:
                if paraMan.type_dict_names.get(selected2) != None:
                     to_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected2)]
                     for elem in selection:
                          copy_result = CopyValues(from_parameter,
                                                   to_parameter,
-                                                  doc.GetElement(elem.GetTypeId()),
-                                                  doc.GetElement(elem.GetTypeId())).runLogic()
+                                                  doc.GetElement(doc.GetElement(elem).GetTypeId()),
+                                                  doc.GetElement(doc.GetElement(elem).GetTypeId())).runLogic()
+                         self.resultlist.append(copy_result)
+                    self.hide()
+                    MessageBox.Show(self.generate_report(), "Executed")
 
                # To parameter is Instance parameter:
                elif paraMan.inst_dict_names.get(selected2) != None:
                     to_parameter = paraMan.inst_params[paraMan.inst_dict_names.get(selected2)]
+                    print(to_parameter)
                     for elem in selection:
                          copy_result = CopyValues(from_parameter,
                                                   to_parameter,
-                                                  doc.GetElement(elem.GetTypeId()),
+                                                  doc.GetElement(doc.GetElement(elem).GetTypeId()),
                                                   doc.GetElement(elem)).runLogic()
-          
+                         self.resultlist.append(copy_result)
+                    self.hide()
+                    MessageBox.Show(self.generate_report(), "Executed")
+
           # From parameter is Instance:
-          elif paraMan.inst_dict_names.get(selected2) != None:
+          elif paraMan.inst_dict_names.get(selected1) != None:
                from_parameter = paraMan.inst_params[paraMan.inst_dict_names.get(selected1)]
 
                # To parameter is Type parameter:
                if paraMan.type_dict_names.get(selected2) != None:
-                    to_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected2)]
+                    # to_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected2)]
                     # print("Cannot write date from Instance to Type parameters")
-                    pyrevit.forms.alert("Cannot write date from Instance to Type parameters")
+                    self.hide()
+                    MessageBox.Show('Cannot write values from Instance parameter to Type parameters of the element', 'Error')
 
                # To parameter is Instance parameter:             
                elif paraMan.inst_dict_names.get(selected2) != None:
@@ -305,6 +369,11 @@ class MyWindow(WPFWindow):
                                                   to_parameter,
                                                   doc.GetElement(elem),
                                                   doc.GetElement(elem)).runLogic()
+                         self.resultlist.append(copy_result)
+                    self.hide()
+                    MessageBox.Show(self.generate_report(), "Executed")
+                    
+
           t.Commit()
 
 if __name__ == '__main__':

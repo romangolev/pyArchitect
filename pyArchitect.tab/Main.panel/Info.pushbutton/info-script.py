@@ -27,8 +27,7 @@ else:
     Rvers = "Revit Version"
     Bvers = "Extension version"
     lang = "EN"
-
-parent = op.dirname
+dir_path = op.dirname(op.realpath(__file__))
 style = 'img {max-width: 589px; padding: 25px 0} span {display: block; text-align: center;}'
 output.get_output().add_style(style)
 output.get_output().set_width(500)

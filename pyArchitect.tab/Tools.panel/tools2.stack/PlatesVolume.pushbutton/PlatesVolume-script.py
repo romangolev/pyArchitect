@@ -18,9 +18,10 @@ from Autodesk.Revit.UI import *
 
 clr.AddReference('System')
 clr.AddReference('RevitAPIUI')
-import pyrevit
 from pyrevit import forms
 from System.Collections.Generic import List
+from core.unitsconverter import convertDoubleToM3
+from System.Windows import MessageBox
 
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
@@ -40,7 +41,6 @@ def checkparamexist(param_guid):
     collector = FilteredElementCollector(doc).WhereElementIsNotElementType()\
         .OfClass(SharedParameterElement).ToElements()
     for param in collector:
-        param_def = param.GetDefinition()
         if str(param_guid) == str(param.GuidValue):
             return True
         else:
@@ -48,20 +48,46 @@ def checkparamexist(param_guid):
     return False
 
 
-categories = doc.Settings.Categories
-n = categories.Size
 
-catPlates = categories.get_Item(BuiltInCategory.OST_StructConnectionPlates)
+def main(mode):
+    # Get all plates from document
+    elems = Autodesk.Revit.DB.FilteredElementCollector(doc).\
+            OfCategory(BuiltInCategory.OST_StructConnectionPlates).\
+            WhereElementIsNotElementType().ToElements()
+    
 
-elems = Autodesk.Revit.DB.FilteredElementCollector(doc).\
-        OfCategory(BuiltInCategory.OST_StructConnectionPlates).\
-        WhereElementIsNotElementType().ToElements()
+    t.Start("Plates Volume")
 
-t.Start("Plates Volume")
-for elem in elems:
-    params = elem.GetOrderedParameters()
-    weight = elem.get_Parameter(Autodesk.Revit.DB.BuiltInParameter.STEEL_ELEM_PLATE_WEIGHT)
-    mass = weight.AsValueString()
-    volume = elem.get_Parameter(Autodesk.Revit.DB.BuiltInParameter.STEEL_ELEM_PLATE_VOLUME)
-    doc.GetElement(elem.Id).get_Parameter(Autodesk.Revit.DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(str(volume.AsValueString())+" "+str(weight.AsValueString()))
-t.Commit()
+    # Loop elements
+    for elem in elems:
+
+        volume = elem.get_Parameter(Autodesk.Revit.DB.BuiltInParameter.STEEL_ELEM_PLATE_VOLUME)
+        volume_m3 = convertDoubleToM3(uiapp, volume.AsDouble())
+        weight = elem.get_Parameter(Autodesk.Revit.DB.BuiltInParameter.STEEL_ELEM_PLATE_WEIGHT)
+
+        if mode:
+            # Calculating volume from parameter value
+            volume_str = str(volume.AsValueString())
+            # Calculating volume from parameter value (If mass equals zero, calculating manually for steel)
+            mass = str(weight.AsValueString())
+            if weight.AsDouble() == 0:
+                mass = str(round(volume_m3 * 7900, 3)) + " kg"
+        else:
+            # Calculating volume from double
+            volume_str = str(round(volume_m3, 3)) + " m³"
+            mass = str(round(volume_m3 * 7900, 3)) + " kg"
+        # Write parameter values to comment
+        doc.GetElement(elem.Id).\
+            get_Parameter(Autodesk.Revit.DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).\
+                Set(volume_str + " " + mass)
+        
+    t.Commit()
+
+
+if __name__ == '__main__':
+    if __shiftclick__:
+        mode = True
+    else :
+        mode = False
+    main(mode)
+    MessageBox.Show("Values had been written to 'Comments' parameter", 'Completed')

@@ -16,27 +16,48 @@ from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *
 from Autodesk.Revit.UI import Selection
 
+import sys
+
 clr.AddReference('System')
 clr.AddReference('RevitAPIUI')
 import pyrevit
 from pyrevit import forms
 from System.Collections.Generic import List
+from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS
+from Autodesk.Revit.UI.Selection import ObjectType
+
 
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 uiapp = __revit__
 app = uiapp.Application
 t = Autodesk.Revit.DB.Transaction(doc)
+
 versionNumber = uiapp.Application.VersionNumber
 if "2019" in versionNumber or "2020" in versionNumber:
         from Autodesk.Revit.DB import UnitUtils
-if "2021" in versionNumber or "2022" in versionNumber or "2023" in versionNumber:
-         from Autodesk.Revit.DB import UnitUtils, UnitTypeId
+elif "2021" in versionNumber or "2022" in versionNumber or "2023" in versionNumber or "2024" in versionNumber:
+        from Autodesk.Revit.DB import UnitUtils, UnitTypeId
+else:
+        from Autodesk.Revit.DB import UnitUtils, UnitTypeId
+
 categories = doc.Settings.Categories
 n = categories.Size
-#print(n)
 
-selobject = uidoc.Selection.GetElementIds()
+# Get unput: selected by user elements
+def get_selection():
+     selobject = uidoc.Selection.GetElementIds()
+     if selobject.Count == 0:
+          try:
+               selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdInclude(ID_WALLS), "Selection Objects")
+          except:
+               sys.exit()
+     elif selobject.Count != 0:
+          selection = selobject
+     return selection
+
+
+selobject = get_selection()
 volumes = []
 
 def get_host_volume(elem):
