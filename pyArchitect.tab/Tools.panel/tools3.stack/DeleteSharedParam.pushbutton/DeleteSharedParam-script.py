@@ -3,7 +3,10 @@
 # by Roman Golev
 
 
-__doc__ = """Удаляет выбранный общий параметр польностью из проекта / Completely removes shared parameter from project"""
+__doc__ = """Удаляет выбранный общий параметр польностью из проекта. 
+После удаления можно добавить в проект параметр с тем же GUID но другими свойствами
+/ Completely removes shared parameter from project
+Allows to add another shared parameter with the same GUID but different properties after deletion"""
 __author__ = 'Roman Golev'
 __title__ = "Delete\nShared Parameter"
 

@@ -2,7 +2,7 @@
 # pylint: skip-file
 # by Roman Golev 
 
-__doc__ = """Select all element of desired category / Выбирает все элементы заданной категории на виде
+__doc__ = """Select all element of selected category / Выбирает все элементы заданной категории на виде
 -----------------------------------
 Simply run the script and choose the category / Запустить и выбрать категорию
 """
