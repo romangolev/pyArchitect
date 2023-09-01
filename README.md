@@ -1,5 +1,5 @@
 ## pyArchitect 
-This is a pyRevit extension for Architectural and Interior design.
+This is a pyRevit extension for Architectural, Interior design and BIM Coordination.
 The extension developed to help architects reduce routine tasks and help
 the project to be organized and neat. Description in Russian can be found below. 
 
@@ -27,9 +27,11 @@ Every tool has an embedded description. To see the description and hint, hover m
 
 When having an issues with loading extension, delete all files from the following directory: `%AppData%\Roaming\pyRevit\Extensions\pyArchitect.extension` as well as `pyArchitect.extension` folder. Then reinstall extension as described in Installation section
 
-
-
-
+### Shoutouts
+Big thanks to:
+  - [Ehsan Iran-Nejad](https://github.com/eirannejad) for designing great tool and inspiring thousands of BIM enthusiasts
+  - [Jean-Marc Couffin](https://github.com/jmcouffin) for making pyArchitect available from the extension list in pyRevit
+  - [Alex Melnikov](https://github.com/melnikovalex) for sharing pyApex extension
 
 ## pyArchitect — Описание на русском языке
 ### Установка
