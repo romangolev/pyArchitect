@@ -5,7 +5,7 @@
 import Autodesk
 import clr
 clr.AddReference("RevitAPI")
-# from Autodesk.Revit.DB import *
+from Autodesk.Revit.DB import UnitUtils, DisplayUnitType
 
 import sys
 
@@ -14,7 +14,7 @@ import sys
 def convertDouble(uiapp, doubleValue,units):
 
      versionNumber = uiapp.Application.VersionNumber
-     
+     value_converted = ''
      if "2019" in versionNumber or "2020" in versionNumber:
           from Autodesk.Revit.DB import UnitUtils, DisplayUnitType
      elif "2021" in versionNumber or "2022" in versionNumber or "2023" in versionNumber or "2024" in versionNumber:
@@ -35,7 +35,7 @@ def convertDouble(uiapp, doubleValue,units):
 
 def convertDoubleToM3(uiapp, doubleValue):
      versionNumber = uiapp.Application.VersionNumber
-     
+     value_converted = ''
      if "2019" in versionNumber or "2020" in versionNumber:
           from Autodesk.Revit.DB import UnitUtils, DisplayUnitType
      elif "2021" in versionNumber or "2022" in versionNumber or "2023" in versionNumber or "2024" in versionNumber:

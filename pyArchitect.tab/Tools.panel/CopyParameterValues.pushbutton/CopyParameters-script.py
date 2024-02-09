@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Copy Values'
-__doc__ = """Copy parameter value from one property to another /
+__doc__ = \
+"""
+Copy parameter value from one property to another /
 Копирует значения параметра для выбранных элементов из одного свойства в другое
 """
 __helpurl__ = ""
@@ -203,7 +205,6 @@ class CopyValues:
 
      def runLogic(self):
           value, storageTypeFrom, units = self.getValueFrom()
-
           if storageTypeFrom == StorageType.Integer:
                if self.param_to.StorageType == StorageType.Integer:
                     try:
