@@ -2,40 +2,29 @@
 __title__ = 'Copy Values'
 __doc__ = \
 """
-Copy parameter value from one property to another /
+Copy parameter value from one selected property to another /
 Копирует значения параметра для выбранных элементов из одного свойства в другое
 """
 __helpurl__ = ""
 
+# Importing modules
 import clr
 clr.AddReference('System.Windows.Forms')
-from System.Windows.Forms import Clipboard
-#clr.AddReference('IronPython.Wpf')
-
-import pyrevit
-from pyrevit import forms
+clr.AddReference('System.Web.Extensions')
 from pyrevit.forms import WPFWindow
 import os.path as op
-import json
-import clr
-clr.AddReference('System.Web.Extensions')
-from System.Web.Script.Serialization import JavaScriptSerializer
 from System.Windows import MessageBox
-from System.Windows.Controls import (ComboBox, ComboBoxItem, ListBox, ListBoxItem)
-from System.Collections.ObjectModel import *
-from System.ComponentModel import *
-from System.Windows.Controls import *
 from Autodesk.Revit.UI.Selection import ObjectType
 from Autodesk.Revit.DB import Transaction,StorageType
-
-from System.Collections.Generic import *
 import collections
 import sys
 from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS
-from core.unitsconverter import convertDouble
-doc = __revit__.ActiveUIDocument.Document
-uidoc = __revit__.ActiveUIDocument
-uiapp = __revit__
+from core.unitsconverter import UnitConverter
+
+# Revit constants
+doc = __revit__.ActiveUIDocument.Document # type: ignore
+uidoc = __revit__.ActiveUIDocument # type: ignore
+uiapp = __revit__ # type: ignore
 app = uiapp.Application
 t = Transaction(doc)
 
@@ -231,7 +220,7 @@ class CopyValues:
           elif storageTypeFrom == StorageType.Double:
                if self.param_to.StorageType == StorageType.Integer:
                     try:                    
-                         value_converted = convertDouble(uiapp, value, units)
+                         value_converted = UnitConverter.convertDouble(uiapp, value, units)
                          self.setValueTo(round(value_converted))
                          return "Success"
                     except:
@@ -244,7 +233,7 @@ class CopyValues:
                          return "Skipped"                       
                elif self.param_to.StorageType == StorageType.String:
                     try:
-                         value_converted = convertDouble(uiapp, value, units)
+                         value_converted = UnitConverter.convertDouble(uiapp, value, units)
                          self.setValueTo(str(value_converted))
                          return "Success"
                     except:
@@ -341,7 +330,6 @@ class MyWindow(WPFWindow):
                # To parameter is Instance parameter:
                elif paraMan.inst_dict_names.get(selected2) != None:
                     to_parameter = paraMan.inst_params[paraMan.inst_dict_names.get(selected2)]
-                    print(to_parameter)
                     for elem in selection:
                          copy_result = CopyValues(from_parameter,
                                                   to_parameter,
@@ -357,7 +345,6 @@ class MyWindow(WPFWindow):
 
                # To parameter is Type parameter:
                if paraMan.type_dict_names.get(selected2) != None:
-                    # to_parameter = paraMan.type_params[paraMan.type_dict_names.get(selected2)]
                     # print("Cannot write date from Instance to Type parameters")
                     self.hide()
                     MessageBox.Show('Cannot write values from Instance parameter to Type parameters of the element', 'Error')

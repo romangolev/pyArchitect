@@ -8,17 +8,25 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250" />
-            <!-- Or Auto -->
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0" >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Column="0" Height="80">
             <TextBlock Text="Parameter's values to copy from:" Margin="5,5" />
             <ComboBox x:Name="drop1" Margin="5,5" />
-            <Button Content="Rewrite ---->" Width="165" Click="rewrite" Margin="7,10,7,7"/>
+            
         </StackPanel>
         <StackPanel Grid.Column="1" >
             <TextBlock Text="Parameter to write:" Margin="5,5" />
             <ComboBox x:Name="drop2" Margin="5,5" />
         </StackPanel>
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
+            <Button Content="Rewrite ---->" Width="165" Click="rewrite" Margin="7,10,7,7"/>
+        </StackPanel>
+        
     </Grid>
+    
 </Window>
