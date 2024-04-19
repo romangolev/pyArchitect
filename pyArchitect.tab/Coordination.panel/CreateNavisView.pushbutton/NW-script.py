@@ -16,31 +16,24 @@ __author__ = 'Roman Golev'
 __title__ = "Navis\nView"
 #__helpurl__ = ""
 
-import clr
-clr.AddReference("RevitAPI")
 import Autodesk
-from Autodesk.Revit.DB import *
-from Autodesk.Revit.UI import *
+import Autodesk.Revit.DB as DB
 
-clr.AddReference('System')
-clr.AddReference('RevitAPIUI')
-import pyrevit
 from pyrevit import forms
-
-
-doc = __revit__.ActiveUIDocument.Document
-uidoc = __revit__.ActiveUIDocument
-uiapp = __revit__
-app = uiapp.Application
-t = Autodesk.Revit.DB.Transaction(doc)
 from pyrevit import HOST_APP
 from Autodesk.Revit.ApplicationServices import LanguageType
 
+doc = __revit__.ActiveUIDocument.Document # type: ignore
+uidoc = __revit__.ActiveUIDocument # type: ignore
+uiapp = __revit__ # type: ignore
+app = uiapp.Application
+t = DB.Transaction(doc)
+
 
 def get3D_viewtype():
-    collector3d = Autodesk.Revit.DB.FilteredElementCollector(doc).OfClass(Autodesk.Revit.DB.ViewFamilyType).ToElements()
+    collector3d = DB.FilteredElementCollector(doc).OfClass(DB.ViewFamilyType).ToElements()
     for el in collector3d:
-        if el.ViewFamily == ViewFamily.ThreeDimensional:
+        if el.ViewFamily == DB.ViewFamily.ThreeDimensional:
             viewFamTypeId = el.Id
             return viewFamTypeId
         else:
@@ -48,45 +41,45 @@ def get3D_viewtype():
 
 def get_categoryID(cat):
     if cat == "OST_PipeCurves":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PipeCurves)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PipeCurves)
     elif cat == "OST_PipeSegments":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PipeSegments)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PipeSegments)
     elif cat == "OST_PlaceHolderPipes":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PlaceHolderPipes)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PlaceHolderPipes)
     elif cat == "OST_PipeInsulations":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PipeInsulations)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PipeInsulations)
     elif cat == "OST_PipeFitting":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PipeFitting)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PipeFitting)
     elif cat == "OST_PipeAccessory":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PipeAccessory)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PipeAccessory)
     elif cat == "OST_MechanicalEquipment":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_MechanicalEquipment)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_MechanicalEquipment)
     elif cat == "OST_DuctTerminal":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_DuctTerminal)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_DuctTerminal)
     elif cat == "OST_Lines":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_Lines)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_Lines)
     elif cat == "OST_Walls":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_Walls)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_Walls)
     elif cat == "OST_CurtainWallPanels":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_CurtainWallPanels)    
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_CurtainWallPanels)    
     elif cat == "OST_PlumbingFixtures":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_PlumbingFixtures)   
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_PlumbingFixtures)   
     elif cat == "OST_StructConnectionSymbols":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_StructConnectionSymbols)   
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_StructConnectionSymbols)   
     elif cat == "OST_DuctAccessory":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_DuctAccessory)   
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_DuctAccessory)   
     elif cat == "OST_FlexPipeCurves":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_FlexPipeCurves)   
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_FlexPipeCurves)   
     elif cat == "OST_FlexDuctCurves":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_FlexDuctCurves)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_FlexDuctCurves)
     elif cat == "OST_ConduitFitting":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_ConduitFitting)  
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_ConduitFitting)  
     elif cat == "OST_Conduit":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_Conduit)  
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_Conduit)  
     elif cat == "OST_LightingFixtures":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_LightingFixtures)
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_LightingFixtures)
     elif cat == "OST_LightingDevices":
-        collector = Autodesk.Revit.DB.Category.GetCategory(doc,BuiltInCategory.OST_LightingDevices)      
+        collector = Autodesk.Revit.DB.Category.GetCategory(doc, DB.BuiltInCategory.OST_LightingDevices)      
     else:
         pass
     return collector.Id
@@ -106,7 +99,7 @@ class nw:
                 OfCategory(Autodesk.Revit.DB.BuiltInCategory.OST_Views).\
                 WhereElementIsNotElementType().ToElements()
         for elem in elems:
-            if elem.ViewType == ViewType.ThreeD and elem.IsTemplate == False:
+            if elem.ViewType == DB.ViewType.ThreeD and elem.IsTemplate == False:
                 if "Navis" in elem.Name:
                     navis3ds.append(elem)
                 elif "navis" in elem.Name:
@@ -121,23 +114,23 @@ class nw:
             view3d.Name = "Navisworks"
 
             #Remove view template
-            par = view3d.get_Parameter(BuiltInParameter.VIEW_TEMPLATE)
+            par = view3d.get_Parameter(DB.BuiltInParameter.VIEW_TEMPLATE)
             if par != None:
-                par.Set(ElementId.InvalidElementId)
+                par.Set(DB.ElementId.InvalidElementId)
 
             #Hide all annotations, import, point clouds on view
             view3d.AreAnnotationCategoriesHidden = True
             view3d.AreImportCategoriesHidden = True
             view3d.ArePointCloudsHidden = True
             #Changes Display Style to "FlatColors" of new Navis view
-            view3d.DisplayStyle = DisplayStyle.FlatColors
+            view3d.DisplayStyle = DB.DisplayStyle.FlatColors
 
             #Change detail level for view
-            view3d.DetailLevel = ViewDetailLevel.Medium
+            view3d.DetailLevel = DB.ViewDetailLevel.Medium
 
             #Change override DetailLevel for High
             ovg_high = Autodesk.Revit.DB.OverrideGraphicSettings()
-            ovg_high.SetDetailLevel(ViewDetailLevel.Fine)
+            ovg_high.SetDetailLevel(DB.ViewDetailLevel.Fine)
             view3d.SetCategoryOverrides(get_categoryID("OST_PipeCurves"), ovg_high)
             view3d.SetCategoryOverrides(get_categoryID("OST_PipeAccessory"), ovg_high)
             view3d.SetCategoryOverrides(get_categoryID("OST_PipeInsulations"), ovg_high)
@@ -168,13 +161,13 @@ class nw:
             #TODO:Hide a sub-category "Center line" for Pipes category
 
             if HOST_APP.language == LanguageType.English_USA:
-                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(BuiltInCategory.OST_DuctCurves).SubCategories.get_Item("Center line").Id, True)
-                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(BuiltInCategory.OST_PipeCurves).SubCategories.get_Item("Center Line").Id, True)
-                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(BuiltInCategory.OST_StructConnections).SubCategories.get_Item("Symbol").Id, True)
+                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_DuctCurves).SubCategories.get_Item("Center line").Id, True)
+                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_PipeCurves).SubCategories.get_Item("Center Line").Id, True)
+                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_StructConnections).SubCategories.get_Item("Symbol").Id, True)
             elif HOST_APP.language == LanguageType.Russian:
-                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(BuiltInCategory.OST_DuctCurves).SubCategories.get_Item("Осевая линия").Id, True)
-                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(BuiltInCategory.OST_PipeCurves).SubCategories.get_Item("Осевая линия").Id, True)
-                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(BuiltInCategory.OST_StructConnections).SubCategories.get_Item("Обозначение").Id, True)              
+                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_DuctCurves).SubCategories.get_Item("Осевая линия").Id, True)
+                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_PipeCurves).SubCategories.get_Item("Осевая линия").Id, True)
+                view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_StructConnections).SubCategories.get_Item("Обозначение").Id, True)              
             else:
                 print("Hide a sub-category 'Symbol' for Structural Connections discipline error")
                 print("Hide a sub-category 'Center line' for Ducts category error")
@@ -198,8 +191,8 @@ class nw:
 
     def collect_links(self):
         #links = []
-        cl = FilteredElementCollector(doc) \
-                .OfCategory(BuiltInCategory.OST_RvtLinks) \
+        cl = DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_RvtLinks) \
                 .ToElementIds()
         return cl
 
@@ -209,7 +202,7 @@ class nw:
 def main():
     nwex = nw(doc).find_ex()
     #links_on = 0
-    if __shiftclick__:
+    if __shiftclick__: # type: ignore
         links_on = 0
     else :
         links_on = 1
@@ -222,7 +215,7 @@ def main():
             make_active(nwnew)
         except:
             t.RollBack()
-            pyrevit.forms.alert("Error")
+            forms.alert("Error")
         
 
     elif nwex != []:
@@ -241,7 +234,7 @@ def main():
                 t.Commit()
             except:
                 t.RollBack()
-                pyrevit.forms.alert("Error")
+                forms.alert("Error")
             make_active(def3D)
 
             #Delete all existing Navis views and create new
@@ -253,7 +246,7 @@ def main():
                 t.Commit()
             except:
                 t.RollBack()
-                pyrevit.forms.alert("Error")
+                forms.alert("Error")
             make_active(nwnew)
 
             #Delete dummy 3d view
@@ -263,7 +256,7 @@ def main():
                 t.Commit()
             except:
                 t.RollBack()
-                pyrevit.forms.alert("Error")
+                forms.alert("Error")
         elif options == "Keep existing and open it":
             try:
                 make_active(nwex[0])
