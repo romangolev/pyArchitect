@@ -11,8 +11,9 @@ Creates new Coordination Plan based on the selected plan\
 (Включает видимость Базовой точки и Точки съёмки)
 """
 
-#TODO: Add lang driven dialogs
-#HOST_APP.language == LanguageType.English_USA:
+# TODO: Add lang driven dialogs
+# HOST_APP.language == LanguageType.English_USA:
+# from pyrevit import HOST_APP
 
 __author__ = 'Roman Golev'
 __title__ = "Coord\nPlan"
@@ -20,29 +21,25 @@ __title__ = "Coord\nPlan"
 
 import clr
 clr.AddReference("RevitAPI")
-import Autodesk
-from Autodesk.Revit.DB import *
-from Autodesk.Revit.UI import *
 clr.AddReference("System.Core")
 clr.AddReference('System')
 clr.AddReference('RevitAPIUI')
-import pyrevit
-from pyrevit import forms
-from pyrevit import HOST_APP
-import System.Collections.Generic 
-import sys
-import string
-import random
+clr.AddReference("System.Core")
+clr.AddReference('System')
 import System
 clr.ImportExtensions(System.Linq)
+import Autodesk.Revit.DB as DB
+
+from pyrevit import forms
 
 
-doc = __revit__.ActiveUIDocument.Document
-uidoc = __revit__.ActiveUIDocument
-uiapp = __revit__
+
+doc = __revit__.ActiveUIDocument.Document # type: ignore
+uidoc = __revit__.ActiveUIDocument # type: ignore
+uiapp = __revit__ # type: ignore
 app = uiapp.Application
-t = Autodesk.Revit.DB.Transaction(doc)
-a = Autodesk.Revit.DB.FilteredElementCollector(doc).OfClass(Autodesk.Revit.DB.ViewFamilyType)
+t = DB.Transaction(doc)
+a = DB.FilteredElementCollector(doc).OfClass(DB.ViewFamilyType)
 
 def get_viewtype(tr,a):
     for vft in a.ToElements():
@@ -82,17 +79,17 @@ def get_viewtypePlan(elems):
 
 def get_categoryID(cat):
     if cat == "BasePoint":
-        collector = Autodesk.Revit.DB.Category\
-            .GetCategory(doc,BuiltInCategory.OST_ProjectBasePoint)
+        collector = DB.Category\
+            .GetCategory(doc, DB.BuiltInCategory.OST_ProjectBasePoint)
     elif cat == "SurveyPoint":
-        collector = Autodesk.Revit.DB.Category\
-            .GetCategory(doc,BuiltInCategory.OST_SharedBasePoint)
+        collector = DB.Category\
+            .GetCategory(doc, DB.BuiltInCategory.OST_SharedBasePoint)
     elif cat == "SitePoint":
-        collector = Autodesk.Revit.DB.Category\
-            .GetCategory(doc,BuiltInCategory.OST_SitePoint)
+        collector = DB.Category\
+            .GetCategory(doc, DB.BuiltInCategory.OST_SitePoint)
     elif cat == "Site":
-        collector = Autodesk.Revit.DB.Category\
-            .GetCategory(doc,BuiltInCategory.OST_Site)          
+        collector = DB.Category\
+            .GetCategory(doc, DB.BuiltInCategory.OST_Site)          
     else:
         pass
     return collector.Id
@@ -103,23 +100,23 @@ def make_active(a):
 
 def find_coord(doc):
     coord_views = []
-    elems = Autodesk.Revit.DB.FilteredElementCollector(doc).\
-                OfCategory(Autodesk.Revit.DB.BuiltInCategory.OST_Views).\
+    elems = DB.FilteredElementCollector(doc).\
+                OfCategory(DB.BuiltInCategory.OST_Views).\
                 WhereElementIsNotElementType().ToElements()
     for elem in elems:
-        if elem.ViewType == ViewType.FloorPlan and elem.IsTemplate == False :
+        if elem.ViewType == DB.ViewType.FloorPlan and elem.IsTemplate == False :
             if "Coordination Plan" in elem.Name:
                 coord_views.append(elem)
     return coord_views
 
 def create_coord_plan(doc, vft, lvl):
-    elem = Autodesk.Revit.DB.ViewPlan.Create(doc, vft, lvl)
-    par = elem.get_Parameter(BuiltInParameter.VIEW_TEMPLATE)
+    elem = DB.ViewPlan.Create(doc, vft, lvl)
+    par = elem.get_Parameter(DB.BuiltInParameter.VIEW_TEMPLATE)
     if par != None:
-        par.Set(ElementId.InvalidElementId)
-    elem.DetailLevel = ViewDetailLevel.Coarse
-    elem.DisplayStyle = DisplayStyle.Wireframe
-    elem.Discipline = ViewDiscipline.Coordination
+        par.Set(DB.ElementId.InvalidElementId)
+    elem.DetailLevel = DB.ViewDetailLevel.Coarse
+    elem.DisplayStyle = DB.DisplayStyle.Wireframe
+    elem.Discipline = DB.ViewDiscipline.Coordination
     elem.Name = "Coordination Plan"
     elem.SetCategoryHidden(get_categoryID("Site"), False)
     elem.SetCategoryHidden(get_categoryID('BasePoint'), False)
@@ -132,22 +129,22 @@ def create_coord_plan(doc, vft, lvl):
     elem.AreAnnotationCategoriesHidden = False
     elem.CropBoxActive = False
     elem.CropBoxVisible = False
-    ancrop = elem.get_Parameter(BuiltInParameter.VIEWER_ANNOTATION_CROP_ACTIVE)
+    ancrop = elem.get_Parameter(DB.BuiltInParameter.VIEWER_ANNOTATION_CROP_ACTIVE)
     ancrop.Set(0)
 
     #Change View range to unlimited
     vr = elem.GetViewRange()
-    vr.SetLevelId(PlanViewPlane.TopClipPlane,PlanViewRange.Unlimited)
-    vr.SetLevelId(PlanViewPlane.BottomClipPlane,PlanViewRange.Unlimited)
-    vr.SetLevelId(PlanViewPlane.ViewDepthPlane,PlanViewRange.Unlimited)
+    vr.SetLevelId(DB.PlanViewPlane.TopClipPlane, DB.PlanViewRange.Unlimited)
+    vr.SetLevelId(DB.PlanViewPlane.BottomClipPlane, DB.PlanViewRange.Unlimited)
+    vr.SetLevelId(DB.PlanViewPlane.ViewDepthPlane, DB.PlanViewRange.Unlimited)
     elem.SetViewRange(vr)
     return elem
 
 def main():
     #Get viewtype and default level
     vf = get_viewtype(t,a)
-    level = Autodesk.Revit.DB.FilteredElementCollector(doc)\
-            .OfCategory(Autodesk.Revit.DB.BuiltInCategory.OST_Levels)\
+    level = DB.FilteredElementCollector(doc)\
+            .OfCategory(DB.BuiltInCategory.OST_Levels)\
             .WhereElementIsNotElementType().ToElements().FirstOrDefault()
 
     #Find existing coorfination plans
@@ -169,12 +166,12 @@ def main():
             try:
 
                 t.Start("Create dummy plan")
-                dummy = Autodesk.Revit.DB.ViewPlan.Create(doc, vf.Id, level.Id)
+                dummy = DB.ViewPlan.Create(doc, vf.Id, level.Id)
                 t.Commit()
                 make_active(dummy)
             except:
                 t.RollBack()
-                pyrevit.forms.alert("Error in creating dummy plan")
+                forms.alert("Error in creating dummy plan")
 
             # Create new Coord plan and delete old plans
             try:
@@ -186,7 +183,7 @@ def main():
                 make_active(new_plan)
             except:
                 t.RollBack()
-                pyrevit.forms.alert("Error in creating new coord plan")
+                forms.alert("Error in creating new coord plan")
 
             #Delete dummy plan
             try:
@@ -195,7 +192,7 @@ def main():
                 t.Commit()
             except:
                 t.RollBack()
-                pyrevit.forms.alert("Error in deleting dummy")
+                forms.alert("Error in deleting dummy")
         else:
             make_active(ex[0])
 
