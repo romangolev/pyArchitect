@@ -2,42 +2,16 @@
 # pylint: skip-file
 # by Roman Golev
 
-__doc__ = """Создаёт координационный план. /Creates Coordination Plan.
-
-Creates new Coordination Plan based on the selected plan\
-(Reveals Base Point, Survey Point) \
----------------------------------------------------------------------
-Создаёт новый план координации
-(Включает видимость Базовой точки и Точки съёмки)
-"""
-
-# TODO: Add lang driven dialogs
-# HOST_APP.language == LanguageType.English_USA:
-# from pyrevit import HOST_APP
-
-__author__ = 'Roman Golev'
-__title__ = "Coord\nPlan"
 #__helpurl__ = ""
 
-import clr
-clr.AddReference("RevitAPI")
-clr.AddReference("System.Core")
-clr.AddReference('System')
-clr.AddReference('RevitAPIUI')
-clr.AddReference("System.Core")
-clr.AddReference('System')
-import System
-clr.ImportExtensions(System.Linq)
 import Autodesk.Revit.DB as DB
-
 from pyrevit import forms
-
-
 
 doc = __revit__.ActiveUIDocument.Document # type: ignore
 uidoc = __revit__.ActiveUIDocument # type: ignore
 uiapp = __revit__ # type: ignore
 app = uiapp.Application
+
 t = DB.Transaction(doc)
 a = DB.FilteredElementCollector(doc).OfClass(DB.ViewFamilyType)
 
