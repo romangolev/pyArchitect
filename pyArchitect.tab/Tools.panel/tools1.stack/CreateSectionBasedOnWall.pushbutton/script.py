@@ -2,16 +2,7 @@
 # pylint: skip-file
 # by Roman Golev 
 
-__doc__ = """Makes a Section based on seleccted walls / Создаёт разрез для выбранных стен
 
-Creates a section in which selected wall is encircled \
-If there are couple of walls selected, then creates same number of sections
----------------------------------------------------------------------
-Создаёт разрез для выбраной стены \
-Если выбрано несколько стен, то создаёт отдельный разрез для каждой из выбранных стен
-"""
-__author__ = 'Roman Golev'
-__title__ = "Section\nfor Wall"
 
 #Load Revit API
 import clr

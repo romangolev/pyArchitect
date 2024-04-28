@@ -2,12 +2,6 @@
 # pylint: skip-file
 # by Roman Golev
 
-
-__doc__ = "test"
-__author__ = 'Roman Golev'
-__title__ = "Categories\n List + ID"
-
-
 import clr
 clr.AddReference("RevitAPI")
 import Autodesk

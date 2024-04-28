@@ -1,0 +1,23 @@
+title:
+  es_es: |-
+    Delete
+    Shared Parameter
+  en_us: |-
+    Delete
+    Shared Parameter
+  ru: |-
+    Delete
+    Shared Parameter
+tooltip: 
+  es_es: >-
+    Elimina completamente el parámetro compartido del proyecto
+    Permite agregar otro parámetro compartido con el mismo GUID pero diferentes propiedades
+  en_us: >-
+    Completely removes shared parameter from project
+    Allows to add another shared parameter with the same GUID but different properties
+  ru: >-
+    Удаляет выбранный общий параметр польностью из проекта. 
+    После удаления можно добавить в проект параметр с тем же GUID но другими свойствами
+author: Roman Golev
+engine:
+  persistent: true

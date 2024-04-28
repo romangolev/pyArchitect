@@ -11,18 +11,18 @@ title:
 tooltip: 
   es_es: >-
     Crea un Plan de Coordinación.
-
-    Crea un nuevo Plan de Coordinación \
+    _________________________________________________________________
+    Crea un nuevo Plan de Coordinación
     (Revela el Punto Base, el Punto de Levantamiento)
   en_us: >-
     Creates Coordination Plan.
-
-    Creates new Coordination Plan \
+    _________________________________________________________________
+    Creates new Coordination Plan
     (Reveals Base Point, Survey Point)
   ru: >-
     Создаёт координационный план. 
-
-    Создает новый координационный план \
+    _________________________________________________________________
+    Создает новый координационный план
     (Показывает базовую точку, точку съемки)
 
 author: Roman Golev

@@ -3,13 +3,6 @@
 # by Roman Golev
 
 
-__doc__ = """ Writes down Volume and Mass of all Plates to the Comments parameter
-Записывает значение объёма и массы всех пластин в параметр Комментарии
-"""
-__author__ = 'Roman Golev'
-__title__ = "Plates\nVolume"
-
-
 import clr
 clr.AddReference("RevitAPI")
 import Autodesk

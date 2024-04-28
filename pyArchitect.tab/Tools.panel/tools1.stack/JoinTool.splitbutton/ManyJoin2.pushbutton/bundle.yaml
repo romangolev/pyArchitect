@@ -1,0 +1,33 @@
+title:
+  es_es: |-
+    Batch Join
+    By Selection
+  en_us: |-
+    Batch Join
+    By Selection
+  ru: |-
+    Batch Join
+    By Selection
+tooltip: 
+  es_es: >-
+    Une varios elementos
+    _________________________________________________________________
+    Primero debe elegir el elemento host o los elementos a los que se unirá.
+    Luego, debe elegir un segundo grupo o elemento que deba conectarse al host.
+
+  en_us: >-
+    Joins multiple elements
+    _________________________________________________________________
+    First you need to choose host element or elements to be joined to.
+    Then you need to choose a second group or element that should be connected to host.
+
+  ru: >-
+    Присоединяет множественные элементы 
+    _________________________________________________________________
+    Необходимо выбрать первую группу элементов для множественного присоединения,
+    затем выбирается вторая группа элементов, к которым данное присоединение
+    необходимо применить
+
+author: Roman Golev
+engine:
+  persistent: true
