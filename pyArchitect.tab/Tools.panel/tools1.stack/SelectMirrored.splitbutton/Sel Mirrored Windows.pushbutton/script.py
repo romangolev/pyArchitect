@@ -16,9 +16,7 @@ pyRevit: repository at https://github.com/eirannejad/pyRevit
 
 """
 #pylint: disable=E0401,W0621,W0631,C0413,C0111,C0103
-__doc__ = "Selects All Window Instances that have been Mirrored."
 __author__ = '@gtalarico'
-__title__ = "Select Mirrored\nWindows"
 
 from rpw import db, ui
 

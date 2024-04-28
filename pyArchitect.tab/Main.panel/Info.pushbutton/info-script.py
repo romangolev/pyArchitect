@@ -10,10 +10,6 @@ from pyrevit import output
 import os.path as op
 import core
 
-# Handling button
-__doc__ = """Информация о проекте, программе и расширении / Basic Information about current project and extension"""
-__title__ = "Info"
-__author__ = "Roman Golev"
 __context__ = 'zero-doc'
 
 # Handle Language versions

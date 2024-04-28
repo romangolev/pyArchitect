@@ -1,12 +1,4 @@
 # -*- coding: utf-8 -*- 
-__doc__ = """
-Checks if links are pinned and that link located on separated workset (started from ##Link_). 
-Fix these issues
-
-Проверяет закреплены ли связи и находится ли связь на отдельном рабочем наборе (начинающемся с ##Link_)
-Исправляет эти ошибки 
-"""
-__title__ = "Review Links"
 
 try:
     from pyrevit.versionmgr import PYREVIT_VERSION
@@ -33,7 +25,7 @@ else:
     from scriptutils import this_script
 
     linkify = this_script.output.linkify
-    uidoc = __revit__.ActiveUIDocument
+    uidoc = __revit__.ActiveUIDocument # type: ignore
     doc = uidoc.Document
 
 from Autodesk.Revit.UI import TaskDialog, TaskDialogCommonButtons
@@ -80,7 +72,7 @@ class Check(object):
         for k in self.elements.keys():
             els = self.elements[k]
             for e in els:
-                self.check_one(e, k)
+                self.check_one(e, k) # type: ignore
 
     def check_one(self, e):
         pass

@@ -2,18 +2,6 @@
 # pylint: skip-file
 # by Roman Golev 
 
-
-__doc__ = """Creates second layer of walls inside selected rooms / Создаёт отделку стены для выбранного помещения
-------------------------------------
-Follow the steps / Принцип работы инструмента:
-Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
-Step 2 / Шаг 2 — Select offset option and choose wall type / Выбрать опцию смещения и тип отделки
-
-Useful for creating specifications for interior works. 
-"""
-__author__ = 'Roman Golev'
-__title__ = "Wall\nFinishing"
-
 #Load Revit API and system
 from hashlib import new
 import Autodesk
@@ -34,7 +22,7 @@ from collections import namedtuple
 #import pyrevit modules
 from pyrevit import forms
 
-doc = __revit__.ActiveUIDocument.Document
+doc = __revit__.ActiveUIDocument.Document 
 uidoc = __revit__.ActiveUIDocument
 uiapp = __revit__
 app = uiapp.Application

@@ -1,0 +1,18 @@
+title:
+  es_es: |-
+    Víncular más
+  en_us: |-
+    Link more
+  ru: |-
+    Link more
+tooltip: 
+  es_es: >-
+    Crea muchos enlaces RVT, DWG o IFC a la vez
+  en_us: >-
+    Creates many RVT, DWG or IFC links at once
+  ru: >-
+    Создает множество ссылок RVT, DWG или IFC одновременно
+
+author: Roman Golev
+engine:
+  persistent: true

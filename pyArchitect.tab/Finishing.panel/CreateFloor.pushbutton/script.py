@@ -2,20 +2,6 @@
 # pylint: skip-file
 # by Roman Golev 
 
-#TODO:Create Shared Parameter if there is no such parameter in project
-
-__doc__ = """Creates floors for selected rooms / Создание отделки пола для выбранных помещений
-------------------------------------
-Follow the steps / Принцип работы инструмента:
-Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
-Step 2 / Шаг 2 — Select offset option and choose finishing type / Выбрать опцию смещения и тип отделки
-
-Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
-Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
-"""
-
-__author__ = 'Roman Golev'
-__title__ = "Floor\nFinishing"
 
 import sys
 import os

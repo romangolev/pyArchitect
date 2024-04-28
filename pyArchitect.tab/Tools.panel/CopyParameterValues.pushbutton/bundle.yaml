@@ -1,0 +1,18 @@
+title:
+  es_es: |-
+    Copy Values
+  en_us: |-
+    Copy Values
+  ru: |-
+    Copy Values
+tooltip: 
+  es_es: >-
+    Copiar el valor del parámetro de una propiedad seleccionada a otra
+  en_us: >-
+    Copy parameter value from one selected property to another
+  ru: >-
+    Копирует значения параметра для выбранных элементов из одного свойства в другое
+
+author: Roman Golev
+engine:
+  persistent: true

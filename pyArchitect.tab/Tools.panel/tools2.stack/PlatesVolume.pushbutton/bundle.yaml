@@ -1,0 +1,21 @@
+title:
+  es_es: |-
+    Plates
+    Volume
+  en_us: |-
+    Plates
+    Volume
+  ru: |-
+    Plates
+    Volume
+tooltip: 
+  es_es: >-
+    Anota el Volumen y la Masa de todas las Placas en el parámetro Comentarios
+  en_us: >-
+    Writes down Volume and Mass of all Plates to the Comments parameter
+  ru: >-
+    Записывает значение объёма и массы всех пластин в параметр Комментарии
+
+author: Roman Golev
+engine:
+  persistent: true

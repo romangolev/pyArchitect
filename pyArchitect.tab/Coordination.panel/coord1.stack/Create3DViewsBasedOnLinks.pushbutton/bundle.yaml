@@ -1,0 +1,21 @@
+title:
+  es_es: |-
+    3D Vistas
+    Vínculos
+  en_us: |-
+    Links
+    3D Views
+  ru: |-
+    Links
+    3D Views
+tooltip: 
+  es_es: >-
+    Crear vistas 3D basadas en vínculos
+  en_us: >-
+    Create 3D views based on worksets
+  ru: >-
+    Создаёт 3D виды на основе связанных файлов
+
+author: Roman Golev
+engine:
+  persistent: true

@@ -2,12 +2,6 @@
 # pylint: skip-file
 # by Roman Golev
 
-
-__doc__ = """Создаёт 3D виды на основе видимости рабочих наборов.\
- /Create 3D views based on worksets."""
-__author__ = 'Roman Golev'
-__title__ = "Worksets\n3D Views"
-
 import clr
 clr.AddReference("RevitAPI")
 import Autodesk

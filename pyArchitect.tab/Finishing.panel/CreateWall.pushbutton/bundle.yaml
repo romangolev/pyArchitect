@@ -1,0 +1,43 @@
+title:
+  es_es: |-
+    Wall
+    Finishing
+  en_us: |-
+    Wall
+    Finishing
+  ru: |-
+    Wall
+    Finishing
+tooltip: 
+  es_es: >-
+    Crea una segunda capa de paredes dentro de las habitaciones seleccionadas
+    _________________________________________________________________
+
+    Sigue los pasos:
+    Paso 1 — Seleccione habitación (es)
+    Paso 2 — Seleccione la opción desplazamiento y elija el tipo de pared
+
+    Útil para crear especificaciones para trabajos de interior
+  en_us: >-
+    Creates second layer of walls inside selected rooms
+    _________________________________________________________________
+  
+    Follow the steps:
+    Step 1 — Select room(s)
+    Step 2 — Select offset option and choose wall type
+
+    Useful for creating specifications for interior works
+  ru: >-
+    Создаёт отделку стены для выбранного помещения
+    _________________________________________________________________
+
+    Принцип работы инструмента:
+    
+    Шаг 1 — Выделить помещение(я)
+    Шаг 2 — Выбрать опцию смещения и тип отделки
+
+    удобен для создания спецификаций на внутренние работы
+
+author: Roman Golev
+engine:
+  persistent: true

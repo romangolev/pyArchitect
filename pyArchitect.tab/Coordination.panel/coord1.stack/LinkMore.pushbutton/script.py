@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
-__doc__ = """Creates many RVT, DWG or IFC links at once.
-"""
-
-__title__ = 'Link more'
 
 __helpurl__ = "https://apex-project.github.io/pyApex/help#link-more"
 
 import clr
 import System
 import os
-clr.AddReference('System')
 
 from pyrevit import script, revit, forms, HOST_APP
 from Autodesk.Revit.DB import Document, XYZ, Transaction, DWGImportOptions, DGNImportOptions, RevitLinkOptions, RevitLinkType, \
@@ -63,7 +58,7 @@ def link_method_cad():
             link_func = doc.Link.Overloads[str, DWGImportOptions, View, System.Type.MakeByRefType(ElementId)]
 
         t = Transaction(doc)
-        t.Start(__title__)
+        t.Start('Link more')
         try:
             status, e_id = link_func(f, o, target_view, )
         except Exception as e:
@@ -104,7 +99,7 @@ def link_method_rvt():
 
     for f in files:
         t = Transaction(doc)
-        t.Start(__title__)
+        t.Start('Link more')
 
         try:
             mp = ModelPathUtils.ConvertUserVisiblePathToModelPath(f)
@@ -130,7 +125,7 @@ def link_method_ifc():
     files = pick_files(files_filter)
     for f in files:
         t = Transaction(doc)
-        t.Start(__title__)
+        t.Start('Link more')
         f_cache = f + ".rvt"
         recreate = not os.path.exists(f_cache)
         logger.debug("Recreate ifc %s = %s" % (f, recreate))

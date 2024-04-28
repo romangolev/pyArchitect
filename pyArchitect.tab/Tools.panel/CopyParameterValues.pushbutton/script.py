@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-__title__ = 'Copy Values'
-__doc__ = \
-"""
-Copy parameter value from one selected property to another /
-Копирует значения параметра для выбранных элементов из одного свойства в другое
-"""
 __helpurl__ = ""
 
 # Importing modules
