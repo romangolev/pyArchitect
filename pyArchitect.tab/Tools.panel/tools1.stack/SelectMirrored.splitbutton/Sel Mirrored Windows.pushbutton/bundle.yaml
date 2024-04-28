@@ -1,0 +1,20 @@
+title:
+  es_es: |-
+    Select Mirrored
+    Windows
+  en_us: |-
+    Select Mirrored
+    Windows
+  ru: |-
+    Select Mirrored
+    Windows
+tooltip: 
+  es_es: >-
+    Selecciona Todas las Instancias de Ventana que se han Reflejado
+  en_us: >-
+    Selects All Window Instances that have been Mirrored
+  ru: >-
+    Выделить все отзеркаленные окна на выбранном виде
+
+engine:
+  persistent: true

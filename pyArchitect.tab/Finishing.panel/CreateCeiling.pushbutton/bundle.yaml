@@ -1,0 +1,41 @@
+title:
+  es_es: |-
+    Ceiling
+    Finishing
+  en_us: |-
+    Ceiling
+    Finishing
+  ru: |-
+    Ceiling
+    Finishing
+tooltip: 
+  es_es: >-
+    Crea techo para habitaciones seleccionadas
+    _________________________________________________________________
+  
+    Paso 1 - Seleccione habitación (es)
+    Paso 2: Seleccione la opción desplazamiento y elija el tipo de acabado
+
+    La opción "Consider Thickness" tiene en cuenta el grosor del techo y lo desplaza hacia abajo
+    
+  en_us: >-
+    Creates ceiling for selected rooms
+    _________________________________________________________________
+  
+    Step 1 — Select room(s)
+    Step 2 — Select offset option and choose finishing type
+
+    Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
+
+  ru: >-
+    Создаёт отделку потолка для выбранных помещений
+    _________________________________________________________________
+    Follow the steps / Принцип работы инструмента:
+    Шаг 1 — Выделить помещение(я)
+    Шаг 2 — Выбрать опцию смещения и тип отделки
+
+    Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
+
+author: Roman Golev
+engine:
+  persistent: true

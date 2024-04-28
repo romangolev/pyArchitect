@@ -2,14 +2,6 @@
 # pylint: skip-file
 # by Roman Golev
 
-__doc__ = """Создаёт 3D виды на основе связанных файлов.\
-/Create 3D views based on worksets."""
-__author__ = 'Roman Golev'
-__title__ = "Links\n3D Views"
-
-import clr
-clr.AddReference("System")
-
 import Autodesk.Revit.DB as DB
 from Autodesk.Revit.DB import ElementId
 from pyrevit import forms

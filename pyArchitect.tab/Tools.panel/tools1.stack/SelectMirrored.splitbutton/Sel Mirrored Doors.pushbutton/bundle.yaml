@@ -1,0 +1,20 @@
+title:
+  es_es: |-
+    Select Mirrored
+    Doors
+  en_us: |-
+    Select Mirrored
+    Doors
+  ru: |-
+    Select Mirrored
+    Doors
+tooltip: 
+  es_es: >-
+    Selecciona Todas las Instancias de Puerta que se han Reflejado
+  en_us: >-
+    Selects All Door Instances that have been Mirrored
+  ru: >-
+    Выделить все отзеркаленные двери на выбранном виде
+
+engine:
+  persistent: true

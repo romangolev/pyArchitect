@@ -1,0 +1,21 @@
+title:
+  es_es: |-
+    Volume
+    Query
+  en_us: |-
+    Volume
+    Query
+  ru: |-
+    Volume
+    Query
+tooltip: 
+  es_es: >-
+    Devuelve el volumen del elemento para los elementos seleccionados. Calcula totales en metros cuadrados
+  en_us: >-
+    Returns element Volume for a selected elements. Calculates totals in square meters
+  ru: >-
+    Возвращает объем элемента для выбранного элемента. Вычисляет итоговые значения в квадратных метрах
+
+author: Roman Golev
+engine:
+  persistent: true

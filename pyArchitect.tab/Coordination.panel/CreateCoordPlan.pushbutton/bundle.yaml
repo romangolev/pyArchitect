@@ -1,0 +1,30 @@
+title:
+  es_es: |-
+    Plan de
+    Coordinación
+  en_us: |-
+    Coordination
+    Plan
+  ru: |-
+    Координационный
+    план
+tooltip: 
+  es_es: >-
+    Crea un Plan de Coordinación.
+    _________________________________________________________________
+    Crea un nuevo Plan de Coordinación
+    (Revela el Punto Base, el Punto de Levantamiento)
+  en_us: >-
+    Creates Coordination Plan.
+    _________________________________________________________________
+    Creates new Coordination Plan
+    (Reveals Base Point, Survey Point)
+  ru: >-
+    Создаёт координационный план. 
+    _________________________________________________________________
+    Создает новый координационный план
+    (Показывает базовую точку, точку съемки)
+
+author: Roman Golev
+engine:
+  persistent: true

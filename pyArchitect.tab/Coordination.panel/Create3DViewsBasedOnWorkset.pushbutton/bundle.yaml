@@ -1,0 +1,21 @@
+title:
+  es_es: |-
+    3D Vistas
+    Subproyectos
+  en_us: |-
+    Worksets
+    3D Views
+  ru: |-
+    Worksets
+    3D Views
+tooltip: 
+  es_es: >-
+    Crear vistas 3D basadas en conjuntos de trabajo.
+  en_us: >-
+    Create 3D views based on worksets.
+  ru: >-
+    Создаёт 3D виды на основе видимости рабочих наборов.
+
+author: Roman Golev
+engine:
+  persistent: true

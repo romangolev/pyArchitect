@@ -2,14 +2,6 @@
 # pylint: skip-file
 # by Roman Golev 
 
-__doc__ = """Select all element of selected category / Выбирает все элементы заданной категории на виде
------------------------------------
-Simply run the script and choose the category / Запустить и выбрать категорию
-"""
-__author__ = 'Roman Golev'
-__title__ = "All Elements\nOf Category"
-
-
 import Autodesk.Revit.DB as DB
 from Autodesk.Revit.DB import *
 import clr

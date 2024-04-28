@@ -1,0 +1,14 @@
+title:
+  es_es: |-
+    Categories
+    List + ID
+  en_us: |-
+    Categories
+    List + ID
+  ru: |-
+    Categories
+    List + ID
+
+author: Roman Golev
+engine:
+  persistent: true

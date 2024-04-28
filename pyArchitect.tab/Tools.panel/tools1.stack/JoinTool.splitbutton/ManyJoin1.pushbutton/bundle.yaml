@@ -1,0 +1,35 @@
+title:
+  es_es: |-
+    Batch Join
+    By Category
+  en_us: |-
+    Batch Join
+    By Category
+  ru: |-
+    Batch Join
+    By Category
+tooltip: 
+  es_es: >-
+    Une varios elementos
+    _________________________________________________________________
+    Primero debe elegir la categoría de elementos a unir
+    (script recopila todos los elementos de categoría). Entonces tienes que elegir
+    un elemento o elementos a los que se unirá con el conjunto de elementos seleccionado anteriormente por categoría    
+
+  en_us: >-
+    Joins multiple elements
+    _________________________________________________________________
+    First you need to choose the category of elements to join
+    (script collects all elements of category). Then you need to choose
+    an element or elements to be joined to with the previous selected set of elements by category
+
+  ru: >-
+    Копирует значения параметра для выбранных элементов из одного свойства в другое
+    _________________________________________________________________
+    Необходимо выбрать категорию элементов для множественного присоединения,
+    затем выбирается элемент или элементы к которым данное присоединение 
+    необходимо применить
+
+author: Roman Golev
+engine:
+  persistent: true

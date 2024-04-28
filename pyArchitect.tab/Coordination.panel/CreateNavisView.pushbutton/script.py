@@ -1,19 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 # by Roman Golev
-
-__doc__ = """Создаёт 3D вид Navis. /Creates Navis 3D view.
-
-Creates new 3D View for Navisworks export (Hides all annotations, imports, etc.) \
-Searches for existing 3D Views, gives an option to delete existing view and \
-create new one or preserve existed.
----------------------------------------------------------------------
-Создаёт новый 3D вид Navisworks (скрывает аннотации, импорт DWG и т.д) \
-Производит поиск существующих 3D видов и в случае наличия существуюего вида \
-даёт возможность удалить и создать новый или оставить текущий.
-"""
-__author__ = 'Roman Golev'
-__title__ = "Navis\nView"
 #__helpurl__ = ""
 
 import Autodesk
@@ -37,7 +24,7 @@ def get3D_viewtype():
             viewFamTypeId = el.Id
             return viewFamTypeId
         else:
-            0
+            pass
 
 def get_categoryID(cat):
     if cat == "OST_PipeCurves":
@@ -89,7 +76,7 @@ def make_active(a):
     uidoc.ActiveView = doc.GetElement(a.Id)
     pass
 
-class nw:
+class NavisworksView:
     def __init__(self, Document):
         self.doc = Document
 
@@ -159,7 +146,8 @@ class nw:
             #TODO:Hide a sub-category "Symbol" for Structural Connections discipline
             #TODO:Hide a sub-category "Center line" for Ducts category
             #TODO:Hide a sub-category "Center line" for Pipes category
-
+            #TODO: Make it work for all languages
+            
             if HOST_APP.language == LanguageType.English_USA:
                 view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_DuctCurves).SubCategories.get_Item("Center line").Id, True)
                 view3d.SetCategoryHidden(doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_PipeCurves).SubCategories.get_Item("Center Line").Id, True)
@@ -176,7 +164,7 @@ class nw:
             #Hide links options
             if option1 == 1:
                 try:
-                    view3d.HideElements(nw(doc).collect_links())
+                    view3d.HideElements(self.collect_links())
                 except:
                     pass
             else:
@@ -200,7 +188,7 @@ class nw:
 
 
 def main():
-    nwex = nw(doc).find_ex()
+    nwex = NavisworksView(doc).find_ex()
     #links_on = 0
     if __shiftclick__: # type: ignore
         links_on = 0
@@ -210,7 +198,7 @@ def main():
     if nwex == []:
         t.Start("Create Navis View")
         try:
-            nwnew = nw(doc).create3D(links_on)
+            nwnew = NavisworksView(doc).create3D(links_on)
             t.Commit()
             make_active(nwnew)
         except:
@@ -230,7 +218,7 @@ def main():
             #Create Default 3D
             try:
                 t.Start("Create dummy 3D view")
-                def3D = nw(doc).create_default3D()
+                def3D = NavisworksView(doc).create_default3D()
                 t.Commit()
             except:
                 t.RollBack()
@@ -242,7 +230,7 @@ def main():
                 t.Start("Delete Existing 'Navis' views")
                 for el_nw in nwex:
                     doc.Delete(el_nw.Id)
-                nwnew = nw(doc).create3D(links_on)
+                nwnew = NavisworksView(doc).create3D(links_on)
                 t.Commit()
             except:
                 t.RollBack()

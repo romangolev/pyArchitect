@@ -1,0 +1,34 @@
+title:
+  es_es: |-
+    Vista
+    Navis
+  en_us: |-
+    Navis
+    View
+  ru: |-
+    Вид
+    Navis
+tooltip: 
+  es_es: >-
+    Crea un nuevo 3D Vista para exportar a Navisworks.
+    _________________________________________________________________
+    Crea un nuevo 3D Vista para exportar a Navisworks (Oculta todas las anotaciones, importaciones, etc.) 
+    Busca vistas 3D existentes, da la opción de eliminar la vista existente y
+    crear una nueva o preservar la existente.
+  en_us: >-
+    Creates Navis 3D view
+    _________________________________________________________________
+
+    Creates new 3D View for Navisworks export (Hides all annotations, imports, etc.)
+    Searches for existing 3D Views, gives an option to delete existing view and
+    create new one or preserve existed.
+  ru: >-
+    Создаёт 3D вид Navis.
+    _________________________________________________________________
+    Создаёт новый 3D вид Navisworks (скрывает аннотации, импорт DWG и т.д)
+    Производит поиск существующих 3D видов и в случае наличия существуюего вида
+    даёт возможность удалить и создать новый или оставить текущий.
+
+author: Roman Golev
+engine:
+  persistent: true

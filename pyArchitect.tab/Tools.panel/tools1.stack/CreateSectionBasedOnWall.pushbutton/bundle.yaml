@@ -1,0 +1,30 @@
+title:
+  es_es: |-
+    Section
+    for Wall
+  en_us: |-
+    Section
+    for Wall
+  ru: |-
+    Section
+    for Wall
+tooltip: 
+  es_es: >-
+    Crea una sección basada en muros seleccionados
+    _________________________________________________________________
+    Crea una sección en la que se rodea el muro seleccionado \
+    Si hay un par de muros seleccionados, crea el mismo número de secciones
+  en_us: >-
+    Makes a Section based on seleccted walls
+    _________________________________________________________________
+    Creates a section in which selected wall is encircled \
+    If there are couple of walls selected, then creates same number of sections
+  ru: >-
+    Создаёт разрез для выбранных стен
+    _________________________________________________________________
+    Создаёт разрез для выбраной стены \
+    Если выбрано несколько стен, то создаёт отдельный разрез для каждой из выбранных стен
+
+author: Roman Golev
+engine:
+  persistent: true

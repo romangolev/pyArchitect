@@ -1,0 +1,21 @@
+title:
+  es_es: |-
+    Review Links
+  en_us: |-
+    Review Links
+  ru: |-
+    Review Links
+tooltip: 
+  es_es: >-
+    Comprueba si los enlaces están anclados y si ese enlace está en un conjunto de trabajo separado (iniciado desde ##Link_).
+    Resuelva estos problemas
+  en_us: >-
+    Checks if links are pinned and that link located on separated workset (started from ##Link_). 
+    Fix these issues
+  ru: >-
+    Проверяет закреплены ли связи и находится ли связь на отдельном рабочем наборе (начинающемся с ##Link_)
+    Исправляет эти ошибки 
+
+author: Roman Golev
+engine:
+  persistent: true

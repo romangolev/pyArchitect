@@ -1,0 +1,18 @@
+title:
+  es_es: |-
+    Info
+  en_us: |-
+    Info
+  ru: |-
+    Инфо
+tooltip: 
+  es_es: >-
+    Información básica sobre el proyecto actual y la extensión
+  en_us: >-
+    Basic Information about current project and extension
+  ru: >-
+    Информация о проекте, программе и расширении 
+
+author: Roman Golev
+engine:
+  persistent: true

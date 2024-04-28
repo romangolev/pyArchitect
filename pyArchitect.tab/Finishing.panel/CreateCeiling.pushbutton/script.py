@@ -3,20 +3,7 @@
 # by Roman Golev 
 
 
-__doc__ = """Creates ceiling for selected rooms / Создаёт отделку потолка для выбранных помещений
-------------------------------------    
-Follow the steps / Принцип работы инструмента:
-Step 1 / Шаг 1 — Select room(s) / Выделить помещение(я)
-Step 2 / Шаг 2 — Select offset option and choose finishing type /  Выбрать опцию смещения и тип отделки
 
-Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
-Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
-"""
-
-__author__ = 'Roman Golev'
-__title__ = "Ceiling\nFinishing"
-
-from email.mime import application
 import sys
 import os
 from collections import namedtuple
