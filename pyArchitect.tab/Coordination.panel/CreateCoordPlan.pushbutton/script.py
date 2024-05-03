@@ -13,9 +13,10 @@ uiapp = __revit__ # type: ignore
 app = uiapp.Application
 
 t = DB.Transaction(doc)
-a = DB.FilteredElementCollector(doc).OfClass(DB.ViewFamilyType)
 
-def get_viewtype(tr,a):
+
+def get_viewtype(tr, a):
+    floor_plans = [i for i in a.ToElements() if i.FamilyName == "Floor Plan"]
     for vft in a.ToElements():
         # Walkaround over an error while retrieving Name directly from ViewType
         params = vft.Parameters
@@ -29,10 +30,9 @@ def get_viewtype(tr,a):
                         return vft
             except:
                 pass
-
+    tr.Start("Create View Family Type")
     try:
-        tr.Start("Create View Family Type")
-        old_v = get_viewtypePlan(a)
+        old_v = floor_plans[0]
         new_v = old_v.Duplicate("Coordination Plan")
         try:
             vft.DefaultTemplateId = 0
@@ -42,14 +42,6 @@ def get_viewtype(tr,a):
         return new_v
     except:
         tr.RollBack()
-
-
-def get_viewtypePlan(elems):
-    for elem in elems:
-        if elem.FamilyName == "Floor Plan":
-            return elem
-        else:
-            return 0
 
 def get_categoryID(cat):
     if cat == "BasePoint":
@@ -115,12 +107,12 @@ def create_coord_plan(doc, vft, lvl):
     return elem
 
 def main():
+    a = DB.FilteredElementCollector(doc).OfClass(DB.ViewFamilyType)
     #Get viewtype and default level
-    vf = get_viewtype(t,a)
+    vf = get_viewtype(t, a)
     level = DB.FilteredElementCollector(doc)\
             .OfCategory(DB.BuiltInCategory.OST_Levels)\
-            .WhereElementIsNotElementType().ToElements().FirstOrDefault()
-
+            .WhereElementIsNotElementType().ToElements()[0]#.FirstOrDefault()
     #Find existing coorfination plans
     ex = find_coord(doc)
     if len(ex) == 0:
