@@ -213,7 +213,7 @@ class CopyValues:
                     return "Error"
           elif storageTypeFrom == StorageType.Double:
                if self.param_to.StorageType == StorageType.Integer:
-                    try:                    
+                    try:
                          value_converted = UnitConverter.convertDouble(uiapp, value, units)
                          self.setValueTo(round(value_converted))
                          return "Success"
@@ -221,7 +221,8 @@ class CopyValues:
                          return "Skipped"                       
                elif self.param_to.StorageType == StorageType.Double:
                     try:
-                         self.setValueTo(value)
+                         value_converted = UnitConverter.convertDouble(uiapp, value, units)
+                         self.setValueTo(round(value_converted))
                          return "Success"
                     except:
                          return "Skipped"                       
