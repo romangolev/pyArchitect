@@ -1,18 +1,14 @@
 # extension library file
 
-import os
-import sys
 import os.path as op
 import urllib2
-import selectionhelpers
 
 from pyrevit import EXEC_PARAMS
 from pyrevit import script
-from pyrevit import forms
 from pyrevit.loader import sessionmgr
 from pyrevit.loader import sessioninfo
 
-class Core :
+class Core(object):
    """
    Extension Coreclass
    """
@@ -20,8 +16,6 @@ class Core :
    def return_ext_dir():
       A_EXT_DIR = op.dirname(op.dirname(__file__))
       return A_EXT_DIR
-
-
 
 
 def get_local_version():
