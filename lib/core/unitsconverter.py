@@ -10,7 +10,7 @@ import sys
 class UnitConverter:
      
      @staticmethod
-     def convertDouble(uiapp, doubleValue,units):
+     def convertDouble(uiapp, doubleValue, units):
 
           versionNumber = uiapp.Application.VersionNumber
           value_converted = ''

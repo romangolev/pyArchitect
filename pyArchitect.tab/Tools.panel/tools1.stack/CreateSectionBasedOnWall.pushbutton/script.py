@@ -2,30 +2,20 @@
 # pylint: skip-file
 # by Roman Golev 
 
-
-
-#Load Revit API
-import clr
-clr.AddReference("RevitAPI")
-import Autodesk
-from Autodesk.Revit.DB import *
-from Autodesk.Revit.UI import *
-
 import sys
+import Autodesk.Revit.DB as DB
+from Autodesk.Revit.DB import BuiltInParameter, XYZ, Transform, BoundingBoxXYZ, \
+                                ViewSection, ViewFamilyType, FilteredElementCollector, \
+                                ViewFamily
 
-import pyrevit
 from pyrevit import forms
 from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS
 from Autodesk.Revit.UI.Selection import ObjectType
 
-doc = __revit__.ActiveUIDocument.Document
-uidoc = __revit__.ActiveUIDocument
-uiapp = __revit__
-app = uiapp.Application
-t = Autodesk.Revit.DB.Transaction(doc)
-tg = Autodesk.Revit.DB.TransactionGroup(doc)
-
-
+doc = __revit__.ActiveUIDocument.Document # type: ignore
+uidoc = __revit__.ActiveUIDocument # type: ignore
+transaction = DB.Transaction(doc)
+transaction_group = DB.TransactionGroup(doc)
 
 # Get unput: selected by user elements
 def get_selection():
@@ -40,8 +30,8 @@ def get_selection():
      return selection
 
 
-def create_section_by_wall(el, doc, viewFamilyTypeId, t, flip):
-    offset = units(100)
+def create_section_by_wall(el, doc, viewFamilyTypeId, transaction, flip):
+    offset = 100/304.8 # 100mm offset as Double
     wall = doc.GetElement(el)
     # Determine section box
     lc = wall.Location
@@ -61,11 +51,8 @@ def create_section_by_wall(el, doc, viewFamilyTypeId, t, flip):
     w = v.GetLength()
     h = maxZ - minZ
     d = wall.WallType.Width
-    # wallBaseOffset = units(float(wall.get_Parameter(BuiltInParameter.WALL_BASE_OFFSET).AsString()))
-    # wallUnconnectedHeight = units(float(wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsString()))
-    wallBaseOffset = builtInParam(wall, BuiltInParameter.WALL_BASE_OFFSET)
-    wallUnconnectedHeight = builtInParam(wall, BuiltInParameter.WALL_USER_HEIGHT_PARAM)
-
+    wallBaseOffset = wall.get_Parameter(BuiltInParameter.WALL_BASE_OFFSET).AsDouble()
+    wallUnconnectedHeight = wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble()
 
     # XYZ(min/max section line length, min/max height of the section box, min/max far clip)
     min = XYZ(-0.5*w - offset, wallBaseOffset - offset, - offset - 0.5*d)
@@ -95,35 +82,25 @@ def create_section_by_wall(el, doc, viewFamilyTypeId, t, flip):
     sectionBox.Min = min # scope box bottom
     sectionBox.Max = max # scope box top
 
-    t.Start('Create Section')
     # Create wall section view
-    newSection = ViewSection.CreateSection(doc, viewFamilyTypeId, sectionBox)
-    t.Commit()
-    return newSection
-
-
-def units(mmToFeets):
+    transaction.Start('Create Section')
     try:
-        # R19, R20, R21
-        dut = DisplayUnitType.DUT_MILLIMETERS
-        return UnitUtils.ConvertToInternalUnits(mmToFeets, dut)
-    except:
-        # R22, R22, R23 and later
-        return mmToFeets/304.8
+        newSection = ViewSection.CreateSection(doc, viewFamilyTypeId, sectionBox)
+        transaction.Commit()
+        return newSection
+    except Exception as e:
+        transaction.RollBack()
+        transaction.Dispose()
+        print(e)
 
-
-
-def builtInParam(wall, wallParam):
-    return units(float(wall.get_Parameter(wallParam).AsValueString()))
 
 def main():
     # Get selection
-    # sel = uidoc.Selection.GetElementIds()
     sel = get_selection()
 
     # Check selected elements
     if not sel:
-        forms.alert("Please, select wall","Section For Wall")
+        forms.alert("Please, select wall", "Section For Wall")
         sys.exit()
     for element in sel:
         if doc.GetElement(element).Category.Id.ToString() != "-2000011":
@@ -157,13 +134,12 @@ def main():
     
     #Make section(s)
     if len(sel) == 1:
-        create_section_by_wall(sel[0], doc, viewFamilyTypeId, t, sw["Flip section"])
+        create_section_by_wall(sel[0], doc, viewFamilyTypeId, transaction, sw["Flip section"])
     elif len(sel) > 1:
-        tg.Start("Create multiple sections")
+        transaction_group.Start("Create multiple sections")
         for el in sel:
-            create_section_by_wall(el, doc, viewFamilyTypeId, t, sw["Flip section"])
-        tg.Assimilate()
-
+            create_section_by_wall(el, doc, viewFamilyTypeId, transaction, sw["Flip section"])
+        transaction_group.Assimilate()
 
 if __name__ == '__main__':
     main()
