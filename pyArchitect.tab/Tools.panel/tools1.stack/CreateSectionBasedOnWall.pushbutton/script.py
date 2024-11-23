@@ -9,7 +9,7 @@ from Autodesk.Revit.DB import BuiltInParameter, XYZ, Transform, BoundingBoxXYZ, 
                                 ViewFamily
 
 from pyrevit import forms
-from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS
+from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS, ID_SEPARATION_LINES
 from Autodesk.Revit.UI.Selection import ObjectType
 
 doc = __revit__.ActiveUIDocument.Document # type: ignore
@@ -22,7 +22,7 @@ def get_selection():
      selobject = uidoc.Selection.GetElementIds()
      if selobject.Count == 0:
           try:
-               selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdInclude(ID_WALLS), "Selection Objects")
+               selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdInclude(ID_WALLS + ID_SEPARATION_LINES), "Selection Objects")
           except:
                sys.exit()
      elif selobject.Count != 0:
@@ -30,11 +30,11 @@ def get_selection():
      return selection
 
 
-def create_section_by_wall(el, doc, viewFamilyTypeId, transaction, flip):
+def create_section(el, doc, viewFamilyTypeId, transaction, flip):
     offset = 100/304.8 # 100mm offset as Double
-    wall = doc.GetElement(el)
+    ref_elem = doc.GetElement(el)
     # Determine section box
-    lc = wall.Location
+    lc = ref_elem.Location
     line = lc.Curve
 
     p = line.GetEndPoint(0)
@@ -44,19 +44,20 @@ def create_section_by_wall(el, doc, viewFamilyTypeId, transaction, flip):
     else:
         v = p - q
 
-    bb = wall.get_BoundingBox(None)
-    minZ = bb.Min.Z
-    maxZ = bb.Max.Z
-
-    w = v.GetLength()
-    h = maxZ - minZ
-    d = wall.WallType.Width
-    wallBaseOffset = wall.get_Parameter(BuiltInParameter.WALL_BASE_OFFSET).AsDouble()
-    wallUnconnectedHeight = wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble()
+    if ref_elem.Category.Id.ToString() == "-2000011":
+        w = v.GetLength()
+        d = ref_elem.WallType.Width
+        BaseOffset = ref_elem.get_Parameter(BuiltInParameter.WALL_BASE_OFFSET).AsDouble()
+        UnconnectedHeight = ref_elem.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble()
+    elif ref_elem.Category.Id.ToString() == "-2000066":
+        w = ref_elem.get_Parameter(BuiltInParameter.CURVE_ELEM_LENGTH).AsDouble()
+        d = 300/304.8 # 300mm as Double
+        BaseOffset = 0
+        UnconnectedHeight = 3000/304.8 # 3000mm as Double
 
     # XYZ(min/max section line length, min/max height of the section box, min/max far clip)
-    min = XYZ(-0.5*w - offset, wallBaseOffset - offset, - offset - 0.5*d)
-    max = XYZ(0.5*w + offset, wallBaseOffset + wallUnconnectedHeight + offset, offset + 0.5*d)
+    min = XYZ(-0.5*w - offset, BaseOffset - offset, - offset - 0.5*d)
+    max = XYZ(0.5*w + offset, BaseOffset + UnconnectedHeight + offset, offset + 0.5*d)
 
     # factor for direction of section view
     if p.X > q.X or (p.X == q.X and p.Y < q.Y): fc = 1
@@ -82,7 +83,7 @@ def create_section_by_wall(el, doc, viewFamilyTypeId, transaction, flip):
     sectionBox.Min = min # scope box bottom
     sectionBox.Max = max # scope box top
 
-    # Create wall section view
+    # Create ref_elem section view
     transaction.Start('Create Section')
     try:
         newSection = ViewSection.CreateSection(doc, viewFamilyTypeId, sectionBox)
@@ -100,11 +101,12 @@ def main():
 
     # Check selected elements
     if not sel:
-        forms.alert("Please, select wall", "Section For Wall")
+        forms.alert("Please, select ref_elem", "Section For Wall")
         sys.exit()
     for element in sel:
-        if doc.GetElement(element).Category.Id.ToString() != "-2000011":
-            forms.alert("Please, select only wall(s)","Section For Wall")
+        if doc.GetElement(element).Category.Id.ToString() == ID_WALLS[0] \
+        or doc.GetElement(element).Category.Id.ToString() == ID_SEPARATION_LINES[0]:
+            forms.alert("The tool works only with walls and separation liners", "Section For Wall")
             sys.exit()
 
     #Get section types
@@ -129,16 +131,18 @@ def main():
                                             message=msg,
                                             config=cfgs,
                                             switches=switches)
+    if options is None:
+        sys.exit()
 
     viewFamilyTypeId = res[options].Id
     
     #Make section(s)
     if len(sel) == 1:
-        create_section_by_wall(sel[0], doc, viewFamilyTypeId, transaction, sw["Flip section"])
+        create_section(sel[0], doc, viewFamilyTypeId, transaction, sw["Flip section"])
     elif len(sel) > 1:
         transaction_group.Start("Create multiple sections")
         for el in sel:
-            create_section_by_wall(el, doc, viewFamilyTypeId, transaction, sw["Flip section"])
+            create_section(el, doc, viewFamilyTypeId, transaction, sw["Flip section"])
         transaction_group.Assimilate()
 
 if __name__ == '__main__':

@@ -11,6 +11,7 @@ ID_MODEL_ELEMENTS = [-2000270, -2001017, -2008155, -2000095, -2009639, -2005009,
 ID_WALLS = [-2000011]
 ID_FLOORS = [-2000032]
 ID_ROOMS = [-2000160]
+ID_SEPARATION_LINES = [-2000066]
 
 class CustomISelectionFilterByIdInclude(ISelectionFilter):
     def __init__(self, category_ids=None):
