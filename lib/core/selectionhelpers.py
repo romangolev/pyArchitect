@@ -12,6 +12,8 @@ ID_WALLS = [-2000011]
 ID_FLOORS = [-2000032]
 ID_ROOMS = [-2000160]
 ID_SEPARATION_LINES = [-2000066]
+ID_COLUMNS = [-2000100]
+ID_STRUCTURAL_COLUMNS = [-2000101]
 
 class CustomISelectionFilterByIdInclude(ISelectionFilter):
     def __init__(self, category_ids=None):
@@ -77,12 +79,12 @@ class CustomISelectionFilterModelCats(ISelectionFilter):
 
 # Get unput: selected by user elements
 def get_selection_basic(uidoc, filter):
-     selobject = uidoc.Selection.GetElementIds()
-     if selobject.Count == 0:
-          try:
-               selection = uidoc.Selection.PickObjects(ObjectType.Element, filter, "Selection Objects")
-          except:
-               sys.exit()
-     elif selobject.Count != 0:
-          selection = selobject
-     return selection
+    selobject = uidoc.Selection.GetElementIds()
+    if selobject.Count == 0:
+        try:
+            selection = uidoc.Selection.PickObjects(ObjectType.Element, filter, "Selection Objects")
+        except:
+            sys.exit()
+    elif selobject.Count != 0:
+        selection = selobject
+    return selection
