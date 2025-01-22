@@ -77,12 +77,12 @@ class CustomISelectionFilterModelCats(ISelectionFilter):
 
 # Get unput: selected by user elements
 def get_selection_basic(uidoc, filter):
-     selobject = uidoc.Selection.GetElementIds()
-     if selobject.Count == 0:
-          try:
-               selection = uidoc.Selection.PickObjects(ObjectType.Element, filter, "Selection Objects")
-          except:
-               sys.exit()
-     elif selobject.Count != 0:
-          selection = selobject
-     return selection
+    selobject = uidoc.Selection.GetElementIds()
+    if selobject.Count == 0:
+        try:
+            selection = uidoc.Selection.PickObjects(ObjectType.Element, filter, "Selection Objects")
+        except:
+            sys.exit()
+    elif selobject.Count != 0:
+        selection = selobject
+    return selection

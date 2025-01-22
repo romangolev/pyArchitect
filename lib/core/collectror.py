@@ -1,33 +1,65 @@
 import Autodesk.Revit.DB as DB
 
 class UniversalProjectCollector(object):
-    def __init__(self, doc):
-        self.doc = doc # type: DB.Document
-        self.rooms = self.collect_rooms()
-        self.floors = self.collect_floors()
-        self.walls = self.collect_walls()
-        self.ceiling = self.collect_ceiling()
+    @staticmethod
+    def collect_room_instances(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Rooms) \
+                .WhereElementIsNotElementType() \
+                .ToElements()
+
+    @staticmethod
+    def collect_floor_instances(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Floors) \
+                .WhereElementIsNotElementType() \
+                .ToElements()
+
+    @staticmethod
+    def collect_wall_instances(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Walls) \
+                .WhereElementIsNotElementType() \
+                .ToElements()
+
+    @staticmethod
+    def collect_ceiling_instances(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Ceilings) \
+                .WhereElementIsNotElementType() \
+                .ToElements()
     
-    def collect_room_instances(self):
-        rooms = []
-        for room in DB.FilteredElementCollector(self.doc).OfCategory(DB.BuiltInCategory.OST_Rooms).WhereElementIsNotElementType():
-            rooms.append(room)
-        return rooms
+    @staticmethod
+    def collect_floor_types(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Floors) \
+                .OfClass(DB.FloorType) \
+                .ToElements()
+
+    @staticmethod
+    def collect_wall_types(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Walls) \
+                .OfClass(DB.WallType) \
+                .ToElements()
+
+    @staticmethod
+    def collect_ceiling_types(doc):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(DB.BuiltInCategory.OST_Ceilings) \
+                .OfClass(DB.CeilingType) \
+                .ToElements()
+
+    @staticmethod
+    def collect_build_in_types(doc, build_in_category):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(build_in_category) \
+                .WhereElementIsElementType() \
+                .ToElements()
     
-    def collect_floor_types(self):
-        floors = []
-        for floor in DB.FilteredElementCollector(self.doc).OfCategory(DB.BuiltInCategory.OST_Floors).WhereElementIsNotElementType():
-            floors.append(floor)
-        return floors
-    
-    def collect_wall_types(self):
-        walls = []
-        for wall in DB.FilteredElementCollector(self.doc).OfCategory(DB.BuiltInCategory.OST_Walls).WhereElementIsNotElementType():
-            walls.append(wall)
-        return walls
-    
-    def collect_ceiling_types(self):
-        ceilings = []
-        for ceiling in DB.FilteredElementCollector(self.doc).OfCategory(DB.BuiltInCategory.OST_Ceilings).WhereElementIsNotElementType():
-            ceilings.append(ceiling)
-        return ceilings
+    @staticmethod
+    def collect_build_in_instances(doc, build_in_category):
+        return DB.FilteredElementCollector(doc) \
+                .OfCategory(build_in_category) \
+                .WhereElementIsNotElementType() \
+                .ToElements()
