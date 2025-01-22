@@ -6,7 +6,7 @@ import uuid
 import Autodesk.Revit.DB as DB
 from pyrevit import forms
 from System.Collections.Generic import List
-from core.selectionhelpers import get_selection_basic, CustomISelectionFilterByIdInclude, ID_ROOMS
+from core.selectionhelpers import get_selection_basic, CustomISelectionFilterByIdInclude, ID_ROOMS, ID_WALLS, ID_COLUMNS, ID_STRUCTURAL_COLUMNS, ID_SEPARATION_LINES
 from core.collectror import UniversalProjectCollector as UPC
 
 class FinishingRoom(object):
@@ -23,13 +23,14 @@ class FinishingRoom(object):
         pass
 
 class FinishingTool(object):
-    """ """
+    """
+    FinishingTool class is a tool for creating finishing elements in Revit.
+    """
     def __init__(self, uiapp):
-        # assert mode in ["floor", "wall", "ceiling"] else raise("Invalid mode")
-        self.uiapp = uiapp # type: DB.UIApplication
-        self.uidoc = uiapp.ActiveUIDocument # type: DB.UIDocument
-        self.doc = uiapp.ActiveUIDocument.Document # type: DB.Document
-        self.app = uiapp.Application # type: DB.Application
+        self.uiapp = uiapp                          # type: DB.UIApplication
+        self.uidoc = uiapp.ActiveUIDocument         # type: DB.UIDocument
+        self.doc = uiapp.ActiveUIDocument.Document  # type: DB.Document
+        self.app = uiapp.Application                # type: DB.Application
         self.notifications = []
 
     def get_rooms(self):
@@ -43,26 +44,23 @@ class FinishingTool(object):
             sys.exit()
         return selected_rooms
 
-    def pick_finishing_type_id(self, build_in_category):
+    def pick_finishing_type_id(self, build_in_category, switches_options=None):
         finishing_type = UPC.collect_build_in_types(self.doc, build_in_category)
-        finishing_type_options = []
-        for i in finishing_type:
-            finishing_type_options.append(i.get_Parameter(DB.BuiltInParameter.ALL_MODEL_TYPE_NAME)
-                                          .AsString())
-
+        if build_in_category == DB.BuiltInCategory.OST_Walls:
+            finishing_type = [i for i in finishing_type if i.Kind.ToString() == "Basic"]
+        finishing_type_options = [i.get_Parameter(DB.BuiltInParameter.ALL_MODEL_TYPE_NAME).AsString() for i in finishing_type]
         res = dict(zip(finishing_type_options, finishing_type))
         for key in finishing_type:
             res[key] = key.get_Parameter(DB.BuiltInParameter.ALL_MODEL_TYPE_NAME)
-
-        switches = ['Consider Thickness']
+        switches = ['Consider Thickness'] if switches_options == None else switches_options
         cfgs = {'option1': { 'background': '0xFF55FF'}}
         rops, rswitches = forms.CommandSwitchWindow.show(finishing_type_options,
                                                          message='Select Option',
                                                          switches=switches,
-                                                         config=cfgs,)
+                                                         config=cfgs)
         if rops == None:
             sys.exit()
-        return res[rops].Id, rswitches
+        return res[rops], rswitches
     
     def make_opening(self, nf, boundary):
         co_curves = DB.CurveArray()
@@ -74,7 +72,7 @@ class FinishingTool(object):
         transaction = DB.Transaction(self.doc)
         transaction_group = DB.TransactionGroup(self.doc)
         selected_rooms = self.get_rooms()
-        floor_type_id, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Floors)
+        floor_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Floors)
         room_boundary_options = DB.SpatialElementBoundaryOptions()
 
         def make_floor(room):
@@ -85,7 +83,6 @@ class FinishingTool(object):
             room_number = room.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
             room_id = room.Id
             room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
-            floorType = self.doc.GetElement(floor_type_id)
             level = self.doc.GetElement(room_level_id)
 
             print(self.app.VersionNumber)
@@ -95,7 +92,7 @@ class FinishingTool(object):
                     floor_curves.Append((boundary_segment).GetCurve())
 
                 normal_plane = DB.XYZ.BasisZ
-                f = self.doc.Create.NewFloor(floor_curves, floorType, level, False, normal_plane)
+                f = self.doc.Create.NewFloor(floor_curves, floor_type, level, False, normal_plane)
                 
             elif self.app.VersionNumber == "2023" or self.app.VersionNumber == "2024" or self.app.VersionNumber == "2025":
                 floor_curves_loop = DB.CurveLoop()
@@ -106,12 +103,12 @@ class FinishingTool(object):
                 curve_list = List[DB.CurveLoop]()
                 curve_list.Add(floor_curves_loop)
                 f = DB.Floor.Create(self.doc,
-                                                    curve_list,
-                                                    floorType.Id, 
-                                                    level.Id)
+                                    curve_list,
+                                    floor_type.Id, 
+                                    level.Id)
             # Input parameter values from rooms
             if rswitches['Consider Thickness'] == False:
-                offset2 = self.doc.GetElement(floor_type_id)\
+                offset2 = floor_type\
                     .get_Parameter(DB.BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM)\
                     .AsDouble()
                 f.get_Parameter(DB.BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM)\
@@ -122,8 +119,6 @@ class FinishingTool(object):
 
             # Here we can add custom parameters for floors or ceilings
             f.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Floor Finishing')
-
-
             return f
 
         transaction_group.Start("Make Floor finishing")
@@ -146,36 +141,14 @@ class FinishingTool(object):
                 pass
         transaction_group.Assimilate()
 
-
     def create_walls(self):
         transaction = DB.Transaction(self.doc)
         transaction_group = DB.TransactionGroup(self.doc)
         # Select rooms 
         selected_rooms = self.get_rooms()
-
-        #Get floor_types
-        def collect_walls(doc):
-            return DB.FilteredElementCollector(doc) \
-                    .OfCategory(DB.BuiltInCategory.OST_Walls) \
-                    .OfClass(DB.WallType) \
-                    .ToElements()
-
-        wall_types = [i for i in collect_walls(self.doc) if i.FamilyName != "Curtain Wall"]
-        wall_type_options = [i.get_Parameter(DB.BuiltInParameter.ALL_MODEL_TYPE_NAME).AsString() for i in wall_types]
-
-        res = dict(zip(wall_type_options,wall_types))
-
         switches = ['Inside loops finishing', 'Include Room Separation Lines']
-        rops, rswitches = forms.CommandSwitchWindow.show( wall_type_options, 
-                                                message='Select Option',
-                                                switches=switches)
-
-        if rops == None:
-            sys.exit()
-
-        wall_type = res[rops]
-        wall_type_id = wall_type.Id
-
+        wall_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Walls, switches)
+        
         # Duplicating wall type creating the same layer set with double width
         # to deal with the offset API issue
         def duplicate_wall_type(type_of_wall):
@@ -188,7 +161,6 @@ class FinishingTool(object):
             return wall_type1
         
         room_boundary_options = DB.SpatialElementBoundaryOptions()
-        w = []
 
         def make_wall(room, temp_type, line):
             room_level_id = room.Level.Id
@@ -225,8 +197,8 @@ class FinishingTool(object):
             
             # Filtering by hostwall type
             for bound in room_boundary:
-                try :
-                    if self.doc.GetElement(bound.ElementId).Category.BuildInCategory == DB.BuiltInCategory.OST_Walls \
+                try:
+                    if self.doc.GetElement(bound.ElementId).Category.Id in ID_WALLS \
                         and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
                         # Filtering small lines less than 10 mm Lenght
                         if bound.GetCurve().Length > 10/304.8:
@@ -237,8 +209,7 @@ class FinishingTool(object):
                             #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
                             new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 
-                    elif self.doc.GetElement(bound.ElementId).Category.BuildInCategory == DB.BuiltInCategory.OST_StructuralColumns or \
-                        self.doc.GetElement(bound.ElementId).Category.BuildInCategory == DB.BuiltInCategory.OST_Columns:
+                    elif self.doc.GetElement(bound.ElementId).Category.Id in ID_COLUMNS or ID_STRUCTURAL_COLUMNS: 
                         # Filtering small lines less than 10 mm Lenght
                         if bound.GetCurve().Length > 10/304.8:
                             bound_walls.append(self.doc.GetElement(bound.ElementId))
@@ -249,7 +220,7 @@ class FinishingTool(object):
                             new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
 
                     elif rswitches['Include Room Separation Lines'] == True and \
-                        self.doc.GetElement(bound.ElementId).Category.Name.ToString() == DB.BuiltInCategory.OST_RoomSeparationLines:
+                        self.doc.GetElement(bound.ElementId).Category.Id in ID_SEPARATION_LINES:
                         # Filtering small lines less than 10 mm Lenght
                         if bound.GetCurve().Length > 10/304.8:
                             bound_walls.append(self.doc.GetElement(bound.ElementId))
@@ -259,9 +230,12 @@ class FinishingTool(object):
                             #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
                             new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
                     else:
+                        print('Skipped')
                         pass
                 except :
-                    0
+                    print('Could not create wall')
+                    import traceback
+                    print(traceback.format_exc())
 
             if rswitches['Inside loops finishing'] == True:
                 for room in selected_rooms:
@@ -306,7 +280,7 @@ class FinishingTool(object):
         res = dict(zip(bound_walls,wallzz))
         transaction.Start('Change Type and Join Walls with hosts')
         col1 = List[DB.ElementId](wallz)
-        DB.Element.ChangeTypeId(self.doc, col1, wall_type_id)
+        DB.Element.ChangeTypeId(self.doc, col1, wall_type.Id)
         transaction.Commit()
 
         transaction.Start('Join Walls with hosts')
@@ -329,7 +303,7 @@ class FinishingTool(object):
         selected_rooms = self.get_rooms()
         ### Make ceiling finishing using ceiling (newer versions)
         if "2022" in self.app.VersionNumber or "2023" in self.app.VersionNumber or "2024" in self.app.VersionNumber or "2025" in self.app.VersionNumber :
-            ceiling_type_id, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Ceilings)
+            ceiling_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Ceilings)
             room_boundary_options = DB.SpatialElementBoundaryOptions()
 
             def make_ceiling(room):
@@ -350,16 +324,15 @@ class FinishingTool(object):
                 #   curvelooplist = List[DB.CurveLoop](ceiling_curves)
                 curve_list.Add(ceiling_curves_loop)
                 
-                ceilingType = self.doc.GetElement(ceiling_type_id)
                 level = self.doc.GetElement(room_level_id)
                 # normal_plane = DB.XYZ.BasisZ
                 f = DB.Ceiling.Create(self.doc,
                                                     curve_list,
-                                                    ceilingType.Id, 
+                                                    ceiling_type.Id, 
                                                     level.Id)
                 # Input parameter values from rooms
-                if rswitches['Consider Thickness'] == False and self.doc.GetElement(ceiling_type_id).FamilyName == 'Compound Ceiling':
-                    offset2 = self.doc.GetElement(ceiling_type_id).get_Parameter(DB.BuiltInParameter.CEILING_THICKNESS).AsDouble()
+                if rswitches['Consider Thickness'] == False and ceiling_type.FamilyName == 'Compound Ceiling':
+                    offset2 = self.doc.GetElement(ceiling_type).get_Parameter(DB.BuiltInParameter.CEILING_THICKNESS).AsDouble()
                     f.get_Parameter(DB.BuiltInParameter.CEILING_HEIGHTABOVELEVEL_PARAM).Set(room_offset2 + offset2)
                 else:
                     f.get_Parameter(DB.BuiltInParameter.CEILING_HEIGHTABOVELEVEL_PARAM).Set(room_offset2)
@@ -389,7 +362,7 @@ class FinishingTool(object):
 
         ### Make Ceiling using floor (for older versions)
         elif self.app.VersionNumber == "2021" or self.app.VersionNumber == "2020" or self.app.VersionNumber == "2019": 
-            ceiling_type_id, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Floors)
+            ceiling_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Floors)
             room_boundary_options = DB.SpatialElementBoundaryOptions()
 
             def make_ceiling(room):
@@ -403,15 +376,14 @@ class FinishingTool(object):
                 floor_curves = DB.CurveArray()
                 for boundary_segment in room_boundary:
                     floor_curves.Append((boundary_segment).GetCurve())
-                floorType = self.doc.GetElement(ceiling_type_id)
                 level = self.doc.GetElement(room_level_id)
                 normal_plane = DB.XYZ.BasisZ
-                f = self.doc.Create.NewFloor(floor_curves, floorType, level, False, normal_plane)
+                f = self.doc.Create.NewFloor(floor_curves, ceiling_type, level, False, normal_plane)
                 # Input parameter values from rooms
                 if rswitches['Consider Thickness'] == True:
                     f.get_Parameter(DB.BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset2)
                 if rswitches['Consider Thickness'] == False:
-                    offset2 = self.doc.GetElement(ceiling_type_id).get_Parameter(DB.BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM).AsDouble()
+                    offset2 = self.doc.GetElement(ceiling_type).get_Parameter(DB.BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM).AsDouble()
                     f.get_Parameter(DB.BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM).Set(room_offset2 + offset2)       
                 try:
                     #set custom parameters here
@@ -429,7 +401,7 @@ class FinishingTool(object):
                 transaction.Commit()
 
                 #Create floor opening if needed
-                if len(all_boundaries) >1:
+                if len(all_boundaries) > 1:
                     transaction.Start('Create Opening(s)')
                     i = 1
                     while i < len(all_boundaries):
