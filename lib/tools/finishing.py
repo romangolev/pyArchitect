@@ -85,7 +85,7 @@ class FinishingTool(object):
             room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
             level = self.doc.GetElement(room_level_id)
 
-            print(self.app.VersionNumber)
+            # print(self.app.VersionNumber)
             if self.app.VersionNumber == "2022" or self.app.VersionNumber == "2021" or self.app.VersionNumber == "2020" or self.app.VersionNumber == "2019":
                 floor_curves = DB.CurveArray()
                 for boundary_segment in room_boundary:
