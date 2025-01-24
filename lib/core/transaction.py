@@ -19,18 +19,12 @@ class WrappedTransaction:
         self.transaction.Start()
         return self
 
-    def __exit__(self, ex_type):
+    def __exit__(self, ex_type, ex_value, ex_traceback):
         if ex_type is None:
-            try:
-                self.transaction.Commit()
-                return True
-            except Exception as exception:
-                self.transaction.RollBack()
-                print(traceback.format_exc())
-                raise exception
-        elif ex_type:
+            self.transaction.Commit()
+        else:
             self.transaction.RollBack()
-            raise ex_type
+            print(ex_type, ex_value, ex_traceback)
 
 class WrappedTransactionGroup:
     """
@@ -50,15 +44,9 @@ class WrappedTransactionGroup:
         self.transaction_group.Start()
         return self
 
-    def __exit__(self, ex_type):
+    def __exit__(self, ex_type, ex_value, ex_traceback):
         if ex_type is None:
-            try:
-                self.transaction_group.Assimilate()
-                return True
-            except Exception as exception:
-                self.transaction_group.RollBack()
-                print(traceback.format_exc())
-                raise exception
-        elif ex_type:
-            self.transaction.RollBack()
-            raise ex_type            
+            self.transaction_group.Assimilate()
+        else:
+            self.transaction_group.RollBack()
+            print(ex_type, ex_value, ex_traceback)
