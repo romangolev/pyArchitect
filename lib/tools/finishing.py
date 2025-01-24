@@ -14,6 +14,7 @@ class FinishingRoom(object):
     def __init__(self, rvt_room_elem): 
         self.rvt_room_elem = rvt_room_elem # type: DB.Element
         self.doc = rvt_room_elem.Document
+        self.new_walls = []
 
     @property
     def boundaries(self):
@@ -71,8 +72,59 @@ class FinishingRoom(object):
         
         return new_floor
 
-    def make_finishing_walls(self):
-        pass
+    def make_finishing_walls_outer(self, temp_type, rswitches):
+        # First boundlist always is the outer boundary
+        
+        # Filtering small lines less than 10 mm Lenght
+        filtered_boundaries = [bound for bound in self.boundaries[0] if bound.GetCurve().Length > 10/304.8]
+        self.boundwalls = [self.doc.GetElement(bound.ElementId) for bound in filtered_boundaries]
+        for bound in filtered_boundaries:
+            # host of bound line is a basic wall
+            condition1 = self.doc.GetElement(bound.ElementId).Category.Id in ID_WALLS \
+                and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
+            # host of bound line is a column or a structural column
+            condition2 = self.doc.GetElement(bound.ElementId).Category.Id \
+                in ID_COLUMNS or ID_STRUCTURAL_COLUMNS
+            # host of bound line is a room separation line and the switch is on
+            condition3 = rswitches['Include Room Separation Lines'] == True \
+                and self.doc.GetElement(bound.ElementId).Category.Id in ID_SEPARATION_LINES
+            
+            if any([condition1, condition2, condition3]):
+                new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
+                # DB.JoinGeometryUtils.UnjoinGeometry(self.doc, new_wall, self.doc.GetElement(bound.ElementId))
+                self.new_walls.append(new_wall)
+            else:
+                # print('Skipped')
+                pass
+
+
+    def make_finishing_walls_inner(self, temp_type, rswitches):
+        i = 1
+        while i < self.boundary_count:
+            for bound in self.boundaries[i]:
+                new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
+                self.new_walls.append(new_wall)
+            i += 1
+
+    def make_finishing_wall_by_line(self, line, temp_type):
+
+        room = self.rvt_room_elem
+        room_level_id = room.Level.Id
+        # List of Boundary Segment comes in an array by itself.
+        room_name = room.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsString()
+        room_number = room.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
+        room_id = room.Id
+        room_height = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
+        level = room_level_id
+        if room_height > 0:
+            wall_height = float(room_height)
+        else:
+            wall_height = 1500/304.8	
+
+        new_wall = DB.Wall.Create(self.doc, line, temp_type.Id, level, wall_height, 0.0, False, False)
+        new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
+        new_wall.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Wall finishing')
+        return new_wall
 
     def make_finishing_ceiling(self, ceiling_type, rswitches):
         room = self.rvt_room_elem
@@ -156,6 +208,19 @@ class FinishingTool(object):
             sys.exit()
         return res[rops], rswitches
 
+    def duplicate_wall_type(self, type_of_wall):
+        """
+        Duplicating wall type creating the same layer set with double width
+        to deal with the offset API issue
+        """
+        duplicated_wall_type = type_of_wall.Duplicate(str(uuid.uuid4()))
+        cs1 = duplicated_wall_type.GetCompoundStructure()
+        layers1 = cs1.GetLayers()
+        for layer in layers1:
+            cs1.SetLayerWidth(layer.LayerId, 2*cs1.GetLayerWidth(layer.LayerId))
+        duplicated_wall_type.SetCompoundStructure(cs1)
+        return duplicated_wall_type
+
     def create_floors(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
@@ -173,161 +238,49 @@ class FinishingTool(object):
                         room.make_opening(new_floor, self.boundaries[1:])
 
     def create_walls(self):
-        transaction = DB.Transaction(self.doc)
-        transaction_group = DB.TransactionGroup(self.doc)
         # Select rooms 
         selected_rooms = self.get_rooms()
+        selected_rooms = [FinishingRoom(room) for room in selected_rooms]
         switches = ['Inside loops finishing', 'Include Room Separation Lines']
         wall_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Walls, switches)
-        
-        # Duplicating wall type creating the same layer set with double width
-        # to deal with the offset API issue
-        def duplicate_wall_type(type_of_wall):
-            wall_type1 = type_of_wall.Duplicate(str(uuid.uuid4()))
-            cs1 = wall_type1.GetCompoundStructure()
-            layers1 = cs1.GetLayers()
-            for layer in layers1:
-                cs1.SetLayerWidth(layer.LayerId,2*cs1.GetLayerWidth(layer.LayerId))
-            wall_type1.SetCompoundStructure(cs1)
-            return wall_type1
-        
-        room_boundary_options = DB.SpatialElementBoundaryOptions()
 
-        def make_wall(room, temp_type, line):
-            room_level_id = room.Level.Id
-            # List of Boundary Segment comes in an array by itself.
-            room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
-            room_name = room.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsString()
-            room_number = room.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
-            room_id = room.Id
-            room_height = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
-            level = room_level_id
-            if room_height > 0:
-                wall_height = float(room_height)
-            else:
-                wall_height = 1500/304.8	
-
-            new_wall = DB.Wall.Create(self.doc, line, temp_type.Id, level, wall_height, 0.0, False, False)
-            new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
-            new_wall.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Wall finishing')
-            return new_wall
-
-        #Create wall
-        transaction_group.Start("Make wall finishing")
-
-        transaction.Start('Create Temp Type')
-        tmp = duplicate_wall_type(wall_type)
-        transaction.Commit()
-
-        transaction.Start('Create Finishing Walls')
-        wallz = []
-        bound_walls =[]
-        wallzz = []
-        for room in selected_rooms:
-            room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
+        with WrappedTransactionGroup(self.doc, 'Make wall finishings'):
             
-            # Filtering by hostwall type
-            for bound in room_boundary:
-                try:
-                    if self.doc.GetElement(bound.ElementId).Category.Id in ID_WALLS \
-                        and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
-                        # Filtering small lines less than 10 mm Lenght
-                        if bound.GetCurve().Length > 10/304.8:
-                            bound_walls.append(self.doc.GetElement(bound.ElementId))
-                            new_wall = make_wall(room, tmp,bound.GetCurve())
-                            wallzz.append(new_wall)
-                            wallz.append(new_wall.Id)
-                            #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-                            new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
+            with WrappedTransaction(self.doc, 'Create Temp Type'):
+                tmp = self.duplicate_wall_type(wall_type)
 
-                    elif self.doc.GetElement(bound.ElementId).Category.Id \
-                        in ID_COLUMNS or ID_STRUCTURAL_COLUMNS: 
-                        # Filtering small lines less than 10 mm Lenght
-                        if bound.GetCurve().Length > 10/304.8:
-                            bound_walls.append(self.doc.GetElement(bound.ElementId))
-                            new_wall = make_wall(room, tmp,bound.GetCurve())
-                            wallzz.append(new_wall)
-                            wallz.append(new_wall.Id)
-                            #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-                            new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
+            with WrappedTransaction(self.doc, 'Create Finishing Walls'):
+                for room in selected_rooms: 
+                    room.make_finishing_walls_outer(tmp, rswitches)
+                    if rswitches['Inside loops finishing'] == True:
+                        room.make_finishing_walls_inner(tmp, rswitches)
 
-                    elif rswitches['Include Room Separation Lines'] == True and \
-                        self.doc.GetElement(bound.ElementId).Category.Id in ID_SEPARATION_LINES:
-                        # Filtering small lines less than 10 mm Lenght
-                        if bound.GetCurve().Length > 10/304.8:
-                            bound_walls.append(self.doc.GetElement(bound.ElementId))
-                            new_wall = make_wall(room, tmp,bound.GetCurve())
-                            wallzz.append(new_wall)
-                            wallz.append(new_wall.Id)
-                            #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-                            new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
-                    else:
-                        print('Skipped')
+
+            #TODO: Supress warning with win32api 
+            # https://thebuildingcoder.typepad.com/blog/2018/01/gathering-and-returning-failure-information.html
+
+            col1 = List[DB.ElementId]([i.Id for i in room.new_walls])
+            with WrappedTransaction(self.doc, 'Change Type'):
+                DB.Element.ChangeTypeId(self.doc, col1, wall_type.Id)
+
+            with WrappedTransaction(self.doc, 'Join Walls with hosts'):
+                for i, y in zip(room.new_walls, room.boundwalls):
+                    try:
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
+                    except Exception as e:
                         pass
-                except :
-                    print('Could not create wall')
-                    import traceback
-                    print(traceback.format_exc())
 
-            if rswitches['Inside loops finishing'] == True:
-                for room in selected_rooms:
-                    room_boundary2 = room.GetBoundarySegments(room_boundary_options)
-                    i = 1
-                    while i < len(room_boundary2):
-                        for bound in room_boundary2[i]:
-                            try :
-                                if self.doc.GetElement(bound.ElementId).Category.BuildInCategory == DB.BuiltInCategory.OST_Walls \
-                                    and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic":
-                                    # Filtering small lines less than 10 mm Lenght
-                                    if bound.GetCurve().Length > 10/304.8:
-                                        bound_walls.append(self.doc.GetElement(bound.ElementId))
-                                        new_wall = make_wall(room, tmp,bound.GetCurve())
-                                        wallzz.append(new_wall)
-                                        wallz.append(new_wall.Id)
-                                        #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-                                        new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
-
-                                elif self.doc.GetElement(bound.ElementId).Category.BuildInCategory == DB.BuiltInCategory.OST_StructuralColumns or \
-                                self.doc.GetElement(bound.ElementId).Category.BuildInCategory == DB.BuiltInCategory.OST_Columns:
-                                    # Filtering small lines less than 10 mm Lenght
-                                    if bound.GetCurve().Length > 10/304.8:
-                                        bound_walls.append(self.doc.GetElement(bound.ElementId))
-                                        new_wall = make_wall(room, tmp,bound.GetCurve())
-                                        wallzz.append(new_wall)
-                                        wallz.append(new_wall.Id)
-                                        #new_wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM).Set(4)
-                                        new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
-                                else:
-                                    pass
-                            except :
-                                pass
+            with WrappedTransaction(self.doc, 'Join Walls with next hosts'):
+                while i < len(room.new_walls):
+                    try:
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, room.new_walls[i], room.boundwalls[i+1])
                         i += 1
-            elif rswitches['Inside loops finishing'] == False:
-                pass
-        transaction.Commit()
+                    except Exception as e:
+                        pass
 
-        #TODO: Supress warning with win32api 
-        # https://thebuildingcoder.typepad.com/blog/2018/01/gathering-and-returning-failure-information.html
 
-        res = dict(zip(bound_walls,wallzz))
-        transaction.Start('Change Type and Join Walls with hosts')
-        col1 = List[DB.ElementId](wallz)
-        DB.Element.ChangeTypeId(self.doc, col1, wall_type.Id)
-        transaction.Commit()
-
-        transaction.Start('Join Walls with hosts')
-        for i in res:
-            try:
-                DB.JoinGeometryUtils.JoinGeometry(self.doc, i, res[i])
-            except:
-                pass
-        transaction.Commit()
-
-        transaction.Start('Delete Temp Type')
-        self.doc.Delete(tmp.Id)
-        transaction.Commit()
-
-        transaction_group.Assimilate()
+            with WrappedTransaction(self.doc, 'Delete Temp Type'):
+                self.doc.Delete(tmp.Id)
 
     def create_ceilings(self):
         selected_rooms = self.get_rooms()
