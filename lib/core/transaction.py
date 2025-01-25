@@ -1,5 +1,5 @@
 import Autodesk.Revit.DB as DB
-import traceback
+from core.warningsuppressor import WarningSuppressor
 
 class WrappedTransaction:
     """
@@ -10,10 +10,15 @@ class WrappedTransaction:
     with WrappedTransaction(doc, "My beautiful transaction") as t:
         # Do something
     """
-    def __init__(self, doc, name="My beautiful transaction"):
-        self.doc = doc # type: DB.Document 
-        self.name = name # type: str
-        self.transaction = DB.Transaction(doc, name) # type: DB.Transaction
+    def __init__(self, doc, name="My beautiful transaction", warning_suppressor=False):
+        self.doc = doc                                  # type: DB.Document 
+        self.name = name                                # type: str
+        self.transaction = DB.Transaction(doc, name)    # type: DB.Transaction
+        # Set optional warning suppressor
+        if warning_suppressor is not False:
+            options = self.transaction.GetFailureHandlingOptions()
+            options.SetFailuresPreprocessor(WarningSuppressor())
+            self.transaction.SetFailureHandlingOptions(options)
 
     def __enter__(self):
         self.transaction.Start()
@@ -36,8 +41,8 @@ class WrappedTransactionGroup:
         # Do something
     """
     def __init__(self, doc, name="My beautiful transaction group"):
-        self.doc = doc # type: DB.Document 
-        self.name = name # type: str
+        self.doc = doc                                          # type: DB.Document 
+        self.name = name                                        # type: str
         self.transaction_group = DB.TransactionGroup(doc, name) # type: DB.TransactionGroup
 
     def __enter__(self):

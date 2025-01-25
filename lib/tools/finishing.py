@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
-# by Roman Golev 
+# by Roman Golev
 import sys
 import uuid
 import Autodesk.Revit.DB as DB
 from pyrevit import forms
-from System.Collections.Generic import List
+from System.Collections.Generic import List, Dictionary
 from core.transaction import WrappedTransaction, WrappedTransactionGroup
 from core.selectionhelpers import get_selection_basic, CustomISelectionFilterByIdInclude, ID_ROOMS, ID_WALLS, ID_COLUMNS, ID_STRUCTURAL_COLUMNS, ID_SEPARATION_LINES
 from core.collectror import UniversalProjectCollector as UPC
 
 class FinishingRoom(object):
     def __init__(self, rvt_room_elem): 
-        self.rvt_room_elem = rvt_room_elem # type: DB.Element
-        self.doc = rvt_room_elem.Document
-        self.new_walls = []
+        self.rvt_room_elem = rvt_room_elem  # type: DB.Element
+        self.doc = rvt_room_elem.Document   # type: DB.Document
+        self.new_walls = []                 # type: List[DB.Wall]
+        self.new_walls_and_hosts = {}       # type: Dictionary[DB.Wall, DB.Element]
 
     @property
     def boundaries(self):
+        # First boundlist always is the outer boundary
         return self.rvt_room_elem.GetBoundarySegments(DB.SpatialElementBoundaryOptions())
 
     @property
@@ -69,57 +71,49 @@ class FinishingRoom(object):
         # Here we can add custom parameters for floors or ceilings
         param_value = 'Floor Finishing' if mode == "default" else 'Ceiling Finishing'
         new_floor.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(param_value)
-        
         return new_floor
 
+    def do_we_need_to_make_wall(self, bound, rswitches):
+        # host of bound line is a basic wall
+        condition1 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_WALLS[0])     \
+            and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
+        # host of bound line is a column or a structural column
+        condition2 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_COLUMNS[0])  \
+            or self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_STRUCTURAL_COLUMNS[0])
+        # host of bound line is a room separation line and the switch is on
+        condition3 = rswitches['Include Room Separation Lines'] == True \
+            and self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_SEPARATION_LINES[0])
+        return any([condition1, condition2, condition3])
+
     def make_finishing_walls_outer(self, temp_type, rswitches):
-        # First boundlist always is the outer boundary
-        
         # Filtering small lines less than 10 mm Lenght
         filtered_boundaries = [bound for bound in self.boundaries[0] if bound.GetCurve().Length > 10/304.8]
         self.boundwalls = [self.doc.GetElement(bound.ElementId) for bound in filtered_boundaries]
         for bound in filtered_boundaries:
-            # host of bound line is a basic wall
-            condition1 = self.doc.GetElement(bound.ElementId).Category.Id in ID_WALLS \
-                and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
-            # host of bound line is a column or a structural column
-            condition2 = self.doc.GetElement(bound.ElementId).Category.Id \
-                in ID_COLUMNS or ID_STRUCTURAL_COLUMNS
-            # host of bound line is a room separation line and the switch is on
-            condition3 = rswitches['Include Room Separation Lines'] == True \
-                and self.doc.GetElement(bound.ElementId).Category.Id in ID_SEPARATION_LINES
-            
-            if any([condition1, condition2, condition3]):
+            if self.do_we_need_to_make_wall(bound, rswitches):
                 new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
-                # DB.JoinGeometryUtils.UnjoinGeometry(self.doc, new_wall, self.doc.GetElement(bound.ElementId))
+                self.new_walls_and_hosts[new_wall] = self.doc.GetElement(bound.ElementId)
                 self.new_walls.append(new_wall)
-            else:
-                # print('Skipped')
-                pass
-
 
     def make_finishing_walls_inner(self, temp_type, rswitches):
         i = 1
         while i < self.boundary_count:
             for bound in self.boundaries[i]:
-                new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
-                self.new_walls.append(new_wall)
+                if self.do_we_need_to_make_wall(bound, rswitches):
+                    new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
+                    self.new_walls.append(new_wall)
+                    self.new_walls_and_hosts[new_wall] = self.doc.GetElement(bound.ElementId)
             i += 1
 
     def make_finishing_wall_by_line(self, line, temp_type):
-
         room = self.rvt_room_elem
         room_level_id = room.Level.Id
-        # List of Boundary Segment comes in an array by itself.
-        room_name = room.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsString()
-        room_number = room.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
-        room_id = room.Id
         room_height = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
         level = room_level_id
         if room_height > 0:
             wall_height = float(room_height)
         else:
-            wall_height = 1500/304.8	
+            wall_height = 1500/304.8
 
         new_wall = DB.Wall.Create(self.doc, line, temp_type.Id, level, wall_height, 0.0, False, False)
         new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
@@ -129,11 +123,7 @@ class FinishingRoom(object):
     def make_finishing_ceiling(self, ceiling_type, rswitches):
         room = self.rvt_room_elem
         room_level_id = room.Level.Id
-        room_offset1 = room.get_Parameter(DB.BuiltInParameter.ROOM_LOWER_OFFSET).AsDouble()
         room_offset2 = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
-        room_name = room.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsString()
-        room_number = room.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
-        room_id = room.Id
         room_boundary_options = DB.SpatialElementBoundaryOptions()
         room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
         ceiling_curves_loop = DB.CurveLoop()
@@ -148,26 +138,30 @@ class FinishingRoom(object):
         level = self.doc.GetElement(room_level_id)
         new_ceiling = DB.Ceiling.Create(self.doc,
                                 curve_list,
-                                ceiling_type.Id, 
+                                ceiling_type.Id,
                                 level.Id)
         # Input parameter values from rooms
         if rswitches['Consider Thickness'] == False \
                 and ceiling_type.FamilyName == 'Compound Ceiling':
-            offset2 = self.doc.GetElement(ceiling_type).get_Parameter(DB.BuiltInParameter.CEILING_THICKNESS).AsDouble()
+            offset2 = self.doc.GetElement(ceiling_type)\
+                .get_Parameter(DB.BuiltInParameter.CEILING_THICKNESS).AsDouble()
             new_ceiling.get_Parameter(DB.BuiltInParameter.CEILING_HEIGHTABOVELEVEL_PARAM)\
                 .Set(room_offset2 + offset2)
         else:
             new_ceiling.get_Parameter(DB.BuiltInParameter.CEILING_HEIGHTABOVELEVEL_PARAM)\
                 .Set(room_offset2)
 
-        new_ceiling.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set('Ceiling Finishing')
+        new_ceiling.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)\
+            .Set('Ceiling Finishing')
         return new_ceiling
 
-    def make_opening(self, nf, boundary):
+    def make_openings(self, nf, ):
         co_curves = DB.CurveArray()
-        for bounds in boundary:
-            co_curves.Append(bounds.GetCurve())
-        co = self.doc.Create.NewOpening(nf, co_curves, False)
+        # Please GOD forgive me for using N^2 complexity ... Amen
+        for boundary in self.boundaries[1:]:
+            for bounds in boundary:
+                co_curves.Append(bounds.GetCurve())
+        opening = self.doc.Create.NewOpening(nf, co_curves, False)
 
 class FinishingTool(object):
     """
@@ -232,10 +226,10 @@ class FinishingTool(object):
                 with WrappedTransaction(self.doc, 'Create Floor'):
                     new_floor = room.make_finishing_floor(floor_type, rswitches, self.app)
 
-                #Create floor opening if needed
+                # Create floor opening if needed
                 if room.boundary_count > 1:
                     with WrappedTransaction(self.doc, 'Create Opening(s)'):
-                        room.make_opening(new_floor, self.boundaries[1:])
+                        room.make_openings(new_floor)
 
     def create_walls(self):
         # Select rooms 
@@ -249,35 +243,31 @@ class FinishingTool(object):
             with WrappedTransaction(self.doc, 'Create Temp Type'):
                 tmp = self.duplicate_wall_type(wall_type)
 
-            with WrappedTransaction(self.doc, 'Create Finishing Walls'):
+            with WrappedTransaction(self.doc, 'Create Finishing Walls', warning_suppressor=True):
                 for room in selected_rooms: 
                     room.make_finishing_walls_outer(tmp, rswitches)
                     if rswitches['Inside loops finishing'] == True:
                         room.make_finishing_walls_inner(tmp, rswitches)
 
+            new_walls_ids = List[DB.ElementId]([i.Id for i in room.new_walls])
+            with WrappedTransaction(self.doc, 'Change type back to original'):
+                DB.Element.ChangeTypeId(self.doc, new_walls_ids, wall_type.Id)
 
-            #TODO: Supress warning with win32api 
-            # https://thebuildingcoder.typepad.com/blog/2018/01/gathering-and-returning-failure-information.html
-
-            col1 = List[DB.ElementId]([i.Id for i in room.new_walls])
-            with WrappedTransaction(self.doc, 'Change Type'):
-                DB.Element.ChangeTypeId(self.doc, col1, wall_type.Id)
-
-            with WrappedTransaction(self.doc, 'Join Walls with hosts'):
+            with WrappedTransaction(self.doc, 'Join finishing Walls with hosts'):
                 for i, y in zip(room.new_walls, room.boundwalls):
                     try:
                         DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
                     except Exception as e:
                         pass
-
-            with WrappedTransaction(self.doc, 'Join Walls with next hosts'):
+            
+            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host"):
+                i = 0
                 while i < len(room.new_walls):
                     try:
                         DB.JoinGeometryUtils.JoinGeometry(self.doc, room.new_walls[i], room.boundwalls[i+1])
-                        i += 1
                     except Exception as e:
                         pass
-
+                    i += 1
 
             with WrappedTransaction(self.doc, 'Delete Temp Type'):
                 self.doc.Delete(tmp.Id)
@@ -286,8 +276,8 @@ class FinishingTool(object):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
 
-        ### Make ceiling finishing using ceiling (newer versions)
-        if int(self.app.VersionNumber) > 2022 :
+        ### Make ceiling finishing using ceiling category (newer versions)
+        if int(self.app.VersionNumber) > 2021 :
             ceiling_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Ceilings)
             with WrappedTransactionGroup(self.doc, 'Create Ceiling'):
                 for room in selected_rooms:
@@ -297,10 +287,10 @@ class FinishingTool(object):
                     #Create floor opening if needed
                     if room.boundary_count > 1:
                         with WrappedTransaction(self.doc, 'Create Opening(s)'):
-                            room.make_opening(new_ceiling, self.boundaries[1:])
+                            room.make_openings(new_ceiling)
 
-        ### Make Ceiling using floor (for older versions)
-        elif int(self.app.VersionNumber) <= 2022:
+        ### Make Ceiling using floor category (older versions)
+        elif int(self.app.VersionNumber) <= 2021:
             ceiling_type, rswitches = self.pick_finishing_type_id(DB.BuiltInCategory.OST_Floors)
             with WrappedTransactionGroup(self.doc, 'Create Floor'):
                 for room in selected_rooms:
@@ -308,7 +298,7 @@ class FinishingTool(object):
                     with WrappedTransaction(self.doc, 'Create Floor'):
                         new_floor = room.make_finishing_floor(ceiling_type, rswitches, self.app, mode="ceiling")
 
-                    #Create floor opening if needed
+                    # Create floor opening if needed
                     if room.boundary_count > 1:
                         with WrappedTransaction(self.doc, 'Create Opening(s)'):
-                            room.make_opening(new_floor, self.boundaries[1:])
+                            room.make_openings(new_floor)
