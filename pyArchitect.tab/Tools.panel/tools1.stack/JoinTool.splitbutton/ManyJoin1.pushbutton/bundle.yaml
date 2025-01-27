@@ -16,6 +16,8 @@ tooltip:
     (script recopila todos los elementos de categoría). Entonces tienes que elegir
     un elemento o elementos a los que se unirá con el conjunto de elementos seleccionado anteriormente por categoría    
 
+    Este script también soluciona una advertencia que aparece cuando los elementos se unen pero no se intersectan
+
   en_us: >-
     Joins multiple elements
     _________________________________________________________________
@@ -23,12 +25,16 @@ tooltip:
     (script collects all elements of category). Then you need to choose
     an element or elements to be joined to with the previous selected set of elements by category
 
+    This script also fixes a warning that appears when elements are joined but do not intersect
+
   ru: >-
-    Копирует значения параметра для выбранных элементов из одного свойства в другое
+    Соединяет несколько элементов
     _________________________________________________________________
     Необходимо выбрать категорию элементов для множественного присоединения,
     затем выбирается элемент или элементы к которым данное присоединение 
     необходимо применить
+
+    Этот скрипт также устраняет предупреждение, которое появляется, когда элементы присоединены, но не пересекаются
 
 author: Roman Golev
 engine:
