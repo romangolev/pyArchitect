@@ -53,7 +53,8 @@ def unjoin_notconnected_elements():
                     try:
                         DB.JoinGeometryUtils.UnjoinGeometry(doc, items[0], items[1])
                     except:
-                        print(traceback.format_exc())
+                        pass
+                        # print(traceback.format_exc())
 
 if __name__ == '__main__':
     main()

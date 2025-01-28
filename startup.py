@@ -1,17 +1,19 @@
 """
-import pyrevit
-from pyrevit import forms
-from pyrevit import HOST_APP
+              _          _    _ _          _   
+  _ __ _  _  /_\  _ _ __| |_ (_) |_ ___ __| |_ 
+ | '_ \ || |/ _ \| '_/ _| ' \| |  _/ -_) _|  _|
+ | .__/\_, /_/ \_\_| \__|_||_|_|\__\___\__|\__|
+ |_|   |__/                                    
 
+"""
+from pyrevit import forms
 import core
 
-
-# Toast notifier example
-#TODO Notify user on update
-#print(forms.toaster.get_toaster())
-#forms.toaster.send_toast("Hello World")
-if core.update_needed() == True:
-    forms.toaster.send_toast("New update for pyArchitect extension available: {}".format(core.get_git_version()))
-else:
+# Toast notify for new updates
+try:
+    if core.update_needed() == True:
+        forms.toaster.send_toast("New update for pyArchitect extension available: {}".format(core.get_git_version()))
+    else:
+        pass
+except Exception:
     pass
-"""

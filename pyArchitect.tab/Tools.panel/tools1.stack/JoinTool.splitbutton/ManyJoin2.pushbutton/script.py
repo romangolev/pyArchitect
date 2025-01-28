@@ -41,8 +41,8 @@ def main():
                         join = DB.JoinGeometryUtils.JoinGeometry(doc,
                                             doc.GetElement(A.ElementId),
                                             doc.GetElement(B.ElementId))
-                    except Exception as error:
-                        print(error)
+                    except Exception:
+                        pass
         with WrappedTransaction(doc, "Unjoin", warning_suppressor=True):
             unjoin_notconnected_elements()
 
