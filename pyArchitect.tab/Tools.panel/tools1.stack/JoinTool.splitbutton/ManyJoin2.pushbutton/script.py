@@ -2,66 +2,64 @@
 # pylint: skip-file
 # by Roman Golev 
 
-__doc__ = """Joins multiple elements / Присоединяет множественные элементы 
-
-First you need to choose host element or elements to be joined to.\
-Then you need to choose a second group or element that should be connected to host.
---------------------------------------------------------------------------
-Необходимо выбрать первую группу элементов для множественного присоединения, \
-затем выбирается вторая группа элементов, к которым данное присоединение \
-необходимо применить. 
-"""
-__author__ = 'Roman Golev'
-__title__ = "Batch Join\nBy Selection"
-
-import clr
-clr.AddReference('RevitAPI')
-import Autodesk
-from Autodesk.Revit.DB import JoinGeometryUtils
-from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
-from Autodesk.Revit.Exceptions import OperationCanceledException
 import sys
-from core.selectionhelpers import CustomISelectionFilterByIdExclude, CustomISelectionFilterModelCats, ID_MODEL_ELEMENTS
+import traceback
+import Autodesk.Revit.DB as DB
+from Autodesk.Revit.UI.Selection import ObjectType
+from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS
+from core.transaction import WrappedTransaction, WrappedTransactionGroup
 
-
-uidoc = __revit__.ActiveUIDocument
-doc = __revit__.ActiveUIDocument.Document
-transaction = Autodesk.Revit.DB.Transaction(doc)
+uidoc = __revit__.ActiveUIDocument                       # type: ignore
+doc = __revit__.ActiveUIDocument.Document                # type: ignore
 
 def main():
-	obj_type = ObjectType.Element
+    # Non-Model Categories to hide
+    element_filter = CustomISelectionFilterByIdExclude(ID_MODEL_ELEMENTS)
+    try:
+        selection1 = uidoc.Selection.PickObjects(ObjectType.Element,
+                                                  element_filter,
+                                                    "Selection Group 1")
+        selecetion1_elements_ids = [i.ElementId.ToString() for i in selection1]
 
-	if __shiftclick__:
-		# Procedural filter for model elements
-		element_filter = CustomISelectionFilterModelCats(doc)
-	else:
-		# Non-Model Categories to hide
-		element_filter = CustomISelectionFilterByIdExclude(ID_MODEL_ELEMENTS)
-		
-	try:
-		selection1 = uidoc.Selection.PickObjects(obj_type, element_filter, "Selection Group 1")
-	except:
-		sys.exit()
-	try:
-		selection2 = uidoc.Selection.PickObjects(obj_type, "Selection Group 2")
-	except:
-		sys.exit()
+        element_filter2 = CustomISelectionFilterByIdExclude(category_ids=ID_MODEL_ELEMENTS, element_ids=selecetion1_elements_ids)
+        selection2 = uidoc.Selection.PickObjects(ObjectType.Element,
+                                                  element_filter2,
+                                                    "Selection Group 2")
+    except:
+        sys.exit()
 
-	elementA = selection1
-	elementB = selection2
+    if selection1.Count == 0 or selection2.Count == 0:
+        print("No elements selected in one of the groups")
+        print("Both selection groups should contain elements")
+        sys.exit()
 
-	# TODO: Supress "Highlighted elements are joined but do not intersect." warning
+    with WrappedTransactionGroup(doc, "Join Elements"):
+        with WrappedTransaction(doc, "Multiple Join", warning_suppressor=True):
+            for A in selection1:
+                for B in selection2:
+                    try:
+                        join = DB.JoinGeometryUtils.JoinGeometry(doc,
+                                            doc.GetElement(A.ElementId),
+                                            doc.GetElement(B.ElementId))
+                    except Exception:
+                        pass
+        with WrappedTransaction(doc, "Unjoin", warning_suppressor=True):
+            unjoin_notconnected_elements()
 
-	results = []
-	transaction.Start('Multiple Join')
-	for A in elementA:
-		for B in elementB:
-			try:
-				join = JoinGeometryUtils.JoinGeometry(doc,doc.GetElement(A.ElementId),doc.GetElement(B.ElementId))
-			except Exception as error:
-				print(error)
-
-	transaction.Commit()
+def unjoin_notconnected_elements():
+    """Disconnect elements that do not intersect"""
+    warning1_guid = "1b9dacf3-db22-45d5-b071-42516278ffb1" # 'Highlighted elements are joined but do not intersect.'
+    joinedwarning = [w for w in doc.GetWarnings()\
+                      if str(w.GetFailureDefinitionId().Guid) == warning1_guid]
+    if joinedwarning:
+            for i in joinedwarning:
+                items = i.GetFailingElements()
+                items = [doc.GetElement(i) for i in items]
+                if items.Count == 2 :
+                    try:
+                        DB.JoinGeometryUtils.UnjoinGeometry(doc, items[0], items[1])
+                    except:
+                        print(traceback.format_exc())
 
 if __name__ == '__main__':
     main()
