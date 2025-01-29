@@ -63,7 +63,7 @@ class FinishingRoom(object):
                 .get_Parameter(DB.BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM)\
                 .AsDouble()
             new_floor.get_Parameter(DB.BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM)\
-                .Set(room_offset1 if mode == "default" else room_offset2 + offset2)
+                .Set(room_offset1 + offset2 if mode == "default" else room_offset2 + offset2)
         if rswitches['Consider Thickness'] == True:
             new_floor.get_Parameter(DB.BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM)\
                 .Set(room_offset1 if mode == "default" else room_offset2)
