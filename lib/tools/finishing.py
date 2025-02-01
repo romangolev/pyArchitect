@@ -18,9 +18,33 @@ class FinishingRoom(object):
         self.new_walls_and_hosts = {}       # type: Dictionary[DB.Wall, DB.Element]
 
     @property
+    def id(self):
+        return self.rvt_room_elem.Id
+
+    @property
+    def level_id(self):
+        return self.rvt_room_elem.Level.Id
+
+    @property
+    def room_number(self):
+        return self.rvt_room_elem.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
+
+    @property
+    def room_name(self):
+        return self.rvt_room_elem.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsString()
+
+    @property
     def boundaries(self):
         # First boundlist always is the outer boundary
         return self.rvt_room_elem.GetBoundarySegments(DB.SpatialElementBoundaryOptions())
+
+    @property
+    def outer_boundaries(self):
+        return self.boundaries[0]
+
+    @property
+    def inner_boundaries(self):
+        return self.boundaries[1:]
 
     @property
     def boundary_count(self):
@@ -28,18 +52,12 @@ class FinishingRoom(object):
     
     def make_finishing_floor(self, floor_type, rswitches, app, mode="default"):
         room = self.rvt_room_elem
-        room_level_id = room.Level.Id
         room_offset1 = room.get_Parameter(DB.BuiltInParameter.ROOM_LOWER_OFFSET).AsDouble()
         room_offset2 = room.get_Parameter(DB.BuiltInParameter.ROOM_UPPER_OFFSET).AsDouble()
-        room_name = room.get_Parameter(DB.BuiltInParameter.ROOM_NAME).AsString()
-        room_number = room.get_Parameter(DB.BuiltInParameter.ROOM_NUMBER).AsString()
-        room_id = room.Id
-        room_boundary_options = DB.SpatialElementBoundaryOptions()
-        room_boundary = room.GetBoundarySegments(room_boundary_options)[0]
-        level = self.doc.GetElement(room_level_id)
+        level = self.doc.GetElement(self.level_id)
         if int(app.VersionNumber) <= 2022:
             floor_curves = DB.CurveArray()
-            for boundary_segment in room_boundary:
+            for boundary_segment in self.outer_boundaries:
                 floor_curves.Append((boundary_segment).GetCurve())
 
             normal_plane = DB.XYZ.BasisZ
@@ -48,7 +66,7 @@ class FinishingRoom(object):
         elif int(app.VersionNumber) > 2022:
             floor_curves_loop = DB.CurveLoop()
             floor_curves = List[DB.Curve]()
-            for boundary_segment in room_boundary:
+            for boundary_segment in self.outer_boundaries:
                 floor_curves.Add((boundary_segment).GetCurve())
             floor_curves_loop = DB.CurveLoop.Create(floor_curves)
             curve_list = List[DB.CurveLoop]()
@@ -87,7 +105,7 @@ class FinishingRoom(object):
 
     def make_finishing_walls_outer(self, temp_type, rswitches):
         # Filtering small lines less than 10 mm Lenght
-        filtered_boundaries = [bound for bound in self.boundaries[0] if bound.GetCurve().Length > 10/304.8]
+        filtered_boundaries = [bound for bound in self.outer_boundaries if bound.GetCurve().Length > 10/304.8]
         self.boundwalls = [self.doc.GetElement(bound.ElementId) for bound in filtered_boundaries]
         for bound in filtered_boundaries:
             if self.do_we_need_to_make_wall(bound, rswitches):
@@ -96,14 +114,11 @@ class FinishingRoom(object):
                 self.new_walls.append(new_wall)
 
     def make_finishing_walls_inner(self, temp_type, rswitches):
-        i = 1
-        while i < self.boundary_count:
-            for bound in self.boundaries[i]:
-                if self.do_we_need_to_make_wall(bound, rswitches):
-                    new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
-                    self.new_walls.append(new_wall)
-                    self.new_walls_and_hosts[new_wall] = self.doc.GetElement(bound.ElementId)
-            i += 1
+        for bound in self.inner_boundaries:
+            if self.do_we_need_to_make_wall(bound, rswitches):
+                new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
+                self.new_walls.append(new_wall)
+                self.new_walls_and_hosts[new_wall] = self.doc.GetElement(bound.ElementId)
 
     def make_finishing_wall_by_line(self, line, temp_type):
         room = self.rvt_room_elem
@@ -158,7 +173,7 @@ class FinishingRoom(object):
     def make_openings(self, nf, ):
         co_curves = DB.CurveArray()
         # Please GOD forgive me for using N^2 complexity ... Amen
-        for boundary in self.boundaries[1:]:
+        for boundary in self.inner_boundaries:
             for bounds in boundary:
                 co_curves.Append(bounds.GetCurve())
         opening = self.doc.Create.NewOpening(nf, co_curves, False)
