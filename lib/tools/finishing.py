@@ -74,16 +74,19 @@ class FinishingRoom(object):
         return new_floor
 
     def do_we_need_to_make_wall(self, bound, rswitches):
-        # host of bound line is a basic wall
-        condition1 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_WALLS[0])     \
-            and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
-        # host of bound line is a column or a structural column
-        condition2 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_COLUMNS[0])  \
-            or self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_STRUCTURAL_COLUMNS[0])
-        # host of bound line is a room separation line and the switch is on
-        condition3 = rswitches['Include Room Separation Lines'] == True \
-            and self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_SEPARATION_LINES[0])
-        return any([condition1, condition2, condition3])
+        if self.doc.GetElement(bound.ElementId) != None:
+            # host of bound line is a basic wall
+            condition1 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_WALLS[0])     \
+                and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
+            # host of bound line is a column or a structural column
+            condition2 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_COLUMNS[0])  \
+                or self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_STRUCTURAL_COLUMNS[0])
+            # host of bound line is a room separation line and the switch is on
+            condition3 = rswitches['Include Room Separation Lines'] == True \
+                and self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_SEPARATION_LINES[0])
+            return any([condition1, condition2, condition3])
+        else: 
+            return False
 
     def make_finishing_walls_outer(self, temp_type, rswitches):
         # Filtering small lines less than 10 mm Lenght
@@ -187,7 +190,7 @@ class FinishingTool(object):
     def pick_finishing_type_id(self, build_in_category, switches_options=None):
         finishing_type = UPC.collect_build_in_types(self.doc, build_in_category)
         if build_in_category == DB.BuiltInCategory.OST_Walls:
-            finishing_type = [i for i in finishing_type if i.Kind.ToString() == "Basic"]
+            finishing_type = [i for i in finishing_type if hasattr(i, 'Kind') and i.Kind == DB.WallKind.Basic]
         finishing_type_options = [i.get_Parameter(DB.BuiltInParameter.ALL_MODEL_TYPE_NAME).AsString() for i in finishing_type]
         res = dict(zip(finishing_type_options, finishing_type))
         for key in finishing_type:
@@ -254,20 +257,24 @@ class FinishingTool(object):
                 DB.Element.ChangeTypeId(self.doc, new_walls_ids, wall_type.Id)
 
             with WrappedTransaction(self.doc, 'Join finishing Walls with hosts'):
-                for i, y in zip(room.new_walls, room.boundwalls):
+                for new_wall, host in room.new_walls_and_hosts.items():
                     try:
-                        DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
-                    except Exception as e:
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, new_wall, host)
+                    except Exception:
                         pass
             
             with WrappedTransaction(self.doc, "Join finishing Walls with it's next host"):
                 i = 0
-                while i < len(room.new_walls):
-                    try:
-                        DB.JoinGeometryUtils.JoinGeometry(self.doc, room.new_walls[i], room.boundwalls[i+1])
-                    except Exception as e:
-                        pass
+                for new_wall, host in room.new_walls_and_hosts.items():
                     i += 1
+                    try:
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, 
+                                                          list(room.new_walls_and_hosts.keys())[i],
+                                                          host)
+                    except Exception:
+                        pass
+
+                    
 
             with WrappedTransaction(self.doc, 'Delete Temp Type'):
                 self.doc.Delete(tmp.Id)
