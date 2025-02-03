@@ -263,7 +263,7 @@ class FinishingTool(object):
                     except Exception:
                         pass
             
-            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host"):
+            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host", warning_suppressor=True):
                 i = 0
                 for new_wall, host in room.new_walls_and_hosts.items():
                     i += 1
