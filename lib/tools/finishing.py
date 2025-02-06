@@ -111,19 +111,28 @@ class FinishingRoom(object):
         param_value = 'Floor Finishing : ' + 'Room {}'.format(self.room_number)\
               if mode == "default" else 'Ceiling Finishing : ' + 'Room {}'.format(self.room_number)
         new_floor.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(param_value)
-
         return new_floor
 
     def do_we_need_to_make_wall(self, bound, rswitches):
-        # host of bound line is a basic wall
-        condition1 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_WALLS[0])     \
-            and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
-        # host of bound line is a column or a structural column
-        condition2 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_COLUMNS[0])  \
-            or self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_STRUCTURAL_COLUMNS[0])
-        # host of bound line is a room separation line and the switch is on
-        condition3 = rswitches['Include Room Separation Lines'] == True \
-            and self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_SEPARATION_LINES[0])
+        try:
+            # host of bound line is a basic wall
+            condition1 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_WALLS[0])     \
+                and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString() == "Basic"
+        except:
+            condition1 = False        
+        try:
+            # host of bound line is a column or a structural column
+            condition2 = self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_COLUMNS[0])  \
+                or self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_STRUCTURAL_COLUMNS[0])
+        except:
+            condition2 = False
+        try:
+            # host of bound line is a room separation line and the switch is on
+            condition3 = rswitches['Include Room Separation Lines'] == True \
+                and self.doc.GetElement(bound.ElementId).Category.Id.ToString() == str(ID_SEPARATION_LINES[0])
+        except:
+            condition3 = False
+
         return any([condition1, condition2, condition3])
 
     def make_finishing_walls_outer(self, temp_type, rswitches):
@@ -137,11 +146,20 @@ class FinishingRoom(object):
                 self.new_walls.append(new_wall)
 
     def make_finishing_walls_inner(self, temp_type, rswitches):
-        for bound in self.inner_boundaries:
-            if self.do_we_need_to_make_wall(bound, rswitches):
-                new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
-                self.new_walls.append(new_wall)
-                self.new_walls_and_hosts[new_wall] = self.doc.GetElement(bound.ElementId)
+        for boundary in self.inner_boundaries:
+            for bound in boundary:
+                if self.do_we_need_to_make_wall(bound, rswitches):
+                    try:
+                        new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
+                        if hasattr(bound, 'ElementId'):
+                            self.new_walls_and_hosts[new_wall] = self.doc.GetElement(bound.ElementId)
+                        else:
+                            self.new_walls_and_hosts[new_wall] = None
+                        self.new_walls.append(new_wall)
+                    except: 
+                        import traceback
+                        print(traceback.format_exc())
+                        pass
 
     def make_finishing_wall_by_line(self, line, temp_type):
         room = self.rvt_room_elem
@@ -451,14 +469,14 @@ class FinishingTool(object):
             with WrappedTransaction(self.doc, 'Change type back to original'):
                 DB.Element.ChangeTypeId(self.doc, new_walls_ids, wall_type.Id)
 
-            with WrappedTransaction(self.doc, 'Join finishing Walls with hosts'):
+            with WrappedTransaction(self.doc, 'Join finishing Walls with hosts', warning_suppressor=True):
                 for i, y in zip(room.new_walls, room.boundwalls):
                     try:
                         DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
                     except Exception as e:
                         pass
             
-            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host"):
+            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host", warning_suppressor=True):
                 i = 0
                 while i < len(room.new_walls):
                     try:
