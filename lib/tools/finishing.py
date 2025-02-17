@@ -472,18 +472,23 @@ class FinishingTool(object):
             with WrappedTransaction(self.doc, 'Join finishing Walls with hosts', warning_suppressor=True):
                 for i, y in zip(room.new_walls, room.boundwalls):
                     try:
-                        DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
-                    except Exception as e:
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, new_wall, host)
+                    except Exception:
                         pass
             
             with WrappedTransaction(self.doc, "Join finishing Walls with it's next host", warning_suppressor=True):
+            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host", warning_suppressor=True):
                 i = 0
-                while i < len(room.new_walls):
-                    try:
-                        DB.JoinGeometryUtils.JoinGeometry(self.doc, room.new_walls[i], room.boundwalls[i+1])
-                    except Exception as e:
-                        pass
+                for new_wall, host in room.new_walls_and_hosts.items():
                     i += 1
+                    try:
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, 
+                                                          list(room.new_walls_and_hosts.keys())[i],
+                                                          host)
+                    except Exception:
+                        pass
+
+                    
 
             with WrappedTransaction(self.doc, 'Delete Temp Type'):
                 self.doc.Delete(tmp.Id)
