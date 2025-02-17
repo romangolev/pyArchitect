@@ -483,7 +483,7 @@ class FinishingTool(object):
             with WrappedTransaction(self.doc, 'Join finishing Walls with hosts', warning_suppressor=True):
                 for i, y in zip(room.new_walls, room.boundwalls):
                     try:
-                        DB.JoinGeometryUtils.JoinGeometry(self.doc, new_wall, host)
+                        DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
                     except Exception:
                         pass
             
