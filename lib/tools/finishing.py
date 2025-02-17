@@ -331,42 +331,53 @@ class FinishingRoom(object):
         main_array = DB.CurveArray()
         phase = list(self.doc.Phases)[-1]
         for room_boundary in self.outer_boundaries:
-            boundary_elem = self.doc.GetElement(room_boundary.ElementId)
             main_line = room_boundary.GetCurve()
-            if boundary_elem.Category.Id.IntegerValue in ID_WALLS:
-                wall_width = self.doc.GetElement(boundary_elem.GetTypeId())\
-                    .get_Parameter(DB.BuiltInParameter.WALL_ATTR_WIDTH_PARAM).AsDouble()
-                dependent_doors = boundary_elem.\
-                    GetDependentElements(DB.ElementCategoryFilter(DB.BuiltInCategory.OST_Doors))
-                if dependent_doors.Count == 0:
-                    main_array.Append(room_boundary.GetCurve())
-                elif dependent_doors.Count >= 1:
-                    ordered_doors = self.order_doors_by_proximity(main_line, dependent_doors)
-                    dependent_doors = ordered_doors
-                    ca = DB.CurveArray()
-                    ca.Append(main_line)
-                    for door in (dependent_doors):
-                        door = self.doc.GetElement(door)
-                        door_width = self.get_door_width(door)
+            try:
+                boundary_elem = self.doc.GetElement(room_boundary.ElementId)
+                cat = boundary_elem.Category.Id.IntegerValue
+            except:
+                cat = None
+            try:
+                host_type = self.doc.GetElement(boundary_elem.GetTypeId())
+            except:
+                host_type = None
+            try:
+                if cat in ID_WALLS and host_type != None:
+                    wall_width = self.doc.GetElement(boundary_elem.GetTypeId())\
+                        .get_Parameter(DB.BuiltInParameter.WALL_ATTR_WIDTH_PARAM).AsDouble()
+                    dependent_doors = boundary_elem.\
+                        GetDependentElements(DB.ElementCategoryFilter(DB.BuiltInCategory.OST_Doors))
+                    if dependent_doors.Count == 0:
+                        main_array.Append(room_boundary.GetCurve())
+                    elif dependent_doors.Count >= 1:
+                        ordered_doors = self.order_doors_by_proximity(main_line, dependent_doors)
+                        dependent_doors = ordered_doors
+                        ca = DB.CurveArray()
+                        ca.Append(main_line)
+                        for door in (dependent_doors):
+                            door = self.doc.GetElement(door)
+                            door_width = self.get_door_width(door)
 
-                        if (door.FromRoom[phase] != None and door.FromRoom[phase].Id == self.rvt_room_elem.Id):
+                            if (door.FromRoom[phase] != None and door.FromRoom[phase].Id == self.rvt_room_elem.Id):
 
-                            ca2, line2, line4 = self.add_full_door_notch(ca,
-                                                    door,
-                                                    door_width,
-                                                    wall_width)
-                            if main_line.Intersect(line2) == DB.SetComparisonResult.Overlap \
-                                and main_line.Intersect(line4) == DB.SetComparisonResult.Overlap:
-                                ca = ca2
-                            else:
-                                ca = ca
-                        elif (door.ToRoom[phase] != None and door.ToRoom[phase].Id == self.rvt_room_elem.Id):
-                            pass
-                    for curve in ca:
-                        main_array.Append(curve)
+                                ca2, line2, line4 = self.add_full_door_notch(ca,
+                                                        door,
+                                                        door_width,
+                                                        wall_width)
+                                if main_line.Intersect(line2) == DB.SetComparisonResult.Overlap \
+                                    and main_line.Intersect(line4) == DB.SetComparisonResult.Overlap:
+                                    ca = ca2
+                                else:
+                                    ca = ca
+                            elif (door.ToRoom[phase] != None and door.ToRoom[phase].Id == self.rvt_room_elem.Id):
+                                pass
+                        for curve in ca:
+                            main_array.Append(curve)
+                    else:
+                        main_array.Append(room_boundary.GetCurve())
                 else:
                     main_array.Append(room_boundary.GetCurve())
-            else:
+            except:
                 main_array.Append(room_boundary.GetCurve())
         return main_array
 
@@ -476,7 +487,6 @@ class FinishingTool(object):
                     except Exception:
                         pass
             
-            with WrappedTransaction(self.doc, "Join finishing Walls with it's next host", warning_suppressor=True):
             with WrappedTransaction(self.doc, "Join finishing Walls with it's next host", warning_suppressor=True):
                 i = 0
                 for new_wall, host in room.new_walls_and_hosts.items():
