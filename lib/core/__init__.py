@@ -1,7 +1,6 @@
 # extension library file
 
 import os.path as op
-import urllib2
 from System import Version
 
 class Core(object):
@@ -20,6 +19,10 @@ def get_local_version():
 
 # Get version inside the github repository
 def get_git_version():
+   try:
+      import urllib2
+   except ImportError:
+      import urllib.request as urllib2
    data = urllib2.urlopen('https://raw.githubusercontent.com/romangolev/pyArchitect/main/lib/core/version')
    for line in data: 
       gitversion = line
