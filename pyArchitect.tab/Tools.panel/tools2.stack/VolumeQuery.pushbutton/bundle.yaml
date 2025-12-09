@@ -10,11 +10,11 @@ title:
     Query
 tooltip: 
   es_es: >-
-    Devuelve el volumen del elemento para los elementos seleccionados. Calcula totales en metros cuadrados
+    Devuelve el volumen del elemento para los elementos seleccionados. Calcula totales en metros cúbicos 
   en_us: >-
-    Returns element Volume for a selected elements. Calculates totals in square meters
+    Returns element Volume for a selected elements. Calculates totals in cubic meters
   ru: >-
-    Возвращает объем элемента для выбранного элемента. Вычисляет итоговые значения в квадратных метрах
+    Возвращает объем элемента для выбранного элемента. Вычисляет итоговые значения в кубических метрах
 
 author: Roman Golev
 engine:
