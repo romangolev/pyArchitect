@@ -196,8 +196,7 @@ class FinishingRoom(object):
         # Input parameter values from rooms
         if rswitches['Consider Thickness'] == False \
                 and ceiling_type.FamilyName == 'Compound Ceiling':
-            offset2 = self.doc.GetElement(ceiling_type)\
-                .get_Parameter(DB.BuiltInParameter.CEILING_THICKNESS).AsDouble()
+            offset2 = ceiling_type.get_Parameter(DB.BuiltInParameter.CEILING_THICKNESS).AsDouble()
             new_ceiling.get_Parameter(DB.BuiltInParameter.CEILING_HEIGHTABOVELEVEL_PARAM)\
                 .Set(room_offset2 + offset2)
         else:
