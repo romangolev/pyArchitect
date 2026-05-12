@@ -1,29 +1,33 @@
-"""
-SelectMirroredWindows
-Selects All Window Instances that have been Mirrored.
-TESTED REVIT API: 2015 | 2016
+# -*- coding: utf-8 -*-
+# pylint: skip-file
+# by Roman Golev
 
-Copyright (c) 2014-2016 Gui Talarico
-github.com/gtalarico
+import clr
+clr.AddReference("RevitAPI")
+clr.AddReference('System')
 
-This script is part of PyRevitPlus: Extensions for PyRevit
-github.com/gtalarico
+from Autodesk.Revit.DB import FilteredElementCollector, ElementId, FamilyInstance, BuiltInCategory
+from System.Collections.Generic import List
 
---------------------------------------------------------
-PyRevit Notice:
-Copyright (c) 2014-2016 Ehsan Iran-Nejad
-pyRevit: repository at https://github.com/eirannejad/pyRevit
 
-"""
-#pylint: disable=E0401,W0621,W0631,C0413,C0111,C0103
-__author__ = '@gtalarico'
+def main():
+    doc = __revit__.ActiveUIDocument.Document
+    uidoc = __revit__.ActiveUIDocument
 
-from rpw import db, ui
+    all_windows = FilteredElementCollector(doc) \
+        .WhereElementIsNotElementType() \
+        .OfClass(FamilyInstance) \
+        .OfCategory(BuiltInCategory.OST_Windows) \
+        .ToElements()
 
-windows = db.Collector(of_category='Windows').get_elements(wrapped=True)
-mirrored_windows = [x for x in windows if getattr(x, 'Mirrored', False)]
+    mirrored_windows = [w for w in all_windows if w.Mirrored]
 
-msg = "Mirrored: {} of {} Windows".format(len(mirrored_windows), len(windows))
-ui.forms.Alert(msg, title="Mirrored Windows")
+    if mirrored_windows:
+        uidoc.Selection.SetElementIds(List[ElementId]([w.Id for w in mirrored_windows]))
+        print("Mirrored: {} of {} Windows".format(len(mirrored_windows), len(all_windows)))
+    else:
+        print("No mirrored windows found.")
 
-selection = ui.Selection(mirrored_windows)
+
+if __name__ == '__main__':
+    main()

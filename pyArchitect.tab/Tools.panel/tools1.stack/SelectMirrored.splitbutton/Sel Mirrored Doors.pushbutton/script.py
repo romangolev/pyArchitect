@@ -1,30 +1,33 @@
 # -*- coding: utf-8 -*-
-"""
-SelectMirroredDoors
-Selects All Door Instances that have been Mirrored.
-TESTED REVIT API: 2015 | 2016
+# pylint: skip-file
+# by Roman Golev
 
-Copyright (c) 2014-2016 Gui Talarico
-github.com/gtalarico
+import clr
+clr.AddReference("RevitAPI")
+clr.AddReference('System')
 
-This script is part of PyRevitPlus: Extensions for PyRevit
-github.com/gtalarico
+from Autodesk.Revit.DB import FilteredElementCollector, ElementId, FamilyInstance, BuiltInCategory
+from System.Collections.Generic import List
 
---------------------------------------------------------
-PyRevit Notice:
-Copyright (c) 2014-2016 Ehsan Iran-Nejad
-pyRevit: repository at https://github.com/eirannejad/pyRevit
 
-"""
+def main():
+    doc = __revit__.ActiveUIDocument.Document
+    uidoc = __revit__.ActiveUIDocument
 
-__author__ = '@gtalarico'
+    all_doors = FilteredElementCollector(doc) \
+        .WhereElementIsNotElementType() \
+        .OfClass(FamilyInstance) \
+        .OfCategory(BuiltInCategory.OST_Doors) \
+        .ToElements()
 
-from rpw import doc, uidoc, DB, UI, db, ui
+    mirrored_doors = [d for d in all_doors if d.Mirrored]
 
-doors = db.Collector(of_category='Doors').get_elements(wrapped=True)
-mirrored_door = [door for door in doors if getattr(door, 'Mirrored', False)]
+    if mirrored_doors:
+        uidoc.Selection.SetElementIds(List[ElementId]([d.Id for d in mirrored_doors]))
+        print("Mirrored: {} of {} Doors".format(len(mirrored_doors), len(all_doors)))
+    else:
+        print("No mirrored doors found.")
 
-msg = "Mirrored: {} of {} Doors".format(len(mirrored_door), len(doors))
-ui.forms.Alert(msg, title="Mirrored Doors")
 
-selection = ui.Selection(mirrored_door)
+if __name__ == '__main__':
+    main()
