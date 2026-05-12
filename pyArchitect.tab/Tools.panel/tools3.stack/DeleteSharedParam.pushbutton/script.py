@@ -2,50 +2,81 @@
 # pylint: skip-file
 # by Roman Golev
 
-import clr
-clr.AddReference("RevitAPI")
-import Autodesk
-from Autodesk.Revit.DB import *
-from Autodesk.Revit.UI import *
 import sys
 
+import clr
+clr.AddReference("RevitAPI")
 clr.AddReference('System')
-clr.AddReference('RevitAPIUI')
 
+from Autodesk.Revit.DB import (
+    FilteredElementCollector,
+    SharedParameterElement,
+    Transaction,
+)
 from pyrevit import forms
-from System.Collections.Generic import List
-from System import Guid
 
 doc = __revit__.ActiveUIDocument.Document
-uidoc = __revit__.ActiveUIDocument
-uiapp = __revit__
-app = uiapp.Application
-t = Autodesk.Revit.DB.Transaction(doc)
+transaction = Transaction(doc)
 
-dict = {}
+def get_shared_parameters(doc):
+    collector = FilteredElementCollector(doc) \
+        .WhereElementIsNotElementType() \
+        .OfClass(SharedParameterElement) \
+        .ToElements()
+    return {param.Name: param.GuidValue for param in collector}
 
-def check_param(param_guid):
-    spe = FilteredElementCollector(doc).OfClass(SharedParameterElement)
-    for s in spe:
-        if s.GuidValue.ToString() == param_guid:
-            return s
-        else:
-            pass
+def delete_all_shared_params(doc, transaction):
+    transaction.Start("Delete All Shared Parameters")
+    collector = FilteredElementCollector(doc) \
+        .WhereElementIsNotElementType() \
+        .OfClass(SharedParameterElement) \
+        .ToElements()
+    for param in collector:
+        doc.Delete(param.Id)
+    transaction.Commit()
 
-collector = FilteredElementCollector(doc).WhereElementIsNotElementType()\
-        .OfClass(SharedParameterElement).ToElements()
-
-
-for param in collector:
-    dict[param.Name] = param.GuidValue
-
-choose = forms.CommandSwitchWindow.show(dict.keys(), message='Select Option')
-
-if choose is None:
-    sys.exit()
-else:
-
-    sParamElement = SharedParameterElement.Lookup(doc, dict[choose])
-    t.Start("Delete Shared Parameter")
+def delete_single_param(doc, transaction, param_name, param_guid):
+    transaction.Start("Delete Shared Parameter")
+    sParamElement = SharedParameterElement.Lookup(doc, param_guid)
     doc.Delete(sParamElement.Id)
-    t.Commit()
+    transaction.Commit()
+
+def main():
+    shared_params = get_shared_parameters(doc)
+
+    if not shared_params:
+        forms.alert(
+            'No shared parameters exist in the project.',
+            title='No Shared Parameters'
+        )
+        sys.exit()
+
+    options = ['All'] + list(shared_params.keys())
+    choose = forms.CommandSwitchWindow.show(options, message='Select Option')
+
+    if choose is None:
+        sys.exit()
+    elif choose == 'All':
+        result = forms.alert(
+            'This will delete ALL shared parameters completely from the '
+            'project. This action cannot be undone. Are you sure you want '
+            'to continue?',
+            title='Delete All Shared Parameters',
+            cancel=True
+        )
+        if result is None:
+            sys.exit()
+        delete_all_shared_params(doc, transaction)
+    else:
+        guid = shared_params[choose]
+        result = forms.alert(
+            'Delete parameter "{}" with GUID {}?'.format(choose, guid),
+            title='Delete Shared Parameter',
+            cancel=True
+        )
+        if result is None:
+            sys.exit()
+        delete_single_param(doc, transaction, choose, guid)
+
+if __name__ == '__main__':
+    main()
