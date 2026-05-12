@@ -9,6 +9,7 @@ from pyrevit import script
 from pyrevit import output
 import os.path as op
 import core
+import datetime
 
 __context__ = 'zero-doc'
 
@@ -46,4 +47,4 @@ print(str(Bvers) + ' : {}'.format(core.get_local_version()))
 print(str(Bvers_remote) + ' : {}'.format(remote_version))
 
 out.print_html('<a href="https://github.com/romangolev/pyArchitect">pyArchitect GitHub repository</a>')
-out.print_html('<a href="https://www.romangolev.com">Roman Golev</a><a> </a><a href="https://www.linkedin.com/in/romangolev/">LinkedIn</a><a>, 2024</a>')
+out.print_html('<a href="https://www.romangolev.com">Roman Golev</a><a> </a><a href="https://www.linkedin.com/in/romangolev/">LinkedIn</a><a>, ' + str(datetime.date.today().year) + '</a>')

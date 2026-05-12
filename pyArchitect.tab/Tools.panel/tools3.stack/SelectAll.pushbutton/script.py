@@ -7,7 +7,6 @@ from Autodesk.Revit.DB import *
 import clr
 clr.AddReference("System")
 from System.Collections.Generic import List
-import pyrevit
 from pyrevit import forms
 from core.catlistenum import get_catlist
 import sys
@@ -29,7 +28,11 @@ ops = ['Air Terminal','Areas','Assemblies','Cable Tray Fitting','Cable Tray Runs
 'Switch System','Telephone Devices','Topography','Views','Walls','Windows','Wires'
 ]
 
-choose = forms.CommandSwitchWindow.show(ops, message='Select Option')
+choose = forms.CommandSwitchWindow.show(
+	ops,
+	message='Select Option',
+	title='Select Category'
+)
 
 catlist = get_catlist(doc)
 
