@@ -1,0 +1,20 @@
+title:
+  en_us: |-
+    Delete
+    Unplaced Rooms
+  es_es: |-
+    Eliminar
+    Habitaciones Sin Colocar
+  ru: |-
+    Удалить
+    Неразмещённые помещения
+tooltip:
+  es_es: >-
+    Elimina todas las habitaciones sin colocar del proyecto
+  en_us: >-
+    Removes all unplaced rooms from the project
+  ru: >-
+    Удаляет все неразмещённые помещения из проекта
+author: Roman Golev
+engine:
+  persistent: true
