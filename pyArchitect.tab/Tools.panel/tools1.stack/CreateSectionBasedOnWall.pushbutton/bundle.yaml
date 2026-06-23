@@ -15,7 +15,7 @@ tooltip:
     Crea una sección en la que se rodea el muro seleccionado \
     Si hay un par de muros seleccionados, crea el mismo número de secciones
   en_us: >-
-    Makes a Section based on seleccted walls
+    Makes a Section based on selected walls
     _________________________________________________________________
     Creates a section in which selected wall is encircled \
     If there are couple of walls selected, then creates same number of sections

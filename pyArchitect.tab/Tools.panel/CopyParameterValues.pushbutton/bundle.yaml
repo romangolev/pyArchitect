@@ -5,13 +5,43 @@ title:
     Copy Values
   ru: |-
     Copy Values
-tooltip: 
+  fr_fr: |-
+    Copy Values
+  de_de: |-
+    Copy Values
+  pt_br: |-
+    Copy Values
+tooltip:
   es_es: >-
     Copiar el valor del parámetro de una propiedad seleccionada a otra
+
+    Shift+Clic:
+    Imprimir informe detallado de transferencia a la salida
   en_us: >-
     Copy parameter value from one selected property to another
+
+    Shift+Click:
+    Print detailed transfer report to output
   ru: >-
     Копирует значения параметра для выбранных элементов из одного свойства в другое
+
+    Shift+Click:
+    Вывести подробный отчёт о переданных данных в вывод
+  fr_fr: >-
+    Copier la valeur du paramètre d'une propriété sélectionnée vers une autre
+
+    Shift+Clic :
+    Imprimer le rapport détaillé du transfert dans la sortie
+  de_de: >-
+    Parameterwert von einer ausgewählten Eigenschaft in eine andere kopieren
+
+    Shift+Klick:
+    Detaillierten Übertragungsbericht in die Ausgabe drucken
+  pt_br: >-
+    Copiar o valor do parâmetro de uma propriedade selecionada para outra
+
+    Shift+Clique:
+    Imprimir relatório detalhado de transferência na saída
 
 author: Roman Golev
 engine:
