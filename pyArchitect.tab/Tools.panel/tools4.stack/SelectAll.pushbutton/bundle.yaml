@@ -1,0 +1,27 @@
+title:
+  es_es: |-
+    All Elements
+    Of Category
+  en_us: |-
+    All Elements
+    Of Category
+  ru: |-
+    All Elements
+    Of Category
+tooltip: 
+  es_es: >-
+    Seleccionar todos los elementos de la categoría seleccionada
+    _________________________________________________________________
+    Simplemente ejecute el script y elija la categoría de elementos que desea seleccionar
+  en_us: >-
+    Select all element of selected category
+    _________________________________________________________________
+    Simply run the script and choose the category of elements you want to select
+  ru: >-
+    Выбирает все элементы заданной категории на виде
+    _________________________________________________________________
+    Запустить и выбрать категорию
+
+author: Roman Golev
+engine:
+  persistent: true
