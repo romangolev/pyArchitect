@@ -7,6 +7,7 @@ import Autodesk.Revit.DB as DB
 
 from core.transaction import WrappedTransaction
 from tools.batch.documents import OpenedBatchDocument, RevitDocumentOpener
+from tools.export.persistence import save_sync_and_relinquish
 
 
 class ModelExportItem(object):
@@ -115,15 +116,7 @@ class IFCBatchExporter(object):
 
     def _save_or_sync(self, document):
         try:
-            if document.IsWorkshared:
-                DB.WorksharingUtils.RelinquishOwnership(
-                    document, DB.RelinquishOptions(True), DB.TransactWithCentralOptions())
-                sync_options = DB.SynchronizeWithCentralOptions()
-                sync_options.SetRelinquishOptions(DB.RelinquishOptions(True))
-                sync_options.Comment = "Batch IFC export"
-                document.SynchronizeWithCentral(DB.TransactWithCentralOptions(), sync_options)
-            else:
-                document.Save()
+            save_sync_and_relinquish(document, "Batch IFC export")
         except Exception as ex:
             if self.logger:
                 self.logger.warning("Could not save/sync '{}': {}".format(document.Title, ex))

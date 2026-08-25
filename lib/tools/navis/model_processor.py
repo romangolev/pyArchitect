@@ -15,7 +15,7 @@ from document_loader import (
     requires_upgrade
 
 )
-from tools.batch.documents import save_sync_and_relinquish
+from tools.export.persistence import save_sync_and_relinquish
 
 from statuses import (
 
