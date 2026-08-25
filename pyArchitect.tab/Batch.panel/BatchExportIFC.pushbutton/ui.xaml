@@ -60,6 +60,7 @@
                 <CheckBox x:Name="chkRooms" Content="Export rooms/spaces" Margin="0,3" />
 
                 <TextBlock Text="Linked models" FontWeight="Bold" Margin="0,14,0,4" />
+                <CheckBox x:Name="chkSkipLinkLoad" Content="Open without loading Revit links (uses temporary copies)" Margin="0,3" />
                 <CheckBox x:Name="chkLinksMerged" Content="Include linked models in the same IFC file" Margin="0,3" />
                 <CheckBox x:Name="chkLinksSeparate" Content="Also export each linked model to its own IFC file" Margin="0,3" />
             </StackPanel>

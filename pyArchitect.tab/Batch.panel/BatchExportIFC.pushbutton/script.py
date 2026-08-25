@@ -13,7 +13,9 @@ empty, the model is exported without pinning it to a specific view.
 """
 
 import os
+import shutil
 import System
+import tempfile
 import Autodesk.Revit.DB as DB
 
 from pyrevit import forms, script
@@ -55,6 +57,7 @@ class ExportSettings(object):
         self.default_view_name = "Navisworks"
         self.export_links_merged = False
         self.export_links_separately = False
+        self.open_without_links = False
         self.save_after = False
         self.open_folders = True
         self.bool_flags = {
@@ -166,7 +169,7 @@ CONTROL_NAMES = [
     'txtSelectionSummary', 'cmbVersion', 'cmbSitePlacement', 'txtDefaultView',
     'chkSplitWalls', 'chkSteel', 'chk2D', 'chkParts', 'chkSolidRep',
     'chkFamilyTypeRef', 'chkSiteElevation', 'chkStoreGuid', 'chkOnlyView',
-    'chkRooms', 'chkLinksMerged', 'chkLinksSeparate', 'chkRevitPsets',
+    'chkRooms', 'chkSkipLinkLoad', 'chkLinksMerged', 'chkLinksSeparate', 'chkRevitPsets',
     'chkCommonPsets', 'chkBaseQuantities', 'chkSchedulesAsPsets',
     'chkUserPsets', 'chkSaveAfter', 'chkOpenFolders',
 ]
@@ -223,8 +226,17 @@ class SettingsWindow(WPFWindow):
 
         settings.export_links_merged = bool(self.chkLinksMerged.IsChecked)
         settings.export_links_separately = bool(self.chkLinksSeparate.IsChecked)
+        settings.open_without_links = bool(self.chkSkipLinkLoad.IsChecked)
         settings.save_after = bool(self.chkSaveAfter.IsChecked)
         settings.open_folders = bool(self.chkOpenFolders.IsChecked)
+
+        if settings.open_without_links and (
+                settings.export_links_merged or settings.export_links_separately):
+            forms.alert(
+                "Open without Revit links cannot be used when exporting linked models. "
+                "Disable the linked-model export options or open links normally.",
+                title="Batch IFC Export")
+            return
 
         self.settings = settings
         self.DialogResult = True
@@ -239,10 +251,48 @@ def ask_settings(item_count):
     return window.settings
 
 
-def open_model(source_path):
+def unload_revit_links(model_path):
+    """Set Revit links to unload in a closed, disposable RVT copy."""
+    transmission_data = DB.TransmissionData.ReadTransmissionData(model_path)
+    if transmission_data is None:
+        return
+
+    for reference_id in transmission_data.GetAllExternalFileReferenceIds():
+        reference = transmission_data.GetLastSavedReferenceData(reference_id)
+        if reference is None:
+            continue
+        if reference.ExternalFileReferenceType != DB.ExternalFileReferenceType.RevitLink:
+            continue
+        transmission_data.SetDesiredReferenceData(
+            reference_id,
+            reference.GetPath(),
+            reference.PathType,
+            False)
+
+    transmission_data.IsTransmitted = True
+    DB.TransmissionData.WriteTransmissionData(model_path, transmission_data)
+
+
+def create_linkless_copy(source_path):
+    """Return a disposable local copy of source_path with Revit links unloaded."""
+    temp_folder = tempfile.mkdtemp(prefix="pyArchitect_BatchIFC_")
+    copy_path = os.path.join(temp_folder, os.path.basename(source_path))
+    try:
+        shutil.copy2(source_path, copy_path)
+        unload_revit_links(DB.ModelPathUtils.ConvertUserVisiblePathToModelPath(copy_path))
+        return copy_path, temp_folder
+    except Exception:
+        shutil.rmtree(temp_folder, ignore_errors=True)
+        raise
+
+
+def open_model(source_path, detach_from_central=False):
     model_path = DB.ModelPathUtils.ConvertUserVisiblePathToModelPath(source_path)
     open_options = DB.OpenOptions()
-    open_options.DetachFromCentralOption = DB.DetachFromCentralOption.DoNotDetach
+    open_options.DetachFromCentralOption = (
+        DB.DetachFromCentralOption.DetachAndPreserveWorksets
+        if detach_from_central else
+        DB.DetachFromCentralOption.DoNotDetach)
     open_options.SetOpenWorksetsConfiguration(
         DB.WorksetConfiguration(DB.WorksetConfigurationOption.OpenAllWorksets))
     return app.OpenDocumentFile(model_path, open_options)
@@ -320,10 +370,16 @@ def export_linked_documents(document, export_path, settings, results):
 
 def export_model(item, settings):
     results = []
+    temporary_folder = None
     try:
-        document = open_model(item.source_path)
+        source_path = item.source_path
+        if settings.open_without_links:
+            source_path, temporary_folder = create_linkless_copy(source_path)
+        document = open_model(source_path, detach_from_central=temporary_folder is not None)
     except Exception as ex:
-        return [(item.name, "-", "Failed to open: {}".format(ex))]
+        if temporary_folder:
+            shutil.rmtree(temporary_folder, ignore_errors=True)
+        return [(item.name, "-", "Failed to prepare/open: {}".format(ex))]
 
     try:
         if not os.path.isdir(item.export_path):
@@ -362,6 +418,8 @@ def export_model(item, settings):
             document.Close(False)
         except Exception:
             pass
+        if temporary_folder:
+            shutil.rmtree(temporary_folder, ignore_errors=True)
 
     return results
 
