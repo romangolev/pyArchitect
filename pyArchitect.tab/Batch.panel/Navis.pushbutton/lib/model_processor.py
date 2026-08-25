@@ -15,6 +15,7 @@ from document_loader import (
     requires_upgrade
 
 )
+from tools.batch.documents import save_sync_and_relinquish
 
 from statuses import (
 
@@ -130,7 +131,7 @@ def process_model(
             recreate=should_close
         )
 
-        doc.Save()
+        save_sync_and_relinquish(doc, "Batch Navisworks view update")
 
         logger.add(
             file_path,

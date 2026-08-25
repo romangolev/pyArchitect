@@ -17,10 +17,38 @@ class NavisworksViewService(object):
         self.centerline_name = centerline_name
 
     def find(self):
-        for view in DB.FilteredElementCollector(self.document).OfClass(DB.View3D):
-            if not view.IsTemplate and view.Name == self.settings.view_name:
-                return view
-        return None
+        matches = self.find_exact()
+        return matches[0] if matches else None
+
+    def find_exact(self):
+        return [view for view in self._views()
+                if view.Name == self.settings.view_name]
+
+    def find_navis_named(self):
+        return [view for view in self._views()
+                if "navis" in view.Name.lower()]
+
+    def _views(self):
+        return [view for view in DB.FilteredElementCollector(self.document).OfClass(DB.View3D)
+                if not view.IsTemplate]
+
+    def reconcile(self, profile=None, hidden_worksets=None, recreate=False):
+        """Keep one exact view; remove duplicates or obsolete Navis-named views.
+
+        Must be called inside an open Revit transaction.
+        """
+        exact_matches = self.find_exact()
+        if exact_matches and not recreate:
+            keeper = exact_matches[0]
+            for duplicate in exact_matches[1:]:
+                self.document.Delete(duplicate.Id)
+            self.configure(keeper, profile, hidden_worksets)
+            return keeper, "UPDATED"
+
+        targets = self.find_navis_named()
+        for view in targets:
+            self.document.Delete(view.Id)
+        return self.create(profile, hidden_worksets), "CREATED"
 
     def create(self, profile=None, hidden_worksets=None):
         view_type = next((item for item in DB.FilteredElementCollector(self.document)

@@ -50,15 +50,9 @@ def create_or_replace_navisworks_view(document, profile, hidden_worksets=None,
     transaction = Transaction(document, "Update Navisworks View")
     transaction.Start()
     try:
-        if updated and recreate:
-            service.delete()
-            service.create(profile, hidden_worksets)
-        elif updated:
-            service.update(profile, hidden_worksets)
-        else:
-            service.create(profile, hidden_worksets)
+        _, operation = service.reconcile(profile, hidden_worksets, recreate)
         transaction.Commit()
     except Exception:
         transaction.RollBack()
         raise
-    return UPDATED if updated else CREATED
+    return UPDATED if operation == "UPDATED" else CREATED
