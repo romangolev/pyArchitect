@@ -1,0 +1,41 @@
+title:
+  en_us: |-
+    Batch
+    IFC Export
+  ru: |-
+    Пакетный
+    экспорт IFC
+  es_es: |-
+    Exportar
+    IFC (lote)
+tooltip:
+  en_us: >-
+    Batch-export a list of Revit models to IFC.
+    _________________________________________________________________
+
+    Reads a list of models (from a semicolon-separated CSV/TXT file, or picked
+    manually), opens each one in the background, resolves the requested 3D
+    view(s) and exports them to IFC using the configuration you choose
+    (IFC version, site placement, property sets, linked files, etc).
+
+  ru: >-
+    Пакетный экспорт списка моделей Revit в IFC.
+    _________________________________________________________________
+
+    Загружает список моделей (из CSV/TXT файла с разделителем ";" или
+    выбранных вручную), открывает каждую в фоне, находит нужные 3D виды
+    и выгружает их в IFC с выбранными настройками (версия IFC, привязка
+    площадки, наборы свойств, связанные файлы и т.д).
+
+  es_es: >-
+    Exportación por lotes de modelos de Revit a IFC.
+    _________________________________________________________________
+
+    Lee una lista de modelos (desde un CSV/TXT separado por ";", o
+    seleccionados manualmente), abre cada uno en segundo plano, resuelve
+    la(s) vista(s) 3D solicitada(s) y los exporta a IFC con la
+    configuración elegida.
+
+author: Roman Golev
+engine:
+  persistent: false

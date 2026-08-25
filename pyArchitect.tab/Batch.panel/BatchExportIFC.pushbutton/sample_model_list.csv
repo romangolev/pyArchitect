@@ -1,0 +1,7 @@
+# Batch IFC Export - sample model list
+# Format: Name;SourcePath;ExportPath;MappingFile;NewName;View1,View2,...
+# Only Name, SourcePath and ExportPath are required.
+#
+# Examples (replace these paths and names with your project values):
+# Architecture;C:\ExampleProject\Models\Architecture.rvt;C:\ExampleProject\Exports\IFC;;;
+# Structure;C:\ExampleProject\Models\Structure.rvt;C:\ExampleProject\Exports\IFC;C:\ExampleProject\Config\ifc-property-sets.txt;Structure_IFC;Navisworks
