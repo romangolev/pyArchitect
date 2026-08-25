@@ -286,6 +286,15 @@ def create_linkless_copy(source_path):
         raise
 
 
+def dismiss_coordination_model_load_error(sender, args):
+    """Dismiss only the known Coordination Model load-error dialog."""
+    try:
+        if "unable to load coordination model" in str(args.Message).lower():
+            args.OverrideResult(1)  # IDOK
+    except Exception:
+        pass
+
+
 def open_model(source_path, detach_from_central=False):
     model_path = DB.ModelPathUtils.ConvertUserVisiblePathToModelPath(source_path)
     open_options = DB.OpenOptions()
@@ -295,7 +304,11 @@ def open_model(source_path, detach_from_central=False):
         DB.DetachFromCentralOption.DoNotDetach)
     open_options.SetOpenWorksetsConfiguration(
         DB.WorksetConfiguration(DB.WorksetConfigurationOption.OpenAllWorksets))
-    return app.OpenDocumentFile(model_path, open_options)
+    uiapp.DialogBoxShowing += dismiss_coordination_model_load_error
+    try:
+        return app.OpenDocumentFile(model_path, open_options)
+    finally:
+        uiapp.DialogBoxShowing -= dismiss_coordination_model_load_error
 
 
 def save_or_sync(document):
@@ -375,7 +388,9 @@ def export_model(item, settings):
         source_path = item.source_path
         if settings.open_without_links:
             source_path, temporary_folder = create_linkless_copy(source_path)
-        document = open_model(source_path, detach_from_central=temporary_folder is not None)
+        document = open_model(
+            source_path,
+            detach_from_central=temporary_folder is not None)
     except Exception as ex:
         if temporary_folder:
             shutil.rmtree(temporary_folder, ignore_errors=True)
