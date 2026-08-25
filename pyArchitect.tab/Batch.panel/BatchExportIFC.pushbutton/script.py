@@ -288,7 +288,8 @@ def build_ifc_options(settings, mapping_file, view):
     options = DB.IFCExportOptions()
     options.FileVersion = settings.ifc_version
     if view is not None:
-        options.ActiveViewId = view.Id
+        options.FilterViewId = view.Id
+        options.AddOption("UseActiveViewGeometry", "true")
 
     for key, value in settings.bool_flags.items():
         options.AddOption(key, "true" if value else "false")
