@@ -289,7 +289,11 @@ def create_linkless_copy(source_path):
 def dismiss_coordination_model_load_error(sender, args):
     """Dismiss only the known Coordination Model load-error dialog."""
     try:
-        if "unable to load coordination model" in str(args.Message).lower():
+        dialog_text = "{} {}".format(
+            getattr(args, "Message", ""),
+            getattr(args, "DialogId", "")).lower()
+        if ("unable to load coordination model" in dialog_text or
+                "coordinationmodel" in dialog_text):
             args.OverrideResult(1)  # IDOK
     except Exception:
         pass
