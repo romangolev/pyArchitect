@@ -1,0 +1,14 @@
+title:
+  en_us: |-
+    Navisworks
+    Views
+  ru: |-
+    Виды
+    Navisworks
+tooltip: Создание 3D вида Navisworks для моделей Revit. Shift+Click — настройки pyArchitect.
+author: Pusher
+
+engine:
+  clean: true
+
+context: zero-doc

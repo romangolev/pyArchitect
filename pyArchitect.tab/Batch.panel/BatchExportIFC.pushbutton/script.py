@@ -11,7 +11,7 @@ from pyrevit import forms, script
 
 from ifc_ui import ask_settings, collect_model_list, select_models
 from tools.batch.ifc import IFCBatchExporter
-from tools.batch.reporting import print_result_report
+from tools.batch.reporting import print_result_report, save_batch_report
 
 
 __helpurl__ = ""
@@ -48,6 +48,10 @@ def main():
         "Batch IFC export report",
         results,
         ["Model", "View", "Result"])
+    report_path = save_batch_report(
+        "BatchIFCExport",
+        results,
+        ["Model", "View", "Result"])
 
     if settings.open_folders:
         for folder in set(item.export_path for item in selected):
@@ -57,8 +61,8 @@ def main():
                 pass
 
     forms.alert(
-        "{} export operation(s) finished.\nSee the pyRevit output window for the detailed report.".format(
-            len(results)),
+        "{} export operation(s) finished.\nReport saved to:\n{}".format(
+            len(results), report_path),
         title="Batch IFC Export")
 
 

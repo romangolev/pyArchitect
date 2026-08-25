@@ -1,0 +1,112 @@
+# -*- coding: utf-8 -*-
+
+import os
+
+
+# ==========================================================
+# PARSE RSN MODEL LIST
+# ==========================================================
+
+def parse_model_list(text):
+
+    models = []
+    seen = set()
+
+    for line in text.splitlines():
+
+        line = normalize_rsn_path(line)
+
+        if not line:
+            continue
+
+        key = line.upper()
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+
+        models.append(line)
+
+    return models
+
+
+# ==========================================================
+# CSV
+# ==========================================================
+
+def load_csv(csv_file):
+
+    if not csv_file:
+        return []
+
+    if not os.path.exists(csv_file):
+        return []
+
+    # UTF-8
+
+    try:
+
+        import codecs
+
+        with codecs.open(
+                csv_file,
+                "r",
+                "utf-8-sig") as f:
+
+            return parse_model_list(
+                f.read()
+            )
+
+    except:
+        pass
+
+    # ANSI
+
+    try:
+
+        with open(csv_file, "r") as f:
+
+            return parse_model_list(
+                f.read()
+            )
+
+    except:
+
+        return []
+    
+def normalize_rsn_path(path):
+
+    path = path.strip()
+
+    if not path:
+        return None
+
+    # Уже RSN://
+
+    if path.upper().startswith("RSN://"):
+
+        path = path.replace("\\", "/")
+
+        while "//" in path[6:]:
+            path = path[:6] + path[6:].replace("//", "/")
+
+        return path
+
+    # Приводим слэши
+
+    path = path.replace("\\", "/")
+
+    parts = path.split("/")
+
+    if len(parts) < 2:
+        return None
+
+    server = parts[0].strip()
+
+    # Минимальная проверка сервера
+
+    if "." not in server and ":" not in server:
+        return None
+
+    return "RSN://" + "/".join(parts)

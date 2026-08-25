@@ -1,0 +1,21 @@
+title:
+  en_us: |-
+    Export
+    Navisworks
+  ru: |-
+    Экспорт
+    Navisworks
+tooltip:
+  en_us: >-
+    Batch-export Revit models to Navisworks. A future option will create or
+    update the Navisworks 3D view, save or synchronize the model, then export.
+  ru: >-
+    Пакетный экспорт моделей Revit в Navisworks. В следующем этапе команда
+    сможет создавать или обновлять 3D-вид Navisworks, сохранять или
+    синхронизировать модель и затем экспортировать её.
+author: Roman Golev
+
+engine:
+  persistent: false
+
+context: zero-doc

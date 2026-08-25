@@ -1,0 +1,311 @@
+<Window
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Создание вида Navisworks"
+ Height="780"
+ Width="850"
+ ResizeMode="CanResize"
+ WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="10">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TabControl x:Name="tabSource" Grid.Row="0">
+
+                    <TabItem Header="Локальная папка">
+
+                        <Grid Margin="10">
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Text="Папка с моделями:"
+                                Margin="0,0,0,5"/>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox x:Name="tbFolder" Grid.Column="0" Margin="0,0,5,0"/>
+                                <Button x:Name="btnBrowse" Grid.Column="1" Content="Обзор"/>
+                            </Grid>
+
+                            <CheckBox
+                                x:Name="cbRecursive"
+                                Grid.Row="2"
+                                Margin="0,10,0,0"
+                                IsChecked="True"
+                                Content="Искать модели во вложенных папках"/>
+
+                        </Grid>
+
+                    </TabItem>
+
+                    <TabItem Header="RSN Models">
+
+                        <Grid Margin="10">
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Text="Вставьте пути RSN:// (по одному в строке) или импортируйте CSV:"
+                                Margin="0,0,0,5"/>
+
+                            <TextBox
+                                x:Name="tbServerModels"
+                                Grid.Row="1"
+                                AcceptsReturn="True"
+                                AcceptsTab="True"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Auto"
+                                TextWrapping="NoWrap"
+                                MinHeight="180"/>
+
+                            <StackPanel
+                                Grid.Row="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,10,0,0">
+
+                                <Button x:Name="btnImportCsv" Width="110" Margin="0,0,5,0" Content="Импорт CSV"/>
+                                <Button x:Name="btnClearServerModels" Width="90" Margin="0,0,5,0" Content="Очистить"/>
+                                <Button x:Name="btnLoadServerModels" Width="150" Content="Загрузить модели"/>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </TabItem>
+
+                </TabControl>
+
+
+        <!-- ============================================= -->
+        <!-- ЦЕНТРАЛЬНАЯ ОБЛАСТЬ -->
+        <!-- ============================================= -->
+
+        <Grid Grid.Row="1">
+
+            <Grid.RowDefinitions>
+
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+
+            </Grid.RowDefinitions>
+
+            <!-- ========================================= -->
+            <!-- НАЙДЕННЫЕ МОДЕЛИ -->
+            <!-- ========================================= -->
+
+            <GroupBox
+                x:Name="gbModels"
+                Grid.Row="0"
+                Header="Найденные модели (0)"
+                Margin="0,0,0,10">
+
+                <Grid Margin="10">
+
+                    <Grid.RowDefinitions>
+
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+
+                    </Grid.RowDefinitions>
+
+                    <!-- Верхняя панель -->
+
+                    <Grid Grid.Row="0">
+
+                        <Grid.ColumnDefinitions>
+
+                            <ColumnDefinition Width="Auto"/>
+
+                            <ColumnDefinition Width="*"/>
+
+                        </Grid.ColumnDefinitions>
+
+                        <CheckBox
+                            x:Name="cbSelectAll"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            IsChecked="True"
+                            Content="Выбрать все модели"/>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Margin="0,0,10,0"
+                                Text="Профиль для выбранных:"/>
+
+                            <ComboBox
+                                x:Name="cmbBulkProfile"
+                                Width="170"
+                                Margin="0,0,10,0"/>
+
+                            <Button
+                                x:Name="btnApplyProfile"
+                                Width="100"
+                                Content="Применить"/>
+
+                        </StackPanel>
+
+                    </Grid>
+
+                    <!-- Разделитель -->
+
+                    <Separator
+                        Grid.Row="1"
+                        Margin="0,8,0,8"/>
+
+                    <!-- Список моделей -->
+
+                    <ListBox
+                        x:Name="lbModels"
+                        Grid.Row="2"/>
+
+                </Grid>
+
+            </GroupBox>
+
+            <!-- ========================================= -->
+            <!-- НАСТРОЙКИ -->
+            <!-- ========================================= -->
+
+            <GroupBox
+                Grid.Row="1"
+                Header="Настройки">
+
+                <Grid Margin="10">
+
+                    <Grid.RowDefinitions>
+
+                        <RowDefinition Height="Auto"/>   <!-- Analysis -->
+                        <RowDefinition Height="Auto"/>   <!-- Upgrade -->
+                        <RowDefinition Height="Auto"/>   <!-- Worksets label -->
+                        <RowDefinition Height="Auto"/>   <!-- Worksets textbox -->
+                        <RowDefinition Height="Auto"/>   <!-- Warning -->
+                        <RowDefinition Height="Auto"/>   <!-- Create log -->
+                        <RowDefinition Height="Auto"/>   <!-- Log label -->
+                        <RowDefinition Height="Auto"/>   <!-- Log folder -->
+
+                    </Grid.RowDefinitions>
+
+                    <CheckBox
+                        x:Name="cbAnalysisOnly"
+                        Grid.Row="0"
+                        Margin="0,0,0,10"
+                        Content="Только анализ (без изменения моделей)"/>
+
+                    <CheckBox
+                        x:Name="cbUpgradeModels"
+                        Grid.Row="1"
+                        Margin="0,0,0,4"
+                        IsChecked="False"
+                        Content="Обновлять модели до текущей версии"/>  
+
+                    <TextBlock
+                        Grid.Row="2"
+                        Margin="20,0,0,10"
+                        Foreground="DarkRed"
+                        TextWrapping="Wrap"
+                        Text="Внимание: после обновления модель нельзя будет открыть в более ранних версиях Revit."/>  
+
+                    <TextBlock
+                        Grid.Row="3"
+                        Margin="20,0,0,5"
+                        Text="Закрыть рабочие наборы (через запятую, по части имени)"/>
+
+                    <TextBox
+                        x:Name="tbHiddenWorksets"
+                        Grid.Row="4"
+                        Margin="20,0,0,10"/>
+
+                    <CheckBox
+                        x:Name="cbCreateLog"
+                        Grid.Row="5"
+                        Margin="0,0,0,10"
+                        IsChecked="True"
+                        Content="Создавать лог"/>
+
+                    <TextBlock
+                        Grid.Row="6"
+                        Margin="0,0,0,5"
+                        Text="Папка логов:"/>
+
+                    <Grid Grid.Row="7">
+
+                        <Grid.ColumnDefinitions>
+
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="90"/>
+
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox
+                            x:Name="tbLogFolder"
+                            Grid.Column="0"
+                            Margin="0,0,5,0"/>
+
+                        <Button
+                            x:Name="btnBrowseLog"
+                            Grid.Column="1"
+                            Content="Обзор"/>
+
+                    </Grid>
+
+                </Grid>
+
+            </GroupBox>
+
+        </Grid>
+
+        <!-- ============================================= -->
+        <!-- КНОПКИ -->
+        <!-- ============================================= -->
+
+        <StackPanel
+            Grid.Row="2"
+            Orientation="Horizontal"
+            HorizontalAlignment="Right"
+            Margin="0,10,0,0">
+
+            <Button
+                x:Name="btnOK"
+                Width="90"
+                Height="28"
+                Margin="0,0,5,0"
+                Content="OK"/>
+
+            <Button
+                x:Name="btnCancel"
+                Width="90"
+                Height="28"
+                Content="Отмена"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</Window>
