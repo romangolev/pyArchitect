@@ -128,3 +128,20 @@ def requires_upgrade(file_path):
 
     except:
         return False
+
+
+class RevitDocumentRepository(object):
+    def __init__(self, application):
+        self.application = application
+
+    def open(self, file_path):
+        return open_document(self.application, file_path)
+
+    def requires_upgrade(self, file_path):
+        return requires_upgrade(file_path)
+
+    def is_workshared(self, file_path):
+        return is_workshared(file_path)
+
+    def is_central(self, file_path):
+        return is_central(file_path)

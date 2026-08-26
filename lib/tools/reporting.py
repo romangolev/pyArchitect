@@ -55,12 +55,11 @@ class ActivityReport(object):
         return path
 
 
-class BatchNavisReport(object):
-    """Navis batch report backed by the extension-wide report implementation."""
-
-    def __init__(self):
+class BatchOperationReport(object):
+    def __init__(self, operation_id):
         self._report = ActivityReport(
-            "BatchNavisViews", ["DateTime", "Result", "FileName", "FilePath", "Comment"]
+            "Batch-{}".format(operation_id),
+            ["DateTime", "Result", "FileName", "FilePath", "Comment"],
         )
 
     def add(self, file_path, result, comment=""):
