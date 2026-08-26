@@ -8,10 +8,7 @@ class ModelSourceResolver(object):
     """Selects the appropriate model source for a batch request."""
 
     def resolve(self, settings):
-        source = settings.get(
-            "source",
-            "LOCAL"
-        ).upper()
+        source = settings.get("source", "LOCAL").upper()
 
         if source == "LOCAL":
             return LocalModelFinder().find(settings)

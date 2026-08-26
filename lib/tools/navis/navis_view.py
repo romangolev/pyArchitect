@@ -12,7 +12,7 @@ from tools.navis.settings import load
 from tools.navis.view_settings import (
     CENTERLINE_CATEGORIES,
     CENTERLINE_SUBCATEGORY,
-    UNIVERSAL_HIDDEN_CATEGORIES
+    UNIVERSAL_HIDDEN_CATEGORIES,
 )
 from tools.navis.views import NavisworksViewService
 
@@ -24,7 +24,7 @@ def _get_service(document):
         PROFILE_CATEGORIES,
         UNIVERSAL_HIDDEN_CATEGORIES,
         CENTERLINE_CATEGORIES,
-        CENTERLINE_SUBCATEGORY
+        CENTERLINE_SUBCATEGORY,
     )
 
 
@@ -34,10 +34,8 @@ def has_navisworks_view(document):
 
 
 def create_or_replace_navisworks_view(
-        document,
-        profile,
-        hidden_worksets,
-        recreate=False):
+    document, profile, hidden_worksets, recreate=False
+):
     """Create or update the configured Navisworks view in one transaction."""
     transaction = Transaction(document, "Create or update Navisworks view")
     started = False
@@ -46,11 +44,7 @@ def create_or_replace_navisworks_view(
         transaction.Start()
         started = True
 
-        _, status = _get_service(document).reconcile(
-            profile,
-            hidden_worksets,
-            recreate
-        )
+        _, status = _get_service(document).reconcile(profile, hidden_worksets, recreate)
 
         transaction.Commit()
         return status

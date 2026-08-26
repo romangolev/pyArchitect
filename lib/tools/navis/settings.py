@@ -7,8 +7,13 @@ from tools import config
 
 
 class NavisViewSettings(object):
-    def __init__(self, view_name="Navisworks", profile="UNIVERSAL",
-                 hide_revit_links=True, recreate_existing=True):
+    def __init__(
+        self,
+        view_name="Navisworks",
+        profile="UNIVERSAL",
+        hide_revit_links=True,
+        recreate_existing=True,
+    ):
         self.view_name = view_name
         self.profile = profile
         self.hide_revit_links = hide_revit_links
@@ -20,7 +25,8 @@ def load():
         config.get_option("navis_view_name", "Navisworks"),
         config.get_option("navis_profile", "UNIVERSAL"),
         config.get_option("navis_hide_revit_links", True),
-        config.get_option("navis_recreate_existing", True))
+        config.get_option("navis_recreate_existing", True),
+    )
 
 
 def save(settings):
@@ -36,23 +42,25 @@ def configure():
     view_name = forms.ask_for_string(
         default=settings.view_name,
         prompt="Exact name for the shared Navisworks 3D view:",
-        title="pyArchitect Navisworks settings")
+        title="pyArchitect Navisworks settings",
+    )
     if not view_name:
         return None
 
     profile = forms.CommandSwitchWindow.show(
         ["UNIVERSAL", "AR", "KR", "OV", "VK", "EOM", "CUSTOM"],
-        message="Default Navisworks view profile")
+        message="Default Navisworks view profile",
+    )
     if not profile:
         return None
 
     settings.view_name = view_name.strip()
     settings.profile = profile
     settings.hide_revit_links = forms.alert(
-        "Hide Revit links in the Navisworks view?",
-        yes=True, no=True)
+        "Hide Revit links in the Navisworks view?", yes=True, no=True
+    )
     settings.recreate_existing = forms.alert(
-        "Recreate an existing view instead of updating it in place?",
-        yes=True, no=True)
+        "Recreate an existing view instead of updating it in place?", yes=True, no=True
+    )
     save(settings)
     return settings

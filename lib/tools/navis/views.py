@@ -6,9 +6,15 @@ from System.Collections.Generic import List
 
 
 class NavisworksViewService(object):
-    def __init__(self, document, settings, profile_categories=None,
-                 universal_hidden_categories=None, centerline_categories=None,
-                 centerline_name=None):
+    def __init__(
+        self,
+        document,
+        settings,
+        profile_categories=None,
+        universal_hidden_categories=None,
+        centerline_categories=None,
+        centerline_name=None,
+    ):
         self.document = document
         self.settings = settings
         self.profile_categories = profile_categories or {}
@@ -21,16 +27,17 @@ class NavisworksViewService(object):
         return matches[0] if matches else None
 
     def find_exact(self):
-        return [view for view in self._views()
-                if view.Name == self.settings.view_name]
+        return [view for view in self._views() if view.Name == self.settings.view_name]
 
     def find_navis_named(self):
-        return [view for view in self._views()
-                if "navis" in view.Name.lower()]
+        return [view for view in self._views() if "navis" in view.Name.lower()]
 
     def _views(self):
-        return [view for view in DB.FilteredElementCollector(self.document).OfClass(DB.View3D)
-                if not view.IsTemplate]
+        return [
+            view
+            for view in DB.FilteredElementCollector(self.document).OfClass(DB.View3D)
+            if not view.IsTemplate
+        ]
 
     def reconcile(self, profile=None, hidden_worksets=None, recreate=False):
         """Keep one exact view; remove duplicates or obsolete Navis-named views.
@@ -51,9 +58,16 @@ class NavisworksViewService(object):
         return self.create(profile, hidden_worksets), "CREATED"
 
     def create(self, profile=None, hidden_worksets=None):
-        view_type = next((item for item in DB.FilteredElementCollector(self.document)
-                          .OfClass(DB.ViewFamilyType)
-                          if item.ViewFamily == DB.ViewFamily.ThreeDimensional), None)
+        view_type = next(
+            (
+                item
+                for item in DB.FilteredElementCollector(self.document).OfClass(
+                    DB.ViewFamilyType
+                )
+                if item.ViewFamily == DB.ViewFamily.ThreeDimensional
+            ),
+            None,
+        )
         if view_type is None:
             raise Exception("3D ViewFamilyType not found")
         view = DB.View3D.CreateIsometric(self.document, view_type.Id)
@@ -82,10 +96,16 @@ class NavisworksViewService(object):
         view.AreImportCategoriesHidden = True
         view.ArePointCloudsHidden = True
         view.AreCoordinationModelHandlesHidden = True
-        for bic in [DB.BuiltInCategory.OST_Mass, DB.BuiltInCategory.OST_Parts,
-                    DB.BuiltInCategory.OST_Lines, DB.BuiltInCategory.OST_MassForm] + \
-                self.universal_hidden_categories + self.profile_categories.get(
-                profile or self.settings.profile, []):
+        for bic in (
+            [
+                DB.BuiltInCategory.OST_Mass,
+                DB.BuiltInCategory.OST_Parts,
+                DB.BuiltInCategory.OST_Lines,
+                DB.BuiltInCategory.OST_MassForm,
+            ]
+            + self.universal_hidden_categories
+            + self.profile_categories.get(profile or self.settings.profile, [])
+        ):
             self._hide_category(view, bic)
         for bic in self.centerline_categories:
             self._hide_centerline(view, bic)
@@ -116,7 +136,9 @@ class NavisworksViewService(object):
     def _hide_revit_links(self, view):
         try:
             ids = List[DB.ElementId]()
-            for link_type in DB.FilteredElementCollector(self.document).OfClass(DB.RevitLinkType):
+            for link_type in DB.FilteredElementCollector(self.document).OfClass(
+                DB.RevitLinkType
+            ):
                 ids.Add(link_type.Id)
             if ids.Count:
                 view.HideElements(ids)
@@ -124,9 +146,13 @@ class NavisworksViewService(object):
             pass
 
     def _hide_worksets(self, view, keywords):
-        keywords = [value.strip().lower() for value in keywords if len(value.strip()) >= 2]
+        keywords = [
+            value.strip().lower() for value in keywords if len(value.strip()) >= 2
+        ]
         try:
-            for workset in DB.FilteredWorksetCollector(self.document).OfKind(DB.WorksetKind.UserWorkset):
+            for workset in DB.FilteredWorksetCollector(self.document).OfKind(
+                DB.WorksetKind.UserWorkset
+            ):
                 if any(value in workset.Name.lower() for value in keywords):
                     view.SetWorksetVisibility(workset.Id, DB.WorksetVisibility.Hidden)
         except Exception:

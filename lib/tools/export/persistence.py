@@ -13,6 +13,7 @@ def save_sync_and_relinquish(document, comment):
         sync_options.Comment = comment
         document.SynchronizeWithCentral(transact_options, sync_options)
         DB.WorksharingUtils.RelinquishOwnership(
-            document, relinquish_options, transact_options)
+            document, relinquish_options, transact_options
+        )
     else:
         document.Save()

@@ -11,7 +11,10 @@ from tools import config
 
 DEFAULT_REPORT_FOLDER = os.path.join(
     os.environ.get("APPDATA", os.path.expanduser("~")),
-    "pyRevit", "pyArchitect", "Reports")
+    "pyRevit",
+    "pyArchitect",
+    "Reports",
+)
 
 
 class ActivityReport(object):
@@ -42,9 +45,13 @@ class ActivityReport(object):
         filename = "{}-{}.tsv".format(self._safe_name(self.tool_name), timestamp)
         path = os.path.join(folder, filename)
         with codecs.open(path, "w", "utf-8") as report_file:
-            report_file.write("\t".join(self._tsv_value(value) for value in self.columns) + "\n")
+            report_file.write(
+                "\t".join(self._tsv_value(value) for value in self.columns) + "\n"
+            )
             for row in self.rows:
-                report_file.write("\t".join(self._tsv_value(value) for value in row) + "\n")
+                report_file.write(
+                    "\t".join(self._tsv_value(value) for value in row) + "\n"
+                )
         return path
 
 
@@ -53,8 +60,8 @@ class BatchNavisReport(object):
 
     def __init__(self):
         self._report = ActivityReport(
-            "BatchNavisViews",
-            ["DateTime", "Result", "FileName", "FilePath", "Comment"])
+            "BatchNavisViews", ["DateTime", "Result", "FileName", "FilePath", "Comment"]
+        )
 
     def add(self, file_path, result, comment=""):
         self._report.add(
@@ -62,7 +69,8 @@ class BatchNavisReport(object):
             result,
             os.path.basename(file_path),
             file_path,
-            comment)
+            comment,
+        )
 
     def save(self, folder=None):
         return self._report.save(folder)

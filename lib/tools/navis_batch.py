@@ -6,33 +6,11 @@ from pyrevit import script
 
 from tools.reporting import BatchNavisReport
 
-from tools.navis_model_processor import (
-    ModelProcessor
-)
+from tools.navis_model_processor import ModelProcessor
 
-from tools.revit_documents import (
+from tools.revit_documents import is_workshared, is_central
 
-    is_workshared,
-
-    is_central
-
-)
-
-from tools.navis_batch_statuses import (
-
-    CREATED,
-
-    UPDATED,
-
-    EXISTS,
-
-    MISSING,
-
-    SKIPPED,
-
-    ERROR
-
-)
+from tools.navis_batch_statuses import CREATED, UPDATED, EXISTS, MISSING, SKIPPED, ERROR
 
 
 class BatchNavisViewWorkflow(object):
@@ -47,67 +25,37 @@ class BatchNavisViewWorkflow(object):
 
 def process_models(settings, application=None):
 
-    source = settings.get(
-        "source",
-        "LOCAL"
-    )
+    source = settings.get("source", "LOCAL")
 
     if source == "LOCAL":
-
-        if not settings.get(
-                "models_folder",
-                "").strip():
-
-            print(
-                "Не выбрана папка с моделями."
-            )
+        if not settings.get("models_folder", "").strip():
+            print("Не выбрана папка с моделями.")
 
             return
 
     elif source == "RSN":
-
-        if not settings.get(
-                "selected_models"):
-
-            print(
-                "Не выбрана ни одна модель Revit Server."
-            )
+        if not settings.get("selected_models"):
+            print("Не выбрана ни одна модель Revit Server.")
 
             return
 
     else:
-
-        print(
-            "Неизвестный источник моделей."
-        )
+        print("Неизвестный источник моделей.")
 
         return
 
-    selected_models = settings[
-        "selected_models"
-    ]
+    selected_models = settings["selected_models"]
 
     if not selected_models:
-
-        print(
-            "Не выбрано ни одной модели."
-        )
+        print("Не выбрано ни одной модели.")
 
         return
 
-    analysis_only = settings[
-        "analysis_only"
-    ]
+    analysis_only = settings["analysis_only"]
 
-    upgrade_models = settings.get(
-        "upgrade_models",
-        False
-    )
+    upgrade_models = settings.get("upgrade_models", False)
 
-    hidden_worksets = settings.get(
-        "hidden_worksets",
-        []
-    )   
+    hidden_worksets = settings.get("hidden_worksets", [])
 
     app = application or __revit__.Application
 
@@ -116,44 +64,22 @@ def process_models(settings, application=None):
     logger = BatchNavisReport()
     model_processor = ModelProcessor(app, logger)
 
-    output.print_md(
-        "# Navisworks View Creator"
-    )
+    output.print_md("# Navisworks View Creator")
 
-    output.print_md(
-        "Выбрано моделей: {}".format(
-            len(selected_models)
-        )
-    )
+    output.print_md("Выбрано моделей: {}".format(len(selected_models)))
 
     print("")
     print("=" * 60)
     print("SETTINGS")
     print("=" * 60)
 
-    print(
-        "Recursive search: {}".format(
-            settings["recursive"]
-        )
-    )
+    print("Recursive search: {}".format(settings["recursive"]))
 
-    print(
-        "Analysis only: {}".format(
-            analysis_only
-        )
-    )
+    print("Analysis only: {}".format(analysis_only))
 
-    print(
-        "Upgrade models: {}".format(
-            upgrade_models
-        )
-    )
+    print("Upgrade models: {}".format(upgrade_models))
 
-    print(
-        "Selected files: {}".format(
-            len(selected_models)
-        )
-    )
+    print("Selected files: {}".format(len(selected_models)))
 
     print("")
 
@@ -167,56 +93,33 @@ def process_models(settings, application=None):
 
     error_count = 0
 
-    for index, model in enumerate(
-            selected_models):
-
-        file_path = model[
-            "path"
-        ]
+    for index, model in enumerate(selected_models):
+        file_path = model["path"]
         print("")
         print("FILE PATH:")
         print(file_path)
         print("")
-        profile = model[
-            "profile"
-        ]
+        profile = model["profile"]
 
         print("")
         print("=" * 60)
 
         print(
             "[{}/{}] {}".format(
-                index + 1,
-                len(selected_models),
-                os.path.basename(
-                    file_path
-                )
+                index + 1, len(selected_models), os.path.basename(file_path)
             )
         )
 
-        print(
-            "PROFILE: {}".format(
-                profile
-            )
-        )
+        print("PROFILE: {}".format(profile))
 
         if is_central(file_path):
-
-            print(
-                "MODEL: Central"
-            )
+            print("MODEL: Central")
 
         elif is_workshared(file_path):
-
-            print(
-                "MODEL: Workshared"
-            )
+            print("MODEL: Workshared")
 
         else:
-
-            print(
-                "MODEL: Standalone"
-            )
+            print("MODEL: Standalone")
 
         status = model_processor.process(
             file_path,
@@ -227,27 +130,21 @@ def process_models(settings, application=None):
         )
 
         if status == CREATED:
-
             created_count += 1
 
         elif status == UPDATED:
-
             updated_count += 1
 
         elif status == EXISTS:
-
             exists_count += 1
 
         elif status == MISSING:
-
             missing_count += 1
 
         elif status == SKIPPED:
-
             skipped_count += 1
 
         elif status == ERROR:
-
             error_count += 1
 
     print("")
@@ -256,44 +153,18 @@ def process_models(settings, application=None):
     print("=" * 60)
 
     if analysis_only:
+        print("EXISTS : {}".format(exists_count))
 
-        print(
-            "EXISTS : {}".format(
-                exists_count
-            )
-        )
-
-        print(
-            "MISSING : {}".format(
-                missing_count
-            )
-        )
+        print("MISSING : {}".format(missing_count))
 
     else:
+        print("CREATED : {}".format(created_count))
 
-        print(
-            "CREATED : {}".format(
-                created_count
-            )
-        )
+        print("UPDATED : {}".format(updated_count))
 
-        print(
-            "UPDATED : {}".format(
-                updated_count
-            )
-        )
+    print("SKIPPED : {}".format(skipped_count))
 
-    print(
-        "SKIPPED : {}".format(
-            skipped_count
-        )
-    )
-
-    print(
-        "ERRORS : {}".format(
-            error_count
-        )
-    )
+    print("ERRORS : {}".format(error_count))
 
     try:
         default_report_path = logger.save()
@@ -302,20 +173,14 @@ def process_models(settings, application=None):
         print("REPORT ERROR: {}".format(ex))
 
     if settings["create_log"]:
-
-        log_folder = settings.get(
-            "log_folder",
-            ""
-        ).strip()
+        log_folder = settings.get("log_folder", "").strip()
 
         if not log_folder:
-
             print("")
             print("LOG:")
             print("Папка для логов не указана.")
 
         else:
-
             try:
                 log_path = logger.save(log_folder)
 
@@ -324,7 +189,6 @@ def process_models(settings, application=None):
                 print(log_path)
 
             except Exception as ex:
-
                 print("")
                 print("LOG ERROR:")
                 print(str(ex))

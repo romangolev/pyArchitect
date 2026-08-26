@@ -11,7 +11,9 @@ from tools.export.persistence import save_sync_and_relinquish
 
 
 class ModelExportItem(object):
-    def __init__(self, name, source_path, export_path, mapping_file="", new_name="", views=None):
+    def __init__(
+        self, name, source_path, export_path, mapping_file="", new_name="", views=None
+    ):
         self.name = name
         self.source_path = source_path
         self.export_path = export_path
@@ -66,18 +68,23 @@ def parse_model_list(file_path):
             continue
         parts = line.split(";")
         if len(parts) < 3:
-            errors.append("Line {}: expected at least Name;SourcePath;ExportPath".format(line_no))
+            errors.append(
+                "Line {}: expected at least Name;SourcePath;ExportPath".format(line_no)
+            )
             continue
         views = []
         if len(parts) > 5 and parts[5].strip():
             views = [view.strip() for view in parts[5].split(",") if view.strip()]
-        items.append(ModelExportItem(
-            parts[0].strip(),
-            parts[1].strip(),
-            parts[2].strip(),
-            parts[3].strip() if len(parts) > 3 else "",
-            parts[4].strip() if len(parts) > 4 else "",
-            views))
+        items.append(
+            ModelExportItem(
+                parts[0].strip(),
+                parts[1].strip(),
+                parts[2].strip(),
+                parts[3].strip() if len(parts) > 3 else "",
+                parts[4].strip() if len(parts) > 4 else "",
+                views,
+            )
+        )
     return items, errors
 
 
@@ -109,7 +116,9 @@ class IFCBatchExporter(object):
         for key, value in settings.bool_flags.items():
             options.AddOption(key, "true" if value else "false")
         options.AddOption("SitePlacement", str(settings.site_placement))
-        options.AddOption("ExportLinkedFiles", "true" if settings.export_links_merged else "false")
+        options.AddOption(
+            "ExportLinkedFiles", "true" if settings.export_links_merged else "false"
+        )
         if settings.bool_flags.get("ExportUserDefinedPsets") and mapping_file:
             options.AddOption("ExportUserDefinedPsetsFileName", mapping_file)
         return options
@@ -119,7 +128,9 @@ class IFCBatchExporter(object):
             save_sync_and_relinquish(document, "Batch IFC export")
         except Exception as ex:
             if self.logger:
-                self.logger.warning("Could not save/sync '{}': {}".format(document.Title, ex))
+                self.logger.warning(
+                    "Could not save/sync '{}': {}".format(document.Title, ex)
+                )
 
     def _export_linked_documents(self, document, export_path, settings, results):
         links = DB.FilteredElementCollector(document).OfClass(DB.RevitLinkInstance)
@@ -130,27 +141,33 @@ class IFCBatchExporter(object):
                 continue
             try:
                 options = self.build_options(settings, "", None)
-                with WrappedTransaction(link_document, "Export linked IFC", warning_suppressor=True):
+                with WrappedTransaction(
+                    link_document, "Export linked IFC", warning_suppressor=True
+                ):
                     link_document.Export(export_path, link_document.Title, options)
                 results.append((link_document.Title, "link", "OK"))
             except Exception as ex:
-                results.append((link_document.Title, "link", "Export failed: {}".format(ex)))
+                results.append(
+                    (link_document.Title, "link", "Export failed: {}".format(ex))
+                )
 
     def export_item(self, item, settings):
         results = []
         try:
             with OpenedBatchDocument(
-                    self.document_opener,
-                    item.source_path,
-                    settings.open_without_links) as document:
+                self.document_opener, item.source_path, settings.open_without_links
+            ) as document:
                 try:
                     if not os.path.isdir(item.export_path):
                         os.makedirs(item.export_path)
                 except Exception as ex:
-                    return [(item.name, "-", "Cannot create export folder: {}".format(ex))]
+                    return [
+                        (item.name, "-", "Cannot create export folder: {}".format(ex))
+                    ]
 
                 view_names = item.views or (
-                    [settings.default_view_name] if settings.default_view_name else [])
+                    [settings.default_view_name] if settings.default_view_name else []
+                )
                 base_name = item.new_name or item.name
                 if base_name.lower().endswith(".rvt"):
                     base_name = base_name[:-4]
@@ -159,19 +176,32 @@ class IFCBatchExporter(object):
                     if view_names and view is None:
                         results.append((item.name, label, "View not found - skipped"))
                         continue
-                    file_name = base_name if label is None else "{}_{}".format(base_name, label)
+                    file_name = (
+                        base_name if label is None else "{}_{}".format(base_name, label)
+                    )
                     try:
-                        with WrappedTransaction(document, "Export IFC", warning_suppressor=True):
+                        with WrappedTransaction(
+                            document, "Export IFC", warning_suppressor=True
+                        ):
                             document.Export(
                                 item.export_path,
                                 file_name,
-                                self.build_options(settings, item.mapping_file, view))
+                                self.build_options(settings, item.mapping_file, view),
+                            )
                         results.append((item.name, label or "(default view)", "OK"))
                     except Exception as ex:
-                        results.append((item.name, label or "(default view)", "Export failed: {}".format(ex)))
+                        results.append(
+                            (
+                                item.name,
+                                label or "(default view)",
+                                "Export failed: {}".format(ex),
+                            )
+                        )
 
                 if settings.export_links_separately:
-                    self._export_linked_documents(document, item.export_path, settings, results)
+                    self._export_linked_documents(
+                        document, item.export_path, settings, results
+                    )
                 if settings.save_after:
                     self._save_or_sync(document)
         except Exception as ex:

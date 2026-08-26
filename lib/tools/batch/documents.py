@@ -37,13 +37,14 @@ class TemporaryLinklessCopy(object):
             reference = transmission_data.GetLastSavedReferenceData(reference_id)
             if reference is None:
                 continue
-            if reference.ExternalFileReferenceType != DB.ExternalFileReferenceType.RevitLink:
+            if (
+                reference.ExternalFileReferenceType
+                != DB.ExternalFileReferenceType.RevitLink
+            ):
                 continue
             transmission_data.SetDesiredReferenceData(
-                reference_id,
-                reference.GetPath(),
-                reference.PathType,
-                False)
+                reference_id, reference.GetPath(), reference.PathType, False
+            )
 
         transmission_data.IsTransmitted = True
         DB.TransmissionData.WriteTransmissionData(model_path, transmission_data)
@@ -66,11 +67,13 @@ class RevitDocumentOpener(object):
     def _dismiss_coordination_model_load_error(sender, args):
         try:
             dialog_text = "{} {}".format(
-                getattr(args, "Message", ""),
-                getattr(args, "DialogId", "")).lower()
-            if ("unable to load coordination model" in dialog_text or
-                    "coordinationmodel" in dialog_text):
-                args.OverrideResult(1)  # IDOK
+                getattr(args, "Message", ""), getattr(args, "DialogId", "")
+            ).lower()
+            if (
+                "unable to load coordination model" in dialog_text
+                or "coordinationmodel" in dialog_text
+            ):
+                args.OverrideResult(1)
         except Exception:
             pass
 
@@ -79,18 +82,22 @@ class RevitDocumentOpener(object):
         open_options = DB.OpenOptions()
         open_options.DetachFromCentralOption = (
             DB.DetachFromCentralOption.DetachAndPreserveWorksets
-            if detach_from_central else
-            DB.DetachFromCentralOption.DoNotDetach)
+            if detach_from_central
+            else DB.DetachFromCentralOption.DoNotDetach
+        )
         open_options.SetOpenWorksetsConfiguration(
-            DB.WorksetConfiguration(DB.WorksetConfigurationOption.OpenAllWorksets))
+            DB.WorksetConfiguration(DB.WorksetConfigurationOption.OpenAllWorksets)
+        )
 
-        self.ui_application.DialogBoxShowing += self._dismiss_coordination_model_load_error
+        self.ui_application.DialogBoxShowing += (
+            self._dismiss_coordination_model_load_error
+        )
         try:
             return self.application.OpenDocumentFile(model_path, open_options)
         finally:
-            self.ui_application.DialogBoxShowing -= self._dismiss_coordination_model_load_error
-
-
+            self.ui_application.DialogBoxShowing -= (
+                self._dismiss_coordination_model_load_error
+            )
 
 
 class OpenedBatchDocument(object):
@@ -110,8 +117,8 @@ class OpenedBatchDocument(object):
             path_to_open = self.temporary_copy.prepare()
 
         self.document = self.opener.open(
-            path_to_open,
-            detach_from_central=self.temporary_copy is not None)
+            path_to_open, detach_from_central=self.temporary_copy is not None
+        )
         return self.document
 
     def __exit__(self, ex_type, ex_value, ex_traceback):

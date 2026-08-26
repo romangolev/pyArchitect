@@ -1,27 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from tools.model_finder import (
-    find_rvt_files
-)
+from tools.model_finder import find_rvt_files
 
-
-# ==========================================================
-# LOCAL MODELS
-# ==========================================================
 
 class LocalModelFinder(object):
     """Finds Revit models from a local-folder batch source."""
 
     def find(self, settings):
-        folder = settings.get(
-            "models_folder",
-            ""
-        )
+        folder = settings.get("models_folder", "")
 
-        recursive = settings.get(
-            "recursive",
-            True
-        )
+        recursive = settings.get("recursive", True)
 
         if not folder:
             return []
