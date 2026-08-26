@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from tools.navis.ui import show_form
+from navis_ui import show_form
 from tools.navis.settings import configure
-from tools.navis.process_models import process_models
+from tools.navis_batch import BatchNavisViewWorkflow
 
 # ==========================================================
 # START
@@ -17,6 +17,4 @@ settings = show_form()
 
 if settings:
 
-    process_models(
-        settings
-    )
+    BatchNavisViewWorkflow(__revit__.Application).run(settings)

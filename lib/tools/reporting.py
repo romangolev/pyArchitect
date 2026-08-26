@@ -46,3 +46,23 @@ class ActivityReport(object):
             for row in self.rows:
                 report_file.write("\t".join(self._tsv_value(value) for value in row) + "\n")
         return path
+
+
+class BatchNavisReport(object):
+    """Navis batch report backed by the extension-wide report implementation."""
+
+    def __init__(self):
+        self._report = ActivityReport(
+            "BatchNavisViews",
+            ["DateTime", "Result", "FileName", "FilePath", "Comment"])
+
+    def add(self, file_path, result, comment=""):
+        self._report.add(
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            result,
+            os.path.basename(file_path),
+            file_path,
+            comment)
+
+    def save(self, folder=None):
+        return self._report.save(folder)

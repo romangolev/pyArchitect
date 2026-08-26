@@ -15,11 +15,11 @@ from System.Windows import (
 )
 
 
-from model_source import get_models
+from tools.model_sources import ModelSourceResolver
 
-from profiles import PROFILE_ITEMS
+from tools.navis.profiles import PROFILE_ITEMS
 
-from rsn_reader import load_csv
+from tools.rsn import RsnModelListReader
 
 class NavisForm(forms.WPFWindow):
 
@@ -72,6 +72,8 @@ class NavisForm(forms.WPFWindow):
         )
 
         self.settings = None
+        self.model_source_resolver = ModelSourceResolver()
+        self.rsn_model_list_reader = RsnModelListReader()
 
         self.btnApplyProfile.Click += (
             self.btnApplyProfile_Click
@@ -196,7 +198,7 @@ class NavisForm(forms.WPFWindow):
 
         }
 
-        files = get_models(
+        files = self.model_source_resolver.resolve(
             settings
         )
 
@@ -271,7 +273,7 @@ class NavisForm(forms.WPFWindow):
         if not csv:
             return
 
-        models = load_csv(csv)
+        models = self.rsn_model_list_reader.read_csv(csv)
 
         self.tbServerModels.Text = "\n".join(
             models

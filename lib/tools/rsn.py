@@ -7,7 +7,17 @@ import os
 # PARSE RSN MODEL LIST
 # ==========================================================
 
-def parse_model_list(text):
+class RsnModelListReader(object):
+    """Parses Revit Server model lists from text or CSV files."""
+
+    def parse(self, text):
+        return _parse_model_list(text)
+
+    def read_csv(self, csv_file):
+        return _load_csv(csv_file)
+
+
+def _parse_model_list(text):
 
     models = []
     seen = set()
@@ -35,7 +45,7 @@ def parse_model_list(text):
 # CSV
 # ==========================================================
 
-def load_csv(csv_file):
+def _load_csv(csv_file):
 
     if not csv_file:
         return []
@@ -54,7 +64,7 @@ def load_csv(csv_file):
                 "r",
                 "utf-8-sig") as f:
 
-            return parse_model_list(
+            return _parse_model_list(
                 f.read()
             )
 
@@ -67,7 +77,7 @@ def load_csv(csv_file):
 
         with open(csv_file, "r") as f:
 
-            return parse_model_list(
+            return _parse_model_list(
                 f.read()
             )
 

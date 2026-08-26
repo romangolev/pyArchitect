@@ -4,13 +4,13 @@ import os
 
 from pyrevit import script
 
-from logger import Logger
+from tools.reporting import BatchNavisReport
 
-from model_processor import (
-    process_model
+from tools.navis_model_processor import (
+    ModelProcessor
 )
 
-from document_loader import (
+from tools.revit_documents import (
 
     is_workshared,
 
@@ -18,7 +18,7 @@ from document_loader import (
 
 )
 
-from statuses import (
+from tools.navis_batch_statuses import (
 
     CREATED,
 
@@ -35,7 +35,17 @@ from statuses import (
 )
 
 
-def process_models(settings):
+class BatchNavisViewWorkflow(object):
+    """Coordinates batch model processing without coupling callers to Revit globals."""
+
+    def __init__(self, application):
+        self.application = application
+
+    def run(self, settings):
+        return process_models(settings, self.application)
+
+
+def process_models(settings, application=None):
 
     source = settings.get(
         "source",
@@ -99,11 +109,12 @@ def process_models(settings):
         []
     )   
 
-    app = __revit__.Application
+    app = application or __revit__.Application
 
     output = script.get_output()
 
-    logger = Logger()
+    logger = BatchNavisReport()
+    model_processor = ModelProcessor(app, logger)
 
     output.print_md(
         "# Navisworks View Creator"
@@ -207,22 +218,12 @@ def process_models(settings):
                 "MODEL: Standalone"
             )
 
-        status = process_model(
-
-            app,
-
+        status = model_processor.process(
             file_path,
-
             profile,
-
             analysis_only,
-
             upgrade_models,
-
             hidden_worksets,
-            
-            logger
-
         )
 
         if status == CREATED:

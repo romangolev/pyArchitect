@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from navis_view import (
+from tools.navis.navis_view import (
 
     has_navisworks_view,
 
@@ -8,7 +8,7 @@ from navis_view import (
 
 )
 
-from document_loader import (
+from tools.revit_documents import (
 
     open_document,
 
@@ -17,7 +17,7 @@ from document_loader import (
 )
 from tools.export.persistence import save_sync_and_relinquish
 
-from statuses import (
+from tools.navis_batch_statuses import (
 
     CREATED,
 
@@ -168,3 +168,23 @@ def process_model(
 
             except:
                 pass
+
+
+class ModelProcessor(object):
+    """Application service for processing one Revit model at a time."""
+
+    def __init__(self, application, logger):
+        self.application = application
+        self.logger = logger
+
+    def process(self, file_path, profile, analysis_only, upgrade_models,
+                hidden_worksets):
+        return process_model(
+            self.application,
+            file_path,
+            profile,
+            analysis_only,
+            upgrade_models,
+            hidden_worksets,
+            self.logger
+        )
