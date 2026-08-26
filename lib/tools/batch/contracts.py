@@ -8,12 +8,6 @@ class BatchOperationResult(object):
         self.changed = changed
 
 
-class BatchModelItem(object):
-    def __init__(self, file_path, options=None):
-        self.file_path = file_path
-        self.options = options or {}
-
-
 class BatchOperationContext(object):
     def __init__(self, document, model, opened_by_processor):
         self.document = document

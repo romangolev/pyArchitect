@@ -27,7 +27,7 @@ class BatchProcessor(object):
             results.append((model, operation_results))
             for operation, result in operation_results:
                 self.report.add(
-                    model.file_path,
+                    model.source_path,
                     result.status,
                     "{}: {}".format(operation.operation_id, result.message),
                 )
@@ -42,7 +42,7 @@ class BatchProcessor(object):
 
     def _run_model(self, operations, model, analysis_only, upgrade_models):
         if (
-            self.document_repository.requires_upgrade(model.file_path)
+            self.document_repository.requires_upgrade(model.source_path)
             and not upgrade_models
         ):
             return [
@@ -54,7 +54,7 @@ class BatchProcessor(object):
         should_close = False
 
         try:
-            document, should_close = self.document_repository.open(model.file_path)
+            document, should_close = self.document_repository.open(model.source_path)
             context = BatchOperationContext(document, model, should_close)
             results = []
             changed = False

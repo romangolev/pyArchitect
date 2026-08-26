@@ -2,7 +2,7 @@
 
 from pyrevit import script
 
-from tools.batch.contracts import BatchModelItem
+from tools.batch.input import BatchInputItem
 from tools.batch.processor import BatchProcessor
 from tools.navis.batch_operation import NavisViewBatchOperation
 from tools.reporting import BatchOperationReport
@@ -41,7 +41,7 @@ class BatchNavisViewWorkflow(object):
     def _create_models(settings):
         hidden_worksets = settings.get("hidden_worksets", [])
         return [
-            BatchModelItem(
+            BatchInputItem(
                 item["path"],
                 {
                     "profile": item.get("profile", "UNIVERSAL"),
@@ -57,7 +57,12 @@ class BatchNavisViewWorkflow(object):
         output.print_md("# {} batch processor".format(operation.display_name))
         output.print_table(
             table_data=[
-                (model.file_path, operation.display_name, result.status, result.message)
+                (
+                    model.source_path,
+                    operation.display_name,
+                    result.status,
+                    result.message,
+                )
                 for model, operation_results in results
                 for operation, result in operation_results
             ],
