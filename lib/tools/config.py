@@ -2,6 +2,7 @@
 """pyArchitect settings stored through pyRevit's supported config API."""
 
 from pyrevit import script
+from pyrevit.userconfig import user_config
 
 
 SECTION = "pyArchitect"
@@ -9,7 +10,9 @@ SECTION = "pyArchitect"
 
 def get_settings():
     """Return the extension-wide configuration section, creating it if needed."""
-    return script.get_config(SECTION)
+    if not user_config.has_section(SECTION):
+        user_config.add_section(SECTION)
+    return user_config.get_section(SECTION)
 
 
 def get_option(name, default=None):
