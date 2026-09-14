@@ -7,8 +7,9 @@ clr.AddReference("PresentationCore")
 clr.AddReference("PresentationFramework")
 clr.AddReference("WindowsBase")
 
-from System.Windows import Thickness
+from System.Windows import FontWeights, Thickness, VerticalAlignment
 from System.Windows.Controls import (
+    Button,
     CheckBox,
     ComboBox,
     Orientation,
@@ -18,11 +19,15 @@ from System.Windows.Controls import (
 )
 
 
-def text(value, width=None):
+def text(value, width=None, bold=False, centered=False):
     control = TextBlock()
     control.Text = value
     if width:
         control.Width = width
+    if bold:
+        control.FontWeight = FontWeights.Bold
+    if centered:
+        control.VerticalAlignment = VerticalAlignment.Center
     return control
 
 
@@ -57,6 +62,16 @@ def combobox(items, selected_index=None, width=None):
         control.SelectedIndex = selected_index
     if width:
         control.Width = width
+    return control
+
+
+def button(content, width=None, margin=None):
+    control = Button()
+    control.Content = content
+    if width:
+        control.Width = width
+    if margin:
+        control.Margin = Thickness(*margin)
     return control
 
 

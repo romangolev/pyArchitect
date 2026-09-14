@@ -32,6 +32,7 @@ class ExportSettings(object):
         self.ifc_version = DB.IFCVersion.IFC2x3CV2
         self.site_placement = 0
         self.default_view_name = "Navisworks"
+        self.export_folder = ""
         self.export_links_merged = False
         self.export_links_separately = False
         self.open_without_links = False

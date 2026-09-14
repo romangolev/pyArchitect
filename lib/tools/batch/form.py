@@ -10,7 +10,16 @@ from tools.batch.input import BatchInput, BatchInputCsv, BatchInputFactory
 from System.Windows import Visibility
 
 
+CHECKBOX_WIDTH = 25
+PATH_WIDTH = 500
+PROPERTY_WIDTH = 130
+
+
 class BatchOptionsPresenter(object):
+    selection_description = "Tick the models to include in this batch run."
+    item_property_header = None
+    bulk_label = None
+
     def build(self, host):
         raise NotImplementedError
 
@@ -19,6 +28,13 @@ class BatchOptionsPresenter(object):
 
     def read_item_property(self, item, control):
         return item.options
+
+    def create_bulk_control(self):
+        """Return a control whose value can be pushed onto every row."""
+        return None
+
+    def apply_bulk_value(self, bulk_control, property_control):
+        """Copy the bulk control's value onto one row's property control."""
 
     def read_options(self):
         raise NotImplementedError
@@ -34,9 +50,11 @@ class BatchSelectionForm(forms.WPFWindow):
         self.input_factory = BatchInputFactory()
         self.input_csv = BatchInputCsv()
         self.batch_input = BatchInput()
+        self.bulk_control = None
         self.result = None
 
         self.options_presenter.build(self.optionsHost)
+        self._build_selection_header()
         self.btnBrowse.Click += self._browse
         self.btnLoadRoutes.Click += self._load_routes
         self.btnImportCsv.Click += self._import_csv
@@ -50,6 +68,47 @@ class BatchSelectionForm(forms.WPFWindow):
             self.tabProperties.Visibility = Visibility.Collapsed
             self.tabs.SelectedItem = self.tabOptions
             self.btnRun.Content = "Save options"
+
+    def _build_selection_header(self):
+        presenter = self.options_presenter
+        self.tbSelectionDescription.Text = presenter.selection_description
+
+        self.columnHeader.Children.Add(widgets.text("", width=CHECKBOX_WIDTH))
+        self.columnHeader.Children.Add(
+            widgets.text("Model", width=PATH_WIDTH, bold=True)
+        )
+        if presenter.item_property_header:
+            self.columnHeader.Children.Add(
+                widgets.text(
+                    presenter.item_property_header, width=PROPERTY_WIDTH, bold=True
+                )
+            )
+
+        self.bulk_control = presenter.create_bulk_control()
+        if self.bulk_control is None:
+            self.bulkHost.Visibility = Visibility.Collapsed
+            return
+
+        self.bulk_control.Width = PROPERTY_WIDTH
+        apply_button = widgets.button("Apply to all", width=110, margin=(8, 0, 0, 0))
+        apply_button.Click += self._apply_bulk_value
+        self.bulkHost.Children.Add(
+            widgets.text(
+                presenter.bulk_label or "Set for all models",
+                width=CHECKBOX_WIDTH + PATH_WIDTH,
+                centered=True,
+            )
+        )
+        self.bulkHost.Children.Add(self.bulk_control)
+        self.bulkHost.Children.Add(apply_button)
+
+    def _apply_bulk_value(self, sender, args):
+        for panel in self.lbModels.Items:
+            property_control = panel.Tag[2]
+            if property_control is not None:
+                self.options_presenter.apply_bulk_value(
+                    self.bulk_control, property_control
+                )
 
     def _browse(self, sender, args):
         folder = forms.pick_folder()
@@ -99,6 +158,7 @@ class BatchSelectionForm(forms.WPFWindow):
             controls = [checkbox, widgets.text(item.source_path, width=500)]
             property_control = self.options_presenter.create_item_property(item)
             if property_control:
+                property_control.Width = PROPERTY_WIDTH
                 controls.append(property_control)
             panel = widgets.row(*controls)
             panel.Tag = (item, checkbox, property_control)

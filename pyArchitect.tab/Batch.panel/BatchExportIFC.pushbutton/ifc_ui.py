@@ -40,10 +40,16 @@ CHECKBOX_LABELS = [
 
 
 class IfcOptionsPresenter(BatchOptionsPresenter):
+    selection_description = (
+        "Tick the models to export. Every model is exported with the settings from the "
+        "Options tab, into the export folder set there."
+    )
+
     def __init__(self):
         self.defaults = ExportSettings()
         self.version = None
         self.default_view = None
+        self.export_folder = None
         self.flag_controls = {}
         self.controls = {}
 
@@ -59,6 +65,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             ),
         )
         self.default_view = widgets.textbox(self.defaults.default_view_name)
+        self.export_folder = widgets.textbox(self.defaults.export_folder)
 
         self.flag_controls = dict(
             (key, widgets.checkbox(text, self.defaults.bool_flags[key]))
@@ -75,6 +82,8 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
                 self.version,
                 widgets.label("Default 3D view name"),
                 self.default_view,
+                widgets.label("Export folder"),
+                self.export_folder,
                 *(
                     [self.flag_controls[key] for key, _ in FLAG_LABELS]
                     + [self.controls[name] for name, _, _ in CHECKBOX_LABELS]
@@ -82,18 +91,11 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             )
         )
 
-    def create_item_property(self, item):
-        return widgets.textbox(item.options.get("export_path", ""), width=220)
-
-    def read_item_property(self, item, control):
-        options = dict(item.options)
-        options["export_path"] = control.Text.strip()
-        return options
-
     def read_options(self):
         settings = ExportSettings()
         settings.ifc_version = getattr(DB.IFCVersion, str(self.version.SelectedItem))
         settings.default_view_name = self.default_view.Text.strip()
+        settings.export_folder = self.export_folder.Text.strip()
         for key, control in self.flag_controls.items():
             settings.bool_flags[key] = bool(control.IsChecked)
         for name, control in self.controls.items():
@@ -106,25 +108,28 @@ def show_form():
     if not result:
         return None, None
     settings = result["options"]
-    items = []
-    for item in result["input"].items:
-        export_path = item.options.get("export_path", "")
-        if not export_path:
-            forms.alert(
-                "Specify an export folder for every selected model.",
-                title="Batch IFC export",
-            )
-            return None, None
-        items.append(
-            ModelExportItem(
-                item.options.get("name", os.path.basename(item.source_path)),
-                item.source_path,
-                export_path,
-                item.options.get("mapping_file", ""),
-                item.options.get("new_name", ""),
-                item.options.get("views", []),
-            )
+    models = result["input"].items
+
+    if not settings.export_folder and not all(
+        item.options.get("export_path") for item in models
+    ):
+        forms.alert(
+            "Specify an export folder for the selected models.",
+            title="Batch IFC export",
         )
+        return None, None
+
+    items = [
+        ModelExportItem(
+            item.options.get("name", os.path.basename(item.source_path)),
+            item.source_path,
+            item.options.get("export_path") or settings.export_folder,
+            item.options.get("mapping_file", ""),
+            item.options.get("new_name", ""),
+            item.options.get("views", []),
+        )
+        for item in models
+    ]
     return items, settings
 
 

@@ -6,6 +6,14 @@ from tools.navis.profiles import load_profiles
 
 
 class NavisOptionsPresenter(BatchOptionsPresenter):
+    selection_description = (
+        "Tick the models that should get a Navisworks view. The profile decides which "
+        "categories are hidden in that view; it is guessed from the file name and can "
+        "be changed per model below."
+    )
+    item_property_header = "Profile"
+    bulk_label = "Set the same profile for every model:"
+
     def __init__(self, profiles=None):
         self.profiles = profiles or load_profiles()
         self.hidden_worksets = None
@@ -37,8 +45,16 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         return widgets.combobox(
             self.profiles.captions,
             self.profiles.index_of(selected),
-            width=130,
         )
+
+    def create_bulk_control(self):
+        return widgets.combobox(
+            self.profiles.captions,
+            self.profiles.index_of(self.profiles.default_id),
+        )
+
+    def apply_bulk_value(self, bulk_control, property_control):
+        property_control.SelectedIndex = bulk_control.SelectedIndex
 
     def read_item_property(self, item, control):
         options = dict(item.options)
