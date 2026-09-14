@@ -8,6 +8,16 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <TabControl x:Name="tabs" Grid.Row="0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Style.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#FF9A9A9A" />
+                            <Setter Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
             <TabItem x:Name="tabSelection" Header="1. Selection">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>

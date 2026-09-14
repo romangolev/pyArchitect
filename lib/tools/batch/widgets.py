@@ -8,7 +8,14 @@ clr.AddReference("PresentationFramework")
 clr.AddReference("WindowsBase")
 
 from System.Windows import Thickness
-from System.Windows.Controls import CheckBox, ComboBox, StackPanel, TextBlock, TextBox
+from System.Windows.Controls import (
+    CheckBox,
+    ComboBox,
+    Orientation,
+    StackPanel,
+    TextBlock,
+    TextBox,
+)
 
 
 def text(value, width=None):
@@ -53,8 +60,17 @@ def combobox(items, selected_index=None, width=None):
     return control
 
 
-def stack(*controls):
+def _panel(orientation, controls):
     panel = StackPanel()
+    panel.Orientation = orientation
     for control in controls:
         panel.Children.Add(control)
     return panel
+
+
+def stack(*controls):
+    return _panel(Orientation.Vertical, controls)
+
+
+def row(*controls):
+    return _panel(Orientation.Horizontal, controls)

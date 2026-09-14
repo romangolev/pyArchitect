@@ -100,8 +100,7 @@ class BatchSelectionForm(forms.WPFWindow):
             property_control = self.options_presenter.create_item_property(item)
             if property_control:
                 controls.append(property_control)
-            panel = widgets.stack(*controls)
-            panel.Orientation = 0
+            panel = widgets.row(*controls)
             panel.Tag = (item, checkbox, property_control)
             self.lbModels.Items.Add(panel)
 
