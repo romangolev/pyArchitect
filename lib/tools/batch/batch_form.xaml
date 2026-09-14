@@ -56,7 +56,7 @@
                     </StackPanel>
                 </Grid>
             </TabItem>
-            <TabItem x:Name="tabProperties" Header="2. Selection properties">
+            <TabItem x:Name="tabProperties" Header="2. Selection properties" IsEnabled="False">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

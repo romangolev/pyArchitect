@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 """Small WPF control factories shared by the batch option presenters."""
 
+import clr
+
+clr.AddReference("PresentationCore")
+clr.AddReference("PresentationFramework")
+clr.AddReference("WindowsBase")
+
 from System.Windows import Thickness
 from System.Windows.Controls import CheckBox, ComboBox, StackPanel, TextBlock, TextBox
 

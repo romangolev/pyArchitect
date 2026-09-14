@@ -3,10 +3,11 @@
 import os
 
 from pyrevit import forms
-from System.Windows import Visibility
 
 from tools.batch import widgets
 from tools.batch.input import BatchInput, BatchInputCsv, BatchInputFactory
+
+from System.Windows import Visibility
 
 
 class BatchOptionsPresenter(object):
@@ -92,6 +93,7 @@ class BatchSelectionForm(forms.WPFWindow):
 
     def _render_items(self):
         self.lbModels.Items.Clear()
+        self.tabProperties.IsEnabled = bool(self.batch_input.items)
         for item in self.batch_input.items:
             checkbox = widgets.checkbox(checked=True, width=25)
             controls = [checkbox, widgets.text(item.source_path, width=500)]
