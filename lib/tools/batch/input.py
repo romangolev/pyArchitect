@@ -5,9 +5,7 @@ import csv
 import json
 import os
 
-from pyrevit import forms
-
-from tools.local_models import LocalModelFinder
+from tools.model_finder import find_rvt_files
 from tools.rsn import RsnModelListReader
 
 
@@ -30,34 +28,16 @@ class BatchInput(object):
 
 
 class BatchInputFactory(object):
-    def from_folder(self, folder, recursive=True):
-        paths = LocalModelFinder().find(
-            {
-                "models_folder": folder,
-                "recursive": recursive,
-            }
-        )
-        return BatchInput([BatchInputItem(path) for path in paths])
-
     def from_paths(self, paths):
         return BatchInput([BatchInputItem(path) for path in paths])
 
-    def from_rsn_routes(self, routes):
-        paths = RsnModelListReader().parse(routes)
-        return BatchInput([BatchInputItem(path) for path in paths])
-
-
-class BatchInputPrompt(object):
-    def __init__(self, input_factory=None):
-        self.input_factory = input_factory or BatchInputFactory()
-
-    def from_folder(
-        self, recursive=True, title="Choose the folder containing Revit models"
-    ):
-        folder = forms.pick_folder(title=title)
+    def from_folder(self, folder, recursive=True):
         if not folder:
-            return None
-        return self.input_factory.from_folder(folder, recursive)
+            return BatchInput()
+        return self.from_paths(find_rvt_files(folder, recursive))
+
+    def from_rsn_routes(self, routes):
+        return self.from_paths(RsnModelListReader().parse(routes))
 
 
 class BatchInputCsv(object):

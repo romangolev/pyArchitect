@@ -1,0 +1,120 @@
+{
+    "always_hidden_categories": [
+        "OST_Mass",
+        "OST_MassForm",
+        "OST_Parts",
+        "OST_Lines",
+        "OST_Site",
+        "OST_MEPSpaces",
+        "OST_Wire"
+    ],
+    "centerline_categories": [
+        "OST_DuctCurves",
+        "OST_FlexDuctCurves",
+        "OST_PipeCurves",
+        "OST_FlexPipeCurves",
+        "OST_CableTray",
+        "OST_Conduit",
+        "OST_DuctFitting",
+        "OST_PipeFitting",
+        "OST_ConduitFitting",
+        "OST_CableTrayFitting"
+    ],
+    "centerline_subcategory_names": [
+        "Осевая линия",
+        "Center line",
+        "Center Line"
+    ],
+    "category_groups": {
+        "mep": [
+            "OST_DuctCurves",
+            "OST_FlexDuctCurves",
+            "OST_PipeCurves",
+            "OST_FlexPipeCurves",
+            "OST_CableTray",
+            "OST_Conduit",
+            "OST_Wire",
+            "OST_DuctFitting",
+            "OST_PipeFitting",
+            "OST_ConduitFitting",
+            "OST_CableTrayFitting"
+        ],
+        "ducts": [
+            "OST_DuctCurves",
+            "OST_FlexDuctCurves",
+            "OST_DuctFitting"
+        ],
+        "pipes": [
+            "OST_PipeCurves",
+            "OST_FlexPipeCurves",
+            "OST_PipeFitting"
+        ],
+        "building_shell": [
+            "OST_Walls",
+            "OST_Columns",
+            "OST_Floors",
+            "OST_Roofs"
+        ],
+        "architecture_and_structure": [
+            "OST_Entourage",
+            "OST_FurnitureSystems",
+            "OST_Planting",
+            "OST_Doors",
+            "OST_Windows",
+            "OST_Stairs",
+            "OST_Ramps",
+            "OST_Railings",
+            "OST_Ceilings",
+            "OST_Parking",
+            "OST_Topography",
+            "OST_CurtainWallMullions",
+            "OST_CurtainWallPanels",
+            "OST_Rebar",
+            "OST_StructuralColumns",
+            "OST_StructuralFoundation",
+            "OST_StructuralFraming",
+            "OST_Roads",
+            "OST_VibrationManagement"
+        ]
+    },
+    "profiles": [
+        {
+            "id": "UNIVERSAL",
+            "caption": "УНИВ."
+        },
+        {
+            "id": "AR",
+            "caption": "АР",
+            "name_markers": ["АР"],
+            "hidden_groups": ["mep"]
+        },
+        {
+            "id": "KR",
+            "caption": "КР",
+            "name_markers": ["КР"],
+            "hidden_groups": ["mep"]
+        },
+        {
+            "id": "OV",
+            "caption": "ОВ",
+            "name_markers": ["ОВ"],
+            "hidden_groups": ["architecture_and_structure", "building_shell"]
+        },
+        {
+            "id": "VK",
+            "caption": "ВК",
+            "name_markers": ["ВК"],
+            "hidden_groups": ["architecture_and_structure", "building_shell", "ducts"]
+        },
+        {
+            "id": "EOM",
+            "caption": "ЭОМ",
+            "name_markers": ["ЭОМ"],
+            "hidden_groups": ["architecture_and_structure", "building_shell", "pipes"]
+        },
+        {
+            "id": "CUSTOM",
+            "caption": "CUSTOM"
+        }
+    ]
+}

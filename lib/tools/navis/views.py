@@ -4,23 +4,15 @@
 import Autodesk.Revit.DB as DB
 from System.Collections.Generic import List
 
+from tools.navis.profiles import load_profiles
+from tools.navis.settings import load as load_settings
+
 
 class NavisworksViewService(object):
-    def __init__(
-        self,
-        document,
-        settings,
-        profile_categories=None,
-        universal_hidden_categories=None,
-        centerline_categories=None,
-        centerline_name=None,
-    ):
+    def __init__(self, document, settings=None, profiles=None):
         self.document = document
-        self.settings = settings
-        self.profile_categories = profile_categories or {}
-        self.universal_hidden_categories = universal_hidden_categories or []
-        self.centerline_categories = centerline_categories or []
-        self.centerline_name = centerline_name
+        self.settings = settings or load_settings()
+        self.profiles = profiles or load_profiles()
 
     def find(self):
         matches = self.find_exact()
@@ -96,42 +88,49 @@ class NavisworksViewService(object):
         view.AreImportCategoriesHidden = True
         view.ArePointCloudsHidden = True
         view.AreCoordinationModelHandlesHidden = True
-        for bic in (
-            [
-                DB.BuiltInCategory.OST_Mass,
-                DB.BuiltInCategory.OST_Parts,
-                DB.BuiltInCategory.OST_Lines,
-                DB.BuiltInCategory.OST_MassForm,
-            ]
-            + self.universal_hidden_categories
-            + self.profile_categories.get(profile or self.settings.profile, [])
-        ):
-            self._hide_category(view, bic)
-        for bic in self.centerline_categories:
-            self._hide_centerline(view, bic)
+
+        hidden_categories = self.profiles.always_hidden_categories + list(
+            self.profiles.hidden_categories(profile or self.settings.profile)
+        )
+        for built_in_category in hidden_categories:
+            self._hide_category(view, built_in_category)
+        for built_in_category in self.profiles.centerline_categories:
+            self._hide_centerline(view, built_in_category)
+
         if self.settings.hide_revit_links:
             self._hide_revit_links(view)
         self._hide_worksets(view, hidden_worksets or [])
 
-    def _hide_category(self, view, bic):
+    def _category(self, built_in_category):
         try:
-            category = DB.Category.GetCategory(self.document, bic)
-            if category:
-                view.SetCategoryHidden(category.Id, True)
+            return DB.Category.GetCategory(self.document, built_in_category)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _hide(view, category_id):
+        try:
+            view.SetCategoryHidden(category_id, True)
         except Exception:
             pass
 
-    def _hide_centerline(self, view, bic):
-        if not self.centerline_name:
+    def _hide_category(self, view, built_in_category):
+        category = self._category(built_in_category)
+        if category is not None:
+            self._hide(view, category.Id)
+
+    def _hide_centerline(self, view, built_in_category):
+        names = self.profiles.centerline_subcategory_names
+        category = self._category(built_in_category)
+        if category is None or not names:
             return
         try:
-            category = DB.Category.GetCategory(self.document, bic)
-            if category:
-                for subcategory in category.SubCategories:
-                    if subcategory.Name == self.centerline_name:
-                        view.SetCategoryHidden(subcategory.Id, True)
+            subcategories = list(category.SubCategories)
         except Exception:
-            pass
+            return
+        for subcategory in subcategories:
+            if subcategory.Name in names:
+                self._hide(view, subcategory.Id)
 
     def _hide_revit_links(self, view):
         try:
@@ -149,6 +148,8 @@ class NavisworksViewService(object):
         keywords = [
             value.strip().lower() for value in keywords if len(value.strip()) >= 2
         ]
+        if not keywords:
+            return
         try:
             for workset in DB.FilteredWorksetCollector(self.document).OfKind(
                 DB.WorksetKind.UserWorkset

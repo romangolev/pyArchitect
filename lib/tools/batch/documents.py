@@ -7,6 +7,8 @@ import tempfile
 
 import Autodesk.Revit.DB as DB
 
+from tools.revit_documents import build_open_options
+
 
 class TemporaryLinklessCopy(object):
     """Disposable RVT copy whose Revit links are unloaded before opening."""
@@ -79,15 +81,7 @@ class RevitDocumentOpener(object):
 
     def open(self, source_path, detach_from_central=False):
         model_path = DB.ModelPathUtils.ConvertUserVisiblePathToModelPath(source_path)
-        open_options = DB.OpenOptions()
-        open_options.DetachFromCentralOption = (
-            DB.DetachFromCentralOption.DetachAndPreserveWorksets
-            if detach_from_central
-            else DB.DetachFromCentralOption.DoNotDetach
-        )
-        open_options.SetOpenWorksetsConfiguration(
-            DB.WorksetConfiguration(DB.WorksetConfigurationOption.OpenAllWorksets)
-        )
+        open_options = build_open_options(detach_from_central, open_all_worksets=True)
 
         self.ui_application.DialogBoxShowing += (
             self._dismiss_coordination_model_load_error

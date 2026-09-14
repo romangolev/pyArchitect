@@ -1,11 +1,24 @@
 # -*- coding: utf-8 -*-
 """pyArchitect settings stored through pyRevit's supported config API."""
 
+import os
+
 from pyrevit import script
 from pyrevit.userconfig import user_config
 
 
 SECTION = "pyArchitect"
+
+USER_DATA_FOLDER = os.path.join(
+    os.environ.get("APPDATA", os.path.expanduser("~")),
+    "pyRevit",
+    "pyArchitect",
+)
+
+
+def user_data_path(*parts):
+    """Build a path inside the per-user pyArchitect data folder."""
+    return os.path.join(USER_DATA_FOLDER, *parts)
 
 
 def get_settings():

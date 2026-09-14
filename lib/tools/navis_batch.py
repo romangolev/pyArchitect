@@ -2,24 +2,28 @@
 
 from pyrevit import script
 
-from tools.batch.input import BatchInputItem
 from tools.batch.processor import BatchProcessor
+from tools.batch.reporting import print_result_report, save_report_copy
 from tools.navis.batch_operation import NavisViewBatchOperation
 from tools.reporting import BatchOperationReport
 from tools.revit_documents import RevitDocumentRepository
+
+
+COLUMNS = ["Model", "Operation", "Result", "Details"]
+SUCCESS_VALUES = ("CREATED", "UPDATED", "EXISTS", "MISSING")
 
 
 class BatchNavisViewWorkflow(object):
     def __init__(self, application):
         self.application = application
 
-    def run(self, settings):
-        models = self._create_models(settings)
+    def run(self, models, settings):
         if not models:
             print("No models selected.")
             return []
 
-        operation = NavisViewBatchOperation()
+        analysis_only = settings.get("analysis_only", False)
+        operation = NavisViewBatchOperation(settings.get("hidden_worksets", []))
         report = BatchOperationReport(operation.operation_id)
         processor = BatchProcessor(
             RevitDocumentRepository(self.application),
@@ -29,65 +33,43 @@ class BatchNavisViewWorkflow(object):
         results = processor.run(
             [operation],
             models,
-            settings.get("analysis_only", False),
+            analysis_only,
             settings.get("upgrade_models", False),
         )
 
-        self._print_summary(operation, results, settings.get("analysis_only", False))
+        self._print_summary(operation, results, analysis_only)
         self._save_reports(report, settings)
         return results
 
     @staticmethod
-    def _create_models(settings):
-        hidden_worksets = settings.get("hidden_worksets", [])
-        return [
-            BatchInputItem(
-                item["path"],
-                {
-                    "profile": item.get("profile", "UNIVERSAL"),
-                    "hidden_worksets": hidden_worksets,
-                },
-            )
-            for item in settings.get("selected_models", [])
-        ]
-
-    @staticmethod
     def _print_summary(operation, results, analysis_only):
-        output = script.get_output()
-        output.print_md("# {} batch processor".format(operation.display_name))
-        output.print_table(
-            table_data=[
-                (
-                    model.source_path,
-                    operation.display_name,
-                    result.status,
-                    result.message,
-                )
-                for model, operation_results in results
-                for operation, result in operation_results
-            ],
-            columns=["Model", "Operation", "Result", "Details"],
+        rows = [
+            (model.source_path, ran.display_name, result.status, result.message)
+            for model, operation_results in results
+            for ran, result in operation_results
+        ]
+        print_result_report(
+            script.get_output(),
+            "{} batch processor".format(operation.display_name),
+            rows,
+            COLUMNS,
+            SUCCESS_VALUES,
+            status_index=2,
         )
 
-        mode = "analysis" if analysis_only else "execution"
-        print("{} completed for {} model(s).".format(mode.capitalize(), len(results)))
+        mode = "Analysis" if analysis_only else "Execution"
+        print("{} completed for {} model(s).".format(mode, len(results)))
 
     @staticmethod
     def _save_reports(report, settings):
-        try:
-            report_path = report.save()
-            print("REPORT SAVED: {}".format(report_path))
-        except Exception as exception:
-            print("REPORT ERROR: {}".format(exception))
+        save_report_copy(report)
 
-        if settings.get("create_log", False):
-            folder = settings.get("log_folder", "").strip()
-            if not folder:
-                print("LOG FOLDER NOT SPECIFIED")
-                return
+        if not settings.get("create_log", False):
+            return
 
-            try:
-                log_path = report.save(folder)
-                print("LOG SAVED: {}".format(log_path))
-            except Exception as exception:
-                print("LOG ERROR: {}".format(exception))
+        folder = settings.get("log_folder", "").strip()
+        if not folder:
+            print("LOG FOLDER NOT SPECIFIED")
+            return
+
+        save_report_copy(report, folder, "LOG")

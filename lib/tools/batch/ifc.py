@@ -56,38 +56,6 @@ class ExportSettings(object):
         }
 
 
-def parse_model_list(file_path):
-    items = []
-    errors = []
-    with open(file_path, "r") as mapping_file:
-        lines = mapping_file.read().splitlines()
-
-    for line_no, raw_line in enumerate(lines, start=1):
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        parts = line.split(";")
-        if len(parts) < 3:
-            errors.append(
-                "Line {}: expected at least Name;SourcePath;ExportPath".format(line_no)
-            )
-            continue
-        views = []
-        if len(parts) > 5 and parts[5].strip():
-            views = [view.strip() for view in parts[5].split(",") if view.strip()]
-        items.append(
-            ModelExportItem(
-                parts[0].strip(),
-                parts[1].strip(),
-                parts[2].strip(),
-                parts[3].strip() if len(parts) > 3 else "",
-                parts[4].strip() if len(parts) > 4 else "",
-                views,
-            )
-        )
-    return items, errors
-
-
 class IFCBatchExporter(object):
     def __init__(self, application, ui_application, logger=None):
         self.application = application

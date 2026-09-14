@@ -9,12 +9,7 @@ from datetime import datetime
 from tools import config
 
 
-DEFAULT_REPORT_FOLDER = os.path.join(
-    os.environ.get("APPDATA", os.path.expanduser("~")),
-    "pyRevit",
-    "pyArchitect",
-    "Reports",
-)
+DEFAULT_REPORT_FOLDER = config.user_data_path("Reports")
 
 
 class ActivityReport(object):

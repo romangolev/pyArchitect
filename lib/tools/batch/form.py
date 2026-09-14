@@ -4,8 +4,8 @@ import os
 
 from pyrevit import forms
 from System.Windows import Visibility
-from System.Windows.Controls import CheckBox, StackPanel, TextBlock
 
+from tools.batch import widgets
 from tools.batch.input import BatchInput, BatchInputCsv, BatchInputFactory
 
 
@@ -93,19 +93,13 @@ class BatchSelectionForm(forms.WPFWindow):
     def _render_items(self):
         self.lbModels.Items.Clear()
         for item in self.batch_input.items:
-            panel = StackPanel()
-            panel.Orientation = 0
-            checkbox = CheckBox()
-            checkbox.IsChecked = True
-            checkbox.Width = 25
-            panel.Children.Add(checkbox)
-            label = TextBlock()
-            label.Text = item.source_path
-            label.Width = 500
-            panel.Children.Add(label)
+            checkbox = widgets.checkbox(checked=True, width=25)
+            controls = [checkbox, widgets.text(item.source_path, width=500)]
             property_control = self.options_presenter.create_item_property(item)
             if property_control:
-                panel.Children.Add(property_control)
+                controls.append(property_control)
+            panel = widgets.stack(*controls)
+            panel.Orientation = 0
             panel.Tag = (item, checkbox, property_control)
             self.lbModels.Items.Add(panel)
 

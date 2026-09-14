@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from System.Windows import Thickness
-from System.Windows.Controls import CheckBox, ComboBox, StackPanel, TextBlock, TextBox
-
+from tools.batch import widgets
 from tools.batch.form import BatchOptionsPresenter, show_batch_form
-from tools.navis.profiles import PROFILE_ITEMS
+from tools.navis.profiles import load_profiles
 
 
 class NavisOptionsPresenter(BatchOptionsPresenter):
-    def __init__(self):
+    def __init__(self, profiles=None):
+        self.profiles = profiles or load_profiles()
         self.hidden_worksets = None
         self.analysis_only = None
         self.upgrade_models = None
@@ -16,43 +15,35 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.log_folder = None
 
     def build(self, host):
-        panel = StackPanel()
-        panel.Children.Add(
-            self._label("Hidden worksets (comma-separated name fragments)")
+        self.hidden_worksets = widgets.textbox()
+        self.analysis_only = widgets.checkbox("Analysis only")
+        self.upgrade_models = widgets.checkbox("Allow model upgrade")
+        self.create_log = widgets.checkbox("Save an additional report copy", True)
+        self.log_folder = widgets.textbox()
+        host.Children.Add(
+            widgets.stack(
+                widgets.label("Hidden worksets (comma-separated name fragments)"),
+                self.hidden_worksets,
+                self.analysis_only,
+                self.upgrade_models,
+                self.create_log,
+                widgets.label("Report folder"),
+                self.log_folder,
+            )
         )
-        self.hidden_worksets = TextBox()
-        panel.Children.Add(self.hidden_worksets)
-        self.analysis_only = CheckBox()
-        self.analysis_only.Content = "Analysis only"
-        panel.Children.Add(self.analysis_only)
-        self.upgrade_models = CheckBox()
-        self.upgrade_models.Content = "Allow model upgrade"
-        panel.Children.Add(self.upgrade_models)
-        self.create_log = CheckBox()
-        self.create_log.Content = "Save an additional report copy"
-        self.create_log.IsChecked = True
-        panel.Children.Add(self.create_log)
-        panel.Children.Add(self._label("Report folder"))
-        self.log_folder = TextBox()
-        panel.Children.Add(self.log_folder)
-        host.Children.Add(panel)
 
     def create_item_property(self, item):
-        profile = ComboBox()
-        profile.Width = 130
-        for caption, value in PROFILE_ITEMS:
-            profile.Items.Add(caption)
-            if value == item.options.get("profile", self._guess_profile(item.name)):
-                profile.SelectedItem = caption
-        return profile
+        selected = item.options.get("profile", self.profiles.guess(item.name))
+        return widgets.combobox(
+            self.profiles.captions,
+            self.profiles.index_of(selected),
+            width=130,
+        )
 
     def read_item_property(self, item, control):
         options = dict(item.options)
-        caption = str(control.SelectedItem)
-        for name, value in PROFILE_ITEMS:
-            if name == caption:
-                options["profile"] = value
-                break
+        profile = self.profiles.at(control.SelectedIndex)
+        options["profile"] = profile.id if profile else self.profiles.default_id
         return options
 
     def read_options(self):
@@ -68,39 +59,9 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             "log_folder": self.log_folder.Text.strip(),
         }
 
-    @staticmethod
-    def _label(text):
-        label = TextBlock()
-        label.Text = text
-        label.Margin = Thickness(0, 8, 0, 2)
-        return label
-
-    @staticmethod
-    def _guess_profile(file_name):
-        name = file_name.upper()
-        for marker, profile in [
-            ("АР", "AR"),
-            ("КР", "KR"),
-            ("ОВ", "OV"),
-            ("ВК", "VK"),
-            ("ЭОМ", "EOM"),
-        ]:
-            if marker in name:
-                return profile
-        return "UNIVERSAL"
-
 
 def show_form():
     result = show_batch_form("Batch Navisworks view", NavisOptionsPresenter())
     if not result:
-        return None
-    settings = result["options"]
-    settings["selected_models"] = [
-        {"path": item.source_path, "profile": item.options.get("profile", "UNIVERSAL")}
-        for item in result["input"].items
-    ]
-    return settings
-
-
-def show_options_form():
-    return show_batch_form("Navisworks view options", NavisOptionsPresenter(), True)
+        return None, None
+    return result["input"].items, result["options"]
