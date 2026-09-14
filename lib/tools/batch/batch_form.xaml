@@ -1,0 +1,80 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Batch operation" Width="850" Height="720"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TabControl x:Name="tabs" Grid.Row="0">
+            <TabItem x:Name="tabSelection" Header="1. Selection">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TabControl x:Name="sourceTabs" Grid.Row="0" Height="260">
+                        <TabItem Header="Local folder">
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Folder containing Revit models" />
+                                <Grid Grid.Row="1" Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="90" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="tbFolder" Margin="0,0,5,0" />
+                                    <Button x:Name="btnBrowse" Grid.Column="1" Content="Browse" />
+                                </Grid>
+                                <CheckBox x:Name="cbRecursive" Grid.Row="2" Margin="0,10,0,0" IsChecked="True" Content="Search subfolders" />
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="RSN routes">
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="One RSN:// route per line" />
+                                <TextBox x:Name="tbRoutes" Grid.Row="1" Margin="0,5,0,0" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" />
+                                <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="btnImportCsv" Width="110" Margin="0,0,5,0" Content="Import CSV" />
+                                    <Button x:Name="btnLoadRoutes" Width="110" Content="Load models" />
+                                </StackPanel>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                    <StackPanel Grid.Row="1" Margin="0,15,0,0">
+                        <TextBlock Text="Load models from the selected source, then configure them in the next tab." TextWrapping="Wrap" />
+                        <Button x:Name="btnContinue" Margin="0,10,0,0" Width="170" HorizontalAlignment="Right" Content="Continue to properties" />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="tabProperties" Header="2. Selection properties">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <CheckBox x:Name="cbSelectAll" Content="Select all models" IsChecked="True" />
+                    <ListBox x:Name="lbModels" Grid.Row="1" Margin="0,10,0,0" />
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="tabOptions" Header="3. Options">
+                <ScrollViewer Margin="10" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="optionsHost" />
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+        <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="btnCancel" Width="90" Margin="0,0,5,0" Content="Cancel" />
+            <Button x:Name="btnRun" Width="110" Content="Run" />
+        </StackPanel>
+    </Grid>
+</Window>
