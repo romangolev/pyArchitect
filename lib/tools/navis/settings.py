@@ -87,6 +87,7 @@ def edit_profiles():
 class NavisSettingsWindow(forms.WPFWindow):
     """Single Shift-click editor for the Navis view and its default preset."""
 
+    resolve_theme = True
     XAML_PATH = os.path.join(os.path.dirname(__file__), "navis_settings.xaml")
 
     def __init__(self, settings, profiles):
@@ -147,6 +148,7 @@ class NavisSettingsWindow(forms.WPFWindow):
 class ProfileEditor(forms.WPFWindow):
     """Checkbox editor for category visibility in each Navis profile."""
 
+    resolve_theme = True
     XAML_PATH = os.path.join(os.path.dirname(__file__), "profile_editor.xaml")
 
     def __init__(self, data):

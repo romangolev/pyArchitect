@@ -41,6 +41,8 @@ class BatchOptionsPresenter(object):
 
 
 class BatchSelectionForm(forms.WPFWindow):
+    resolve_theme = True
+
     def __init__(self, title, options_presenter, options_only=False):
         xaml_path = os.path.join(os.path.dirname(__file__), "batch_form.xaml")
         forms.WPFWindow.__init__(self, xaml_path)
