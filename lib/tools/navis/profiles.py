@@ -23,10 +23,20 @@ def resolve_categories(names):
     """Map BuiltInCategory names to members, dropping ones this Revit lacks."""
     resolved = []
     for name in names or []:
-        category = getattr(BuiltInCategory, name, None)
+        category = get_builtin_category(name)
         if category is not None:
             resolved.append(category)
     return resolved
+
+
+def get_builtin_category(name):
+    """Return a category enum member, or None when this Revit does not expose it."""
+    return getattr(BuiltInCategory, name, None)
+
+
+def category_is_available(name):
+    """Check whether a configured category name exists in the running Revit API."""
+    return get_builtin_category(name) is not None
 
 
 class NavisProfile(object):

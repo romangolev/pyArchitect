@@ -10,6 +10,7 @@ from core import config
 from tools.navis.profiles import (
     CONFIG_FILE_ID,
     CONFIG_SECTION,
+    category_is_available,
     get_profiles_json,
     load_profiles,
     save_profiles_json,
@@ -207,8 +208,18 @@ class ProfileEditor(forms.WPFWindow):
 
         for name in self.category_names:
             checkbox = CheckBox()
+            available = category_is_available(name)
             checkbox.Content = name
             checkbox.IsChecked = name in selected
+            if not available:
+                checkbox.Content = "{} (not available in this Revit version)".format(
+                    name
+                )
+                checkbox.ToolTip = (
+                    "This category is not available in the running Revit version "
+                    "and cannot be edited."
+                )
+                checkbox.IsEnabled = False
             self.category_checks[name] = checkbox
             self.lbCategories.Items.Add(checkbox)
 
