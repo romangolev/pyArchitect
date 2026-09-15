@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import json
 import os
 import System
 
@@ -7,9 +8,13 @@ import Autodesk.Revit.DB as DB
 
 from pyrevit import forms
 
+from tools import config
 from tools.batch import widgets
 from tools.batch.form import BatchOptionsPresenter, show_batch_form
-from tools.batch.ifc import ExportSettings, ModelExportItem
+from tools.batch.ifc import IFCBatchExporter, ExportSettings, ModelExportItem
+
+
+OPTIONS_CONFIG_KEY = "batch_ifc_options"
 
 
 FLAG_LABELS = [
@@ -45,8 +50,8 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         "Options tab, into the export folder set there."
     )
 
-    def __init__(self):
-        self.defaults = ExportSettings()
+    def __init__(self, defaults=None):
+        self.defaults = defaults or load_options()
         self.version = None
         self.default_view = None
         self.export_folder = None
@@ -75,6 +80,9 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             (name, widgets.checkbox(text, checked))
             for name, text, checked in CHECKBOX_LABELS
         )
+        self.controls["open_without_links"].Click += self._enforce_link_options
+        self.controls["export_links_merged"].Click += self._enforce_link_options
+        self.controls["export_links_separately"].Click += self._enforce_link_options
 
         host.Children.Add(
             widgets.stack(
@@ -91,6 +99,13 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             )
         )
 
+    def _enforce_link_options(self, sender, args):
+        if sender == self.controls["open_without_links"] and sender.IsChecked:
+            self.controls["export_links_merged"].IsChecked = False
+            self.controls["export_links_separately"].IsChecked = False
+        elif sender.IsChecked:
+            self.controls["open_without_links"].IsChecked = False
+
     def read_options(self):
         settings = ExportSettings()
         settings.ifc_version = getattr(DB.IFCVersion, str(self.version.SelectedItem))
@@ -101,6 +116,46 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         for name, control in self.controls.items():
             setattr(settings, name, bool(control.IsChecked))
         return settings
+
+
+def load_options():
+    settings = ExportSettings()
+    try:
+        values = json.loads(config.get_option(OPTIONS_CONFIG_KEY, "{}"))
+    except Exception:
+        return settings
+    if not isinstance(values, dict):
+        return settings
+
+    version_name = values.get("ifc_version")
+    if version_name and hasattr(DB.IFCVersion, version_name):
+        settings.ifc_version = getattr(DB.IFCVersion, version_name)
+    settings.default_view_name = values.get(
+        "default_view_name", settings.default_view_name
+    )
+    settings.export_folder = values.get("export_folder", settings.export_folder)
+    for key in settings.bool_flags:
+        if key in values.get("bool_flags", {}):
+            settings.bool_flags[key] = bool(values["bool_flags"][key])
+    for name, _, _ in CHECKBOX_LABELS:
+        if name in values:
+            setattr(settings, name, bool(values[name]))
+    if settings.open_without_links:
+        settings.export_links_merged = False
+        settings.export_links_separately = False
+    return settings
+
+
+def save_options(settings):
+    values = {
+        "ifc_version": str(System.Enum.GetName(DB.IFCVersion, settings.ifc_version)),
+        "default_view_name": str(settings.default_view_name),
+        "export_folder": str(settings.export_folder),
+        "bool_flags": settings.bool_flags,
+    }
+    for name, _, _ in CHECKBOX_LABELS:
+        values[name] = getattr(settings, name)
+    config.set_option(OPTIONS_CONFIG_KEY, json.dumps(values))
 
 
 def show_form():
@@ -130,8 +185,25 @@ def show_form():
         )
         for item in models
     ]
+    collisions = IFCBatchExporter.find_primary_export_collisions(items, settings)
+    if collisions:
+        names = "\n".join(
+            "{}\n  {}\n  {}".format(target, first, second)
+            for target, first, second in collisions
+        )
+        forms.alert(
+            "Multiple selected models would overwrite the same IFC file:\n{}".format(
+                names
+            ),
+            title="Batch IFC export",
+        )
+        return None, None
     return items, settings
 
 
 def show_options_form():
-    return show_batch_form("IFC export options", IfcOptionsPresenter(), True)
+    result = show_batch_form("IFC export options", IfcOptionsPresenter(), True)
+    if result:
+        save_options(result["options"])
+        forms.alert("IFC export options saved.", title="IFC export options")
+    return result

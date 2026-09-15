@@ -32,7 +32,7 @@ class NavisworksViewService(object):
         ]
 
     def reconcile(self, profile=None, hidden_worksets=None, recreate=False):
-        """Keep one exact view; remove duplicates or obsolete Navis-named views.
+        """Keep one exact configured view without touching other Navis views.
 
         Must be called inside an open Revit transaction.
         """
@@ -44,8 +44,10 @@ class NavisworksViewService(object):
             self.configure(keeper, profile, hidden_worksets)
             return keeper, "UPDATED"
 
-        targets = self.find_navis_named()
-        for view in targets:
+        # Recreating is intentionally limited to the configured canonical name.
+        # Other views may include "Navis" in their name but belong to users or
+        # other workflows and must not be deleted by this batch operation.
+        for view in exact_matches:
             self.document.Delete(view.Id)
         return self.create(profile, hidden_worksets), "CREATED"
 

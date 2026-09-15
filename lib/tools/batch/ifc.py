@@ -92,6 +92,36 @@ class IFCBatchExporter(object):
             options.AddOption("ExportUserDefinedPsetsFileName", mapping_file)
         return options
 
+    @staticmethod
+    def export_file_names(item, settings):
+        """Return every primary IFC file name this item is expected to create."""
+        view_names = item.views or (
+            [settings.default_view_name] if settings.default_view_name else []
+        )
+        base_name = item.new_name or item.name
+        if base_name.lower().endswith(".rvt"):
+            base_name = base_name[:-4]
+        return [
+            base_name if view_name is None else "{}_{}".format(base_name, view_name)
+            for view_name in (view_names or [None])
+        ]
+
+    @classmethod
+    def find_primary_export_collisions(cls, items, settings):
+        """Find selected models that would write the same primary IFC file."""
+        targets = {}
+        collisions = []
+        for item in items:
+            folder = os.path.normcase(os.path.abspath(item.export_path))
+            for file_name in cls.export_file_names(item, settings):
+                target = os.path.normcase(os.path.join(folder, file_name))
+                previous = targets.get(target)
+                if previous is not None:
+                    collisions.append((target, previous, item.source_path))
+                else:
+                    targets[target] = item.source_path
+        return collisions
+
     def _save_or_sync(self, document):
         try:
             save_sync_and_relinquish(document, "Batch IFC export")
@@ -113,8 +143,16 @@ class IFCBatchExporter(object):
                 with WrappedTransaction(
                     link_document, "Export linked IFC", warning_suppressor=True
                 ):
-                    link_document.Export(export_path, link_document.Title, options)
-                results.append((link_document.Title, "link", "OK"))
+                    exported = link_document.Export(
+                        export_path, link_document.Title, options
+                    )
+                results.append(
+                    (
+                        link_document.Title,
+                        "link",
+                        "OK" if exported else "Export returned failure",
+                    )
+                )
             except Exception as ex:
                 results.append(
                     (link_document.Title, "link", "Export failed: {}".format(ex))
@@ -122,6 +160,16 @@ class IFCBatchExporter(object):
 
     def export_item(self, item, settings):
         results = []
+        if settings.open_without_links and (
+            settings.export_links_merged or settings.export_links_separately
+        ):
+            return [
+                (
+                    item.name,
+                    "-",
+                    "Cannot export links when opening without Revit links",
+                )
+            ]
         try:
             with OpenedBatchDocument(
                 self.document_opener, item.source_path, settings.open_without_links
@@ -137,27 +185,31 @@ class IFCBatchExporter(object):
                 view_names = item.views or (
                     [settings.default_view_name] if settings.default_view_name else []
                 )
-                base_name = item.new_name or item.name
-                if base_name.lower().endswith(".rvt"):
-                    base_name = base_name[:-4]
+                file_names = self.export_file_names(item, settings)
 
-                for label, view in self.resolve_views(document, view_names):
+                for index, (label, view) in enumerate(
+                    self.resolve_views(document, view_names)
+                ):
                     if view_names and view is None:
                         results.append((item.name, label, "View not found - skipped"))
                         continue
-                    file_name = (
-                        base_name if label is None else "{}_{}".format(base_name, label)
-                    )
+                    file_name = file_names[index]
                     try:
                         with WrappedTransaction(
                             document, "Export IFC", warning_suppressor=True
                         ):
-                            document.Export(
+                            exported = document.Export(
                                 item.export_path,
                                 file_name,
                                 self.build_options(settings, item.mapping_file, view),
                             )
-                        results.append((item.name, label or "(default view)", "OK"))
+                        results.append(
+                            (
+                                item.name,
+                                label or "(default view)",
+                                "OK" if exported else "Export returned failure",
+                            )
+                        )
                     except Exception as ex:
                         results.append(
                             (

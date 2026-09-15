@@ -84,7 +84,18 @@ class RevitDocumentRepository(object):
         )
 
     def requires_upgrade(self, file_path):
-        return get_file_flag(file_path, "IsSavedInLaterVersion")
+        info = get_file_info(file_path)
+        if not info:
+            return False
+        try:
+            # A later-version model cannot be opened by this Revit instance;
+            # only an older model is eligible for an in-place upgrade.
+            return (
+                not bool(info.IsSavedInCurrentVersion)
+                and not bool(info.IsSavedInLaterVersion)
+            )
+        except Exception:
+            return False
 
     def is_workshared(self, file_path):
         return get_file_flag(file_path, "IsWorkshared")
