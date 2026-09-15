@@ -1,20 +1,22 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Navisworks profile presets" Width="820" Height="620"
+        Title="Navisworks profile presets" Width="620" Height="680"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Text="JSON profile definitions (saved in pyArchitect's pyRevit configuration)"
+        <TextBlock Text="Profile" />
+        <ComboBox x:Name="cbProfile" Grid.Row="1" Margin="0,4,0,12" />
+        <TextBlock Grid.Row="2"
+                   Text="Checked categories are hidden in the selected profile. Scroll and click to enable or disable each category."
                    TextWrapping="Wrap" />
-        <TextBox x:Name="tbProfiles" Grid.Row="1" Margin="0,8,0,8"
-                 AcceptsReturn="True" AcceptsTab="True"
-                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                 FontFamily="Consolas" TextWrapping="NoWrap" />
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <ListBox x:Name="lbCategories" Grid.Row="3" Margin="0,8,0,8" />
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="btnCancel" Width="90" Margin="0,0,6,0" Content="Cancel" />
             <Button x:Name="btnSave" Width="90" Content="Save" />
         </StackPanel>

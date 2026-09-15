@@ -7,7 +7,7 @@ import os
 
 from Autodesk.Revit.DB import BuiltInCategory
 
-from tools import config
+from core import config
 
 
 BUNDLED_PROFILES_PATH = os.path.join(os.path.dirname(__file__), "profiles.json")
@@ -15,6 +15,8 @@ BUNDLED_PROFILES_PATH = os.path.join(os.path.dirname(__file__), "profiles.json")
 USER_PROFILES_PATH = config.user_data_path("navis_profiles.json")
 PROFILES_PATH_OPTION = "navis_profiles_path"
 PROFILES_JSON_OPTION = "navis_profiles_json"
+CONFIG_FILE_ID = "navis"
+CONFIG_SECTION = "pyArchitectNavis"
 
 
 def resolve_categories(names):
@@ -120,6 +122,13 @@ def _bundled_profile_data():
 
 
 def _legacy_profile_data():
+    stored = config.get_option(PROFILES_JSON_OPTION, "")
+    if stored:
+        try:
+            return json.loads(stored)
+        except Exception as exception:
+            print("Cannot migrate stored Navisworks profiles: {}".format(exception))
+
     configured = config.get_option(PROFILES_PATH_OPTION, "")
     for path in [configured, USER_PROFILES_PATH]:
         if path and os.path.isfile(path):
@@ -136,13 +145,17 @@ def _legacy_profile_data():
 
 def get_profiles_json():
     """Return stored preset JSON, migrating legacy files on first use."""
-    stored = config.get_option(PROFILES_JSON_OPTION, "")
+    stored = config.get_data_option(
+        CONFIG_FILE_ID, CONFIG_SECTION, PROFILES_JSON_OPTION, ""
+    )
     if stored:
         return stored
 
     data = _legacy_profile_data() or _bundled_profile_data()
     serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    config.set_option(PROFILES_JSON_OPTION, serialized)
+    config.set_data_option(
+        CONFIG_FILE_ID, CONFIG_SECTION, PROFILES_JSON_OPTION, serialized
+    )
     return serialized
 
 
@@ -154,7 +167,9 @@ def save_profiles_json(value):
     if not library.profiles:
         raise ValueError("At least one Navisworks profile is required")
     serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    config.set_option(PROFILES_JSON_OPTION, serialized)
+    config.set_data_option(
+        CONFIG_FILE_ID, CONFIG_SECTION, PROFILES_JSON_OPTION, serialized
+    )
     _LIBRARY = library
     return library
 

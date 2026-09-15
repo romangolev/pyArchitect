@@ -6,8 +6,10 @@ import os
 
 from pyrevit import forms
 
-from tools import config
+from core import config
 from tools.navis.profiles import (
+    CONFIG_FILE_ID,
+    CONFIG_SECTION,
     get_profiles_json,
     load_profiles,
     save_profiles_json,
@@ -29,15 +31,21 @@ class NavisViewSettings(object):
 
 
 def load():
-    values = dict(
-        (name, config.get_option(option, default)) for name, option, default in OPTIONS
-    )
+    values = {}
+    for name, option, default in OPTIONS:
+        value = config.get_data_option(CONFIG_FILE_ID, CONFIG_SECTION, option, None)
+        if value is None:
+            value = config.get_option(option, default)
+            config.set_data_option(CONFIG_FILE_ID, CONFIG_SECTION, option, value)
+        values[name] = value
     return NavisViewSettings(**values)
 
 
 def save(settings):
     for name, option, _ in OPTIONS:
-        config.set_option(option, getattr(settings, name))
+        config.set_data_option(
+            CONFIG_FILE_ID, CONFIG_SECTION, option, getattr(settings, name)
+        )
 
 
 def configure():
@@ -50,16 +58,15 @@ def configure():
 
 
 def edit_profiles():
-    """Edit JSON presets and store them in pyArchitect's pyRevit config."""
-    stored_profiles = get_profiles_json()
+    """Edit profile category visibility and persist it in pyRevit config."""
     try:
-        editor_value = json.dumps(
-            json.loads(stored_profiles), ensure_ascii=False, indent=2
+        editor = ProfileEditor(json.loads(get_profiles_json()))
+    except Exception as exception:
+        forms.alert(
+            "Cannot open profile presets:\n{}".format(exception),
+            title="pyArchitect Navisworks settings",
         )
-    except Exception:
-        # Keep malformed JSON visible so the user can repair it in place.
-        editor_value = stored_profiles
-    editor = ProfileEditor(editor_value)
+        return None
     if not editor.show():
         return None
     try:
@@ -138,19 +145,80 @@ class NavisSettingsWindow(forms.WPFWindow):
 
 
 class ProfileEditor(forms.WPFWindow):
-    """Small multiline JSON editor that avoids a separate user profile file."""
+    """Checkbox editor for category visibility in each Navis profile."""
 
     XAML_PATH = os.path.join(os.path.dirname(__file__), "profile_editor.xaml")
 
-    def __init__(self, value):
+    def __init__(self, data):
         forms.WPFWindow.__init__(self, self.XAML_PATH)
         self.value = None
-        self.tbProfiles.Text = value
+        self.data = data
+        self.profiles = data.get("profiles", [])
+        self.category_names = self._category_names()
+        self.profile_categories = {}
+        self.current_profile_index = None
+        for profile in self.profiles:
+            self.cbProfile.Items.Add(profile.get("caption", profile["id"]))
+        self.cbProfile.SelectionChanged += self._select_profile
         self.btnSave.Click += self._save
         self.btnCancel.Click += self._cancel
+        if self.profiles:
+            self.cbProfile.SelectedIndex = 0
+
+    def _category_names(self):
+        names = set()
+        for categories in self.data.get("category_groups", {}).values():
+            names.update(categories)
+        for profile in self.profiles:
+            names.update(profile.get("hidden_categories", []))
+        return sorted(names)
+
+    def _effective_categories(self, profile):
+        categories = set(profile.get("hidden_categories", []))
+        groups = self.data.get("category_groups", {})
+        for group in profile.get("hidden_groups", []):
+            categories.update(groups.get(group, []))
+        return categories
+
+    def _store_current_profile(self):
+        if self.current_profile_index is None:
+            return
+        selected = set(
+            name for name, checkbox in self.category_checks.items() if checkbox.IsChecked
+        )
+        profile = self.profiles[self.current_profile_index]
+        self.profile_categories[profile["id"]] = selected
+
+    def _select_profile(self, sender, args):
+        self._store_current_profile()
+        index = self.cbProfile.SelectedIndex
+        if index < 0 or index >= len(self.profiles):
+            return
+        self.current_profile_index = index
+        profile = self.profiles[index]
+        selected = self.profile_categories.get(
+            profile["id"], self._effective_categories(profile)
+        )
+        self.category_checks = {}
+        self.lbCategories.Items.Clear()
+        from System.Windows.Controls import CheckBox
+
+        for name in self.category_names:
+            checkbox = CheckBox()
+            checkbox.Content = name
+            checkbox.IsChecked = name in selected
+            self.category_checks[name] = checkbox
+            self.lbCategories.Items.Add(checkbox)
 
     def _save(self, sender, args):
-        self.value = self.tbProfiles.Text
+        self._store_current_profile()
+        for profile in self.profiles:
+            categories = self.profile_categories.get(profile["id"])
+            if categories is None:
+                continue
+            profile["hidden_categories"] = sorted(categories)
+            profile.pop("hidden_groups", None)
+        self.value = json.dumps(self.data, ensure_ascii=False, separators=(",", ":"))
         self.Close()
 
     def _cancel(self, sender, args):

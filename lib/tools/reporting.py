@@ -6,7 +6,7 @@ import os
 import re
 from datetime import datetime
 
-from tools import config
+from core import config
 
 
 DEFAULT_REPORT_FOLDER = config.user_data_path("Reports")

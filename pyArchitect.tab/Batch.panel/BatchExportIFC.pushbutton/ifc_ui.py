@@ -8,7 +8,7 @@ import Autodesk.Revit.DB as DB
 
 from pyrevit import forms
 
-from tools import config
+from core import config
 from tools.batch import widgets
 from tools.batch.form import BatchOptionsPresenter, show_batch_form
 from tools.batch.ifc import IFCBatchExporter, ExportSettings, ModelExportItem
