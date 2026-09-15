@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """Persistent defaults for the canonical Navisworks view."""
 
-import os
+import json
 
 from pyrevit import forms
 
 from tools import config
 from tools.navis.profiles import (
-    PROFILES_PATH_OPTION,
-    install_user_profiles,
+    get_profiles_json,
     load_profiles,
+    save_profiles_json,
 )
 
 
@@ -79,11 +79,71 @@ def configure():
 
 
 def edit_profiles():
-    """Make a user-editable copy of the profiles and open it."""
-    path = install_user_profiles()
-    config.set_option(PROFILES_PATH_OPTION, path)
+    """Edit JSON presets and store them in pyArchitect's pyRevit config."""
+    stored_profiles = get_profiles_json()
     try:
-        os.startfile(path)
+        editor_value = json.dumps(
+            json.loads(stored_profiles), ensure_ascii=False, indent=2
+        )
     except Exception:
-        forms.alert("Profiles available at:\n{}".format(path))
-    return path
+        # Keep malformed JSON visible so the user can repair it in place.
+        editor_value = stored_profiles
+    editor = ProfileEditor(editor_value)
+    if not editor.show():
+        return None
+    try:
+        save_profiles_json(editor.value)
+    except Exception as exception:
+        forms.alert(
+            "Profile presets were not saved:\n{}".format(exception),
+            title="pyArchitect Navisworks settings",
+        )
+        return None
+    forms.alert(
+        "Navisworks profile presets saved to pyArchitect configuration.",
+        title="pyArchitect Navisworks settings",
+    )
+    return True
+
+
+class ProfileEditor(forms.WPFWindow):
+    """Small multiline JSON editor that avoids a separate user profile file."""
+
+    XAML = """<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"
+        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"
+        Title=\"Navisworks profile presets\" Width=\"820\" Height=\"620\"
+        WindowStartupLocation=\"CenterScreen\">
+        <Grid Margin=\"10\">
+            <Grid.RowDefinitions>
+                <RowDefinition Height=\"Auto\" />
+                <RowDefinition Height=\"*\" />
+                <RowDefinition Height=\"Auto\" />
+            </Grid.RowDefinitions>
+            <TextBlock Text=\"JSON profile definitions (saved in pyArchitect's pyRevit configuration)\" TextWrapping=\"Wrap\" />
+            <TextBox x:Name=\"tbProfiles\" Grid.Row=\"1\" Margin=\"0,8,0,8\"
+                AcceptsReturn=\"True\" AcceptsTab=\"True\" VerticalScrollBarVisibility=\"Auto\"
+                HorizontalScrollBarVisibility=\"Auto\" FontFamily=\"Consolas\" TextWrapping=\"NoWrap\" />
+            <StackPanel Grid.Row=\"2\" Orientation=\"Horizontal\" HorizontalAlignment=\"Right\">
+                <Button x:Name=\"btnCancel\" Width=\"90\" Margin=\"0,0,6,0\" Content=\"Cancel\" />
+                <Button x:Name=\"btnSave\" Width=\"90\" Content=\"Save\" />
+            </StackPanel>
+        </Grid>
+    </Window>"""
+
+    def __init__(self, value):
+        forms.WPFWindow.__init__(self, self.XAML, literal_string=True)
+        self.value = None
+        self.tbProfiles.Text = value
+        self.btnSave.Click += self._save
+        self.btnCancel.Click += self._cancel
+
+    def _save(self, sender, args):
+        self.value = self.tbProfiles.Text
+        self.Close()
+
+    def _cancel(self, sender, args):
+        self.Close()
+
+    def show(self):
+        self.ShowDialog()
+        return self.value is not None

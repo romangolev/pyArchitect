@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Navisworks view profiles, loaded from editable JSON configuration.
-
-Resolution order: the path stored in the ``navis_profiles_path`` option, the
-per-user copy in the pyArchitect data folder, then the bundled defaults.
-"""
+"""Navisworks view profiles persisted in pyArchitect's pyRevit config."""
 
 import codecs
 import json
 import os
-import shutil
 
 from Autodesk.Revit.DB import BuiltInCategory
 
@@ -16,8 +11,10 @@ from tools import config
 
 
 BUNDLED_PROFILES_PATH = os.path.join(os.path.dirname(__file__), "profiles.json")
+# Legacy locations are read once so existing custom profiles are not lost.
 USER_PROFILES_PATH = config.user_data_path("navis_profiles.json")
 PROFILES_PATH_OPTION = "navis_profiles_path"
+PROFILES_JSON_OPTION = "navis_profiles_json"
 
 
 def resolve_categories(names):
@@ -113,40 +110,71 @@ class ProfileLibrary(object):
 _LIBRARY = None
 
 
-def profiles_path():
+def _read_json_file(path):
+    with codecs.open(path, "r", "utf-8-sig") as profiles_file:
+        return json.loads(profiles_file.read())
+
+
+def _bundled_profile_data():
+    return _read_json_file(BUNDLED_PROFILES_PATH)
+
+
+def _legacy_profile_data():
     configured = config.get_option(PROFILES_PATH_OPTION, "")
     for path in [configured, USER_PROFILES_PATH]:
         if path and os.path.isfile(path):
-            return path
-    return BUNDLED_PROFILES_PATH
+            try:
+                return _read_json_file(path)
+            except Exception as exception:
+                print(
+                    "Cannot migrate Navisworks profiles from '{}': {}".format(
+                        path, exception
+                    )
+                )
+    return None
 
 
-def read_profiles(path=None):
-    path = path or profiles_path()
-    with codecs.open(path, "r", "utf-8-sig") as profiles_file:
-        return ProfileLibrary(json.loads(profiles_file.read()))
+def get_profiles_json():
+    """Return stored preset JSON, migrating legacy files on first use."""
+    stored = config.get_option(PROFILES_JSON_OPTION, "")
+    if stored:
+        return stored
+
+    data = _legacy_profile_data() or _bundled_profile_data()
+    serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    config.set_option(PROFILES_JSON_OPTION, serialized)
+    return serialized
+
+
+def save_profiles_json(value):
+    """Validate and persist profile definitions as one pyRevit config value."""
+    global _LIBRARY
+    data = json.loads(value)
+    library = ProfileLibrary(data)
+    if not library.profiles:
+        raise ValueError("At least one Navisworks profile is required")
+    serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    config.set_option(PROFILES_JSON_OPTION, serialized)
+    _LIBRARY = library
+    return library
+
+
+def reset_profiles():
+    """Restore the bundled presets in pyArchitect's pyRevit config."""
+    return save_profiles_json(
+        json.dumps(_bundled_profile_data(), ensure_ascii=False, separators=(",", ":"))
+    )
 
 
 def load_profiles(force_reload=False):
-    """Return the cached profile library, rebuilding it on demand."""
+    """Return profiles stored in pyArchitect's pyRevit configuration."""
     global _LIBRARY
     if _LIBRARY is not None and not force_reload:
         return _LIBRARY
 
-    path = profiles_path()
     try:
-        _LIBRARY = read_profiles(path)
+        _LIBRARY = ProfileLibrary(json.loads(get_profiles_json()))
     except Exception as exception:
-        print("Cannot read Navisworks profiles from '{}': {}".format(path, exception))
-        _LIBRARY = read_profiles(BUNDLED_PROFILES_PATH)
+        print("Cannot read configured Navisworks profiles: {}".format(exception))
+        _LIBRARY = ProfileLibrary(_bundled_profile_data())
     return _LIBRARY
-
-
-def install_user_profiles(overwrite=False):
-    """Copy the bundled profiles next to the other pyArchitect user data."""
-    if overwrite or not os.path.isfile(USER_PROFILES_PATH):
-        folder = os.path.dirname(USER_PROFILES_PATH)
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-        shutil.copy2(BUNDLED_PROFILES_PATH, USER_PROFILES_PATH)
-    return USER_PROFILES_PATH
