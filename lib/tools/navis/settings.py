@@ -2,6 +2,7 @@
 """Persistent defaults for the canonical Navisworks view."""
 
 import json
+import os
 
 from pyrevit import forms
 
@@ -40,42 +41,12 @@ def save(settings):
 
 
 def configure():
-    """Shift-click configuration using pyRevit's extension config section."""
-    settings = load()
-    profiles = load_profiles(force_reload=True)
-
-    view_name = forms.ask_for_string(
-        default=settings.view_name,
-        prompt="Exact name for the shared Navisworks 3D view:",
-        title="pyArchitect Navisworks settings",
-    )
-    if not view_name:
+    """Show the Shift-click settings window and save only on confirmation."""
+    window = NavisSettingsWindow(load(), load_profiles(force_reload=True))
+    if not window.show():
         return None
-
-    profile = forms.CommandSwitchWindow.show(
-        profiles.ids,
-        message="Default Navisworks view profile",
-    )
-    if not profile:
-        return None
-
-    settings.view_name = view_name.strip()
-    settings.profile = profile
-    settings.hide_revit_links = forms.alert(
-        "Hide Revit links in the Navisworks view?", yes=True, no=True
-    )
-    settings.recreate_existing = forms.alert(
-        "Recreate an existing view instead of updating it in place?", yes=True, no=True
-    )
-    save(settings)
-
-    if forms.alert(
-        "Edit the profile definitions (categories hidden per discipline)?",
-        yes=True,
-        no=True,
-    ):
-        edit_profiles()
-    return settings
+    save(window.settings)
+    return window.settings
 
 
 def edit_profiles():
@@ -106,32 +77,73 @@ def edit_profiles():
     return True
 
 
+class NavisSettingsWindow(forms.WPFWindow):
+    """Single Shift-click editor for the Navis view and its default preset."""
+
+    XAML_PATH = os.path.join(os.path.dirname(__file__), "navis_settings.xaml")
+
+    def __init__(self, settings, profiles):
+        forms.WPFWindow.__init__(self, self.XAML_PATH)
+        self.settings = settings
+        self.profiles = profiles
+        self.saved = False
+        self.tbViewName.Text = settings.view_name
+        self.cbHideLinks.IsChecked = settings.hide_revit_links
+        self.cbRecreate.IsChecked = settings.recreate_existing
+        self._load_profiles(settings.profile)
+        self.btnEditProfiles.Click += self._edit_profiles
+        self.btnCancel.Click += self._cancel
+        self.btnSave.Click += self._save
+
+    def _load_profiles(self, selected_profile):
+        self.cbProfile.Items.Clear()
+        for profile in self.profiles.profiles:
+            self.cbProfile.Items.Add(profile.caption)
+        self.cbProfile.SelectedIndex = self.profiles.index_of(selected_profile)
+
+    def _edit_profiles(self, sender, args):
+        selected = self.profiles.at(self.cbProfile.SelectedIndex)
+        selected_id = selected.id if selected else self.settings.profile
+        if edit_profiles():
+            self.profiles = load_profiles(force_reload=True)
+            self._load_profiles(selected_id)
+
+    def _save(self, sender, args):
+        view_name = self.tbViewName.Text.strip()
+        profile = self.profiles.at(self.cbProfile.SelectedIndex)
+        if not view_name:
+            forms.alert(
+                "Specify a Navisworks 3D view name.",
+                title="pyArchitect Navisworks settings",
+            )
+            return
+        if profile is None:
+            forms.alert(
+                "Select a default profile.", title="pyArchitect Navisworks settings"
+            )
+            return
+        self.settings.view_name = view_name
+        self.settings.profile = profile.id
+        self.settings.hide_revit_links = bool(self.cbHideLinks.IsChecked)
+        self.settings.recreate_existing = bool(self.cbRecreate.IsChecked)
+        self.saved = True
+        self.Close()
+
+    def _cancel(self, sender, args):
+        self.Close()
+
+    def show(self):
+        self.ShowDialog()
+        return self.saved
+
+
 class ProfileEditor(forms.WPFWindow):
     """Small multiline JSON editor that avoids a separate user profile file."""
 
-    XAML = """<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"
-        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"
-        Title=\"Navisworks profile presets\" Width=\"820\" Height=\"620\"
-        WindowStartupLocation=\"CenterScreen\">
-        <Grid Margin=\"10\">
-            <Grid.RowDefinitions>
-                <RowDefinition Height=\"Auto\" />
-                <RowDefinition Height=\"*\" />
-                <RowDefinition Height=\"Auto\" />
-            </Grid.RowDefinitions>
-            <TextBlock Text=\"JSON profile definitions (saved in pyArchitect's pyRevit configuration)\" TextWrapping=\"Wrap\" />
-            <TextBox x:Name=\"tbProfiles\" Grid.Row=\"1\" Margin=\"0,8,0,8\"
-                AcceptsReturn=\"True\" AcceptsTab=\"True\" VerticalScrollBarVisibility=\"Auto\"
-                HorizontalScrollBarVisibility=\"Auto\" FontFamily=\"Consolas\" TextWrapping=\"NoWrap\" />
-            <StackPanel Grid.Row=\"2\" Orientation=\"Horizontal\" HorizontalAlignment=\"Right\">
-                <Button x:Name=\"btnCancel\" Width=\"90\" Margin=\"0,0,6,0\" Content=\"Cancel\" />
-                <Button x:Name=\"btnSave\" Width=\"90\" Content=\"Save\" />
-            </StackPanel>
-        </Grid>
-    </Window>"""
+    XAML_PATH = os.path.join(os.path.dirname(__file__), "profile_editor.xaml")
 
     def __init__(self, value):
-        forms.WPFWindow.__init__(self, self.XAML, literal_string=True)
+        forms.WPFWindow.__init__(self, self.XAML_PATH)
         self.value = None
         self.tbProfiles.Text = value
         self.btnSave.Click += self._save
