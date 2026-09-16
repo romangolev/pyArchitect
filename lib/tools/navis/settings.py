@@ -8,7 +8,6 @@ from pyrevit import forms
 
 from core import config
 from tools.navis.profiles import (
-    CONFIG_FILE_ID,
     CONFIG_SECTION,
     category_is_available,
     get_profiles_json,
@@ -34,19 +33,16 @@ class NavisViewSettings(object):
 def load():
     values = {}
     for name, option, default in OPTIONS:
-        value = config.get_data_option(CONFIG_FILE_ID, CONFIG_SECTION, option, None)
+        value = config.get_option(option, None, section=CONFIG_SECTION)
         if value is None:
             value = config.get_option(option, default)
-            config.set_data_option(CONFIG_FILE_ID, CONFIG_SECTION, option, value)
         values[name] = value
     return NavisViewSettings(**values)
 
 
 def save(settings):
     for name, option, _ in OPTIONS:
-        config.set_data_option(
-            CONFIG_FILE_ID, CONFIG_SECTION, option, getattr(settings, name)
-        )
+        config.set_option(option, getattr(settings, name), section=CONFIG_SECTION)
 
 
 def configure():

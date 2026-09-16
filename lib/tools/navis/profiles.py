@@ -15,7 +15,6 @@ BUNDLED_PROFILES_PATH = os.path.join(os.path.dirname(__file__), "profiles.json")
 USER_PROFILES_PATH = config.user_data_path("navis_profiles.json")
 PROFILES_PATH_OPTION = "navis_profiles_path"
 PROFILES_JSON_OPTION = "navis_profiles_json"
-CONFIG_FILE_ID = "navis"
 CONFIG_SECTION = "pyArchitectNavis"
 
 
@@ -155,17 +154,13 @@ def _legacy_profile_data():
 
 def get_profiles_json():
     """Return stored preset JSON, migrating legacy files on first use."""
-    stored = config.get_data_option(
-        CONFIG_FILE_ID, CONFIG_SECTION, PROFILES_JSON_OPTION, ""
-    )
+    stored = config.get_option(PROFILES_JSON_OPTION, "", section=CONFIG_SECTION)
     if stored:
         return stored
 
     data = _legacy_profile_data() or _bundled_profile_data()
     serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    config.set_data_option(
-        CONFIG_FILE_ID, CONFIG_SECTION, PROFILES_JSON_OPTION, serialized
-    )
+    config.set_option(PROFILES_JSON_OPTION, serialized, section=CONFIG_SECTION)
     return serialized
 
 
@@ -177,9 +172,7 @@ def save_profiles_json(value):
     if not library.profiles:
         raise ValueError("At least one Navisworks profile is required")
     serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    config.set_data_option(
-        CONFIG_FILE_ID, CONFIG_SECTION, PROFILES_JSON_OPTION, serialized
-    )
+    config.set_option(PROFILES_JSON_OPTION, serialized, section=CONFIG_SECTION)
     _LIBRARY = library
     return library
 
