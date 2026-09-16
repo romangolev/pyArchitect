@@ -21,9 +21,9 @@
         "OST_CableTrayFitting"
     ],
     "centerline_subcategory_names": [
-        "Осевая линия",
         "Center line",
-        "Center Line"
+        "Center Line",
+        "Осевая линия"
     ],
     "category_groups": {
         "mep": [
@@ -80,36 +80,36 @@
     "profiles": [
         {
             "id": "UNIVERSAL",
-            "caption": "УНИВ."
+            "caption": "UNIV"
         },
         {
             "id": "AR",
-            "caption": "АР",
-            "name_markers": ["АР"],
+            "caption": "ARCH",
+            "name_markers": ["ARCH", "АР"],
             "hidden_groups": ["mep"]
         },
         {
             "id": "KR",
-            "caption": "КР",
-            "name_markers": ["КР"],
+            "caption": "STR",
+            "name_markers": ["STR", "КР"],
             "hidden_groups": ["mep"]
         },
         {
             "id": "OV",
-            "caption": "ОВ",
-            "name_markers": ["ОВ"],
+            "caption": "HVAC",
+            "name_markers": ["HVAC", "ОВ"],
             "hidden_groups": ["architecture_and_structure", "building_shell"]
         },
         {
             "id": "VK",
-            "caption": "ВК",
-            "name_markers": ["ВК"],
+            "caption": "PLMB",
+            "name_markers": ["PLMB", "ВК"],
             "hidden_groups": ["architecture_and_structure", "building_shell", "ducts"]
         },
         {
             "id": "EOM",
-            "caption": "ЭОМ",
-            "name_markers": ["ЭОМ"],
+            "caption": "ELEC",
+            "name_markers": ["ELEC", "ЭОМ"],
             "hidden_groups": ["architecture_and_structure", "building_shell", "pipes"]
         },
         {
