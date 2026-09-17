@@ -1,13 +1,54 @@
 title:
   en_us: |-
-    Navis
     Batch
+    NavisView
   ru: |-
-    Виды
-    Navisworks
-tooltip: Создание 3D вида Navisworks для моделей Revit. Shift+Click — настройки pyArchitect.
-author: Pusher
+    Пакетный
+    NavisView
+  es_es: |-
+    NavisView
+    (lote)
+tooltip:
+  en_us: >-
+    Create the Navisworks export view in a batch of Revit models.
+    _________________________________________________________________
 
+    Pick the models from a local folder, from Revit Server routes, or from a
+    CSV with SourcePath and Options columns. Each model gets a 3D view set up
+    for Navisworks: a profile decides which categories are hidden, and the
+    profile is guessed from the file name and can be changed per model.
+
+    Choose whether to write output copies into a folder or to edit and save the
+    source models in place. Runs without an open document. Shift+Click to edit
+    the view settings and the profiles.
+
+  ru: >-
+    Создание вида для экспорта в Navisworks в пакете моделей Revit.
+    _________________________________________________________________
+
+    Модели выбираются из локальной папки, по маршрутам Revit Server или из CSV
+    со столбцами SourcePath и Options. В каждой модели создаётся 3D вид для
+    Navisworks: профиль определяет, какие категории скрыты; профиль угадывается
+    по имени файла и меняется для каждой модели.
+
+    Можно записывать копии в отдельную папку либо изменять и сохранять исходные
+    модели. Работает без открытой модели. Shift+Click — настройки вида и
+    профилей.
+
+  es_es: >-
+    Crea la vista de exportación a Navisworks en un lote de modelos de Revit.
+    _________________________________________________________________
+
+    Los modelos se eligen desde una carpeta local, desde rutas de Revit Server
+    o desde un CSV con las columnas SourcePath y Options. Cada modelo recibe
+    una vista 3D preparada para Navisworks: un perfil decide qué categorías se
+    ocultan, se deduce del nombre del archivo y puede cambiarse por modelo.
+
+    Elige entre escribir copias en una carpeta o editar y guardar los modelos
+    de origen. Funciona sin documento abierto. Shift+Click para editar los
+    ajustes de la vista y los perfiles.
+
+author: Roman Golev, Pusher
 engine:
   clean: true
 

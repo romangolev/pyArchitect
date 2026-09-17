@@ -17,6 +17,14 @@ CHECKBOX_WIDTH = 25
 PATH_WIDTH = 500
 PROPERTY_WIDTH = 130
 
+BANNER = """      :::::::::      ::: ::::::::::: ::::::::  :::    :::
+     :+:    :+:   :+: :+:   :+:    :+:    :+: :+:    :+:
+    +:+    +:+  +:+   +:+  +:+    +:+        +:+    +:+
+   +#++:++#+  +#++:++#++: +#+    +#+        +#++:++#++
+  +#+    +#+ +#+     +#+ +#+    +#+        +#+    +#+
+ #+#    #+# #+#     #+# #+#    #+#    #+# #+#    #+#
+#########  ###     ### ###     ########  ###    ###"""
+
 
 class BatchOptionsPresenter(object):
     selection_description = "Tick the models to include in this batch run."
@@ -73,6 +81,10 @@ class BatchSelectionForm(forms.WPFWindow):
             on_pick=self._load_folder,
         )
         self.sourceFolderHost.Content = self.source_folder.control
+        self.tbBanner.Text = BANNER
+        banner_brush = self.TryFindResource("pyRevitSubtleForegroundBrush")
+        if banner_brush is not None:
+            self.tbBanner.Foreground = banner_brush
 
         self.options_presenter.attach(self)
         self.options_presenter.build(self.optionsHost)

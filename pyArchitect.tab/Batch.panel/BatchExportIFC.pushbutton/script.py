@@ -34,7 +34,7 @@ def main():
 
     print_result_report(
         script.get_output(),
-        "Batch IFC export report",
+        "Batch IFC Export report",
         results,
         ["Model", "View", "Result"],
     )

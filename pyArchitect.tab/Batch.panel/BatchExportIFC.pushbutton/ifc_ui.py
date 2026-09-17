@@ -176,7 +176,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             forms.alert(
                 "No default export folder is available. Revit Server routes have no "
                 "local folder, so pick an export folder instead.",
-                title="Batch IFC export",
+                title="Batch IFC Export",
             )
         return default
 
@@ -252,7 +252,7 @@ def save_options(settings):
 
 
 def show_form():
-    result = show_batch_form("Batch IFC export", IfcOptionsPresenter())
+    result = show_batch_form("Batch IFC Export", IfcOptionsPresenter())
     if not result:
         return None, None
     settings = result["options"]
@@ -263,7 +263,7 @@ def show_form():
     ):
         forms.alert(
             "Specify an export folder for the selected models.",
-            title="Batch IFC export",
+            title="Batch IFC Export",
         )
         return None, None
 
@@ -288,15 +288,17 @@ def show_form():
             "Multiple selected models would overwrite the same IFC file:\n{}".format(
                 names
             ),
-            title="Batch IFC export",
+            title="Batch IFC Export",
         )
         return None, None
     return items, settings
 
 
 def show_options_form():
-    result = show_batch_form("IFC export options", IfcOptionsPresenter(), True)
+    result = show_batch_form("Batch IFC Export settings", IfcOptionsPresenter(), True)
     if result:
         save_options(result["options"])
-        forms.alert("IFC export options saved.", title="IFC export options")
+        forms.alert(
+            "Export settings saved.", title="Batch IFC Export settings"
+        )
     return result

@@ -107,7 +107,7 @@ def edit_profiles():
     except Exception as exception:
         forms.alert(
             "Cannot open profile presets:\n{}".format(exception),
-            title="pyArchitect Navisworks settings",
+            title="Batch NavisView settings",
         )
         return None
     if not editor.show():
@@ -117,12 +117,12 @@ def edit_profiles():
     except Exception as exception:
         forms.alert(
             "Profile presets were not saved:\n{}".format(exception),
-            title="pyArchitect Navisworks settings",
+            title="Batch NavisView settings",
         )
         return None
     forms.alert(
-        "Navisworks profile presets saved to pyArchitect configuration.",
-        title="pyArchitect Navisworks settings",
+        "Profiles saved to the pyArchitect configuration.",
+        title="Batch NavisView settings",
     )
     return True
 
@@ -193,18 +193,18 @@ class NavisSettingsWindow(forms.WPFWindow):
         if not view_name:
             forms.alert(
                 "Specify a Navisworks 3D view name.",
-                title="pyArchitect Navisworks settings",
+                title="Batch NavisView settings",
             )
             return
         if profile is None:
             forms.alert(
-                "Select a default profile.", title="pyArchitect Navisworks settings"
+                "Select a default profile.", title="Batch NavisView settings"
             )
             return
         if detail_level is None or display_style is None:
             forms.alert(
                 "Select a detail level and display style.",
-                title="pyArchitect Navisworks settings",
+                title="Batch NavisView settings",
             )
             return
         try:
@@ -214,7 +214,7 @@ class NavisSettingsWindow(forms.WPFWindow):
         if surface_transparency < 0 or surface_transparency > 100:
             forms.alert(
                 "Surface transparency must be a whole number from 0 to 100.",
-                title="pyArchitect Navisworks settings",
+                title="Batch NavisView settings",
             )
             return
         self.settings.view_name = view_name
@@ -354,14 +354,14 @@ class ProfileEditor(forms.WPFWindow):
         if profile["id"] == "UNIVERSAL":
             forms.alert(
                 "The UNIVERSAL preset is the required default and cannot be deleted.",
-                title="Navisworks profile presets",
+                title="NavisView profiles",
             )
             return
         if not forms.alert(
             "Delete the '{}' preset?".format(profile.get("caption", profile["id"])),
             yes=True,
             no=True,
-            title="Navisworks profile presets",
+            title="NavisView profiles",
         ):
             return
         self._store_current_profile()
@@ -410,7 +410,7 @@ class ProfileEditor(forms.WPFWindow):
         if not self.profiles:
             forms.alert(
                 "At least the UNIVERSAL preset is required.",
-                title="Navisworks profile presets",
+                title="NavisView profiles",
             )
             return
         for profile in self.profiles:

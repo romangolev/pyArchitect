@@ -1,6 +1,6 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="pyArchitect Navisworks settings" Width="620" Height="720"
+        Title="Batch NavisView settings" Width="620" Height="720"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Grid Margin="14">
         <Grid.RowDefinitions>

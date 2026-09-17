@@ -124,7 +124,7 @@ class IFCBatchExporter(object):
 
     def _save_or_sync(self, document):
         try:
-            save_sync_and_relinquish(document, "Batch IFC export")
+            save_sync_and_relinquish(document, "Batch IFC Export")
         except Exception as ex:
             if self.logger:
                 self.logger.warning(

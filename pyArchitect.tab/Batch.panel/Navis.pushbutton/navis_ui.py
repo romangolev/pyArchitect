@@ -99,7 +99,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             forms.alert(
                 "No default output folder is available. Revit Server routes have "
                 "no local folder, so pick an output folder instead.",
-                title="Batch Navisworks view",
+                title="Batch NavisView",
             )
             return ""
         folder = os.path.join(source, DEFAULT_COPY_FOLDER)
@@ -111,7 +111,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                     "Cannot create the default output folder:\n{}\n{}".format(
                         folder, exception
                     ),
-                    title="Batch Navisworks view",
+                    title="Batch NavisView",
                 )
                 return ""
         return folder
@@ -205,7 +205,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
 
 
 def show_form():
-    result = show_batch_form("Batch Navisworks view", NavisOptionsPresenter())
+    result = show_batch_form("Batch NavisView", NavisOptionsPresenter())
     if not result:
         return None, None
     return result["input"].items, result["options"]
