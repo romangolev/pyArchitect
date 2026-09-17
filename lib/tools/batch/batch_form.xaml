@@ -13,10 +13,13 @@
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TabControl x:Name="sourceTabs" Grid.Row="0" Height="260">
+                    <TextBlock x:Name="tbSourceDescription" Margin="0,0,0,10"
+                               TextWrapping="Wrap" />
+                    <TabControl x:Name="sourceTabs" Grid.Row="1" Height="260">
                         <TabItem Header="Local folder">
                             <Grid Margin="10">
                                 <Grid.RowDefinitions>
@@ -45,20 +48,12 @@
                             </Grid>
                         </TabItem>
                     </TabControl>
-                    <Grid Grid.Row="1" Margin="0,15,0,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="Load models from the selected source, then configure them in the next tab."
-                                   TextWrapping="Wrap" />
-                        <TextBlock x:Name="tbBanner" Grid.Row="1"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   FontFamily="Consolas, Courier New" FontSize="13"
-                                   LineHeight="15" LineStackingStrategy="BlockLineHeight"
-                                   IsHitTestVisible="False" />
-                    </Grid>
-                    <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal"
+                    <TextBlock x:Name="tbBanner" Grid.Row="2"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               FontFamily="Consolas, Courier New" FontSize="13"
+                               LineHeight="15" LineStackingStrategy="BlockLineHeight"
+                               IsHitTestVisible="False" />
+                    <StackPanel Grid.Row="3" Margin="0,10,0,0" Orientation="Horizontal"
                                 HorizontalAlignment="Right">
                         <TextBlock x:Name="tbSelectionHint" VerticalAlignment="Center"
                                    Margin="0,0,10,0" Visibility="Collapsed" TextWrapping="Wrap" />
@@ -76,8 +71,9 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock x:Name="tbSelectionDescription" TextWrapping="Wrap" />
-                    <StackPanel x:Name="bulkHost" Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0" />
+                    <TextBlock x:Name="tbSelectionDescription" Margin="0,0,0,10"
+                               TextWrapping="Wrap" />
+                    <StackPanel x:Name="bulkHost" Grid.Row="1" Orientation="Horizontal" Margin="0,2,0,0" />
                     <CheckBox x:Name="cbSelectAll" Grid.Row="2" Margin="0,12,0,0" Content="Select all models" IsChecked="True" />
                     <StackPanel x:Name="columnHeader" Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,4" />
                     <ListBox x:Name="lbModels" Grid.Row="4" />
@@ -86,9 +82,17 @@
                 </Grid>
             </TabItem>
             <TabItem x:Name="tabOptions" Header="3. Options">
-                <ScrollViewer Margin="10" VerticalScrollBarVisibility="Auto">
-                    <StackPanel x:Name="optionsHost" />
-                </ScrollViewer>
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="tbOptionsDescription" Margin="0,0,0,10"
+                               TextWrapping="Wrap" />
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="optionsHost" />
+                    </ScrollViewer>
+                </Grid>
             </TabItem>
         </TabControl>
         <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Right">

@@ -79,9 +79,10 @@ ROW_MARGIN = (0, 0, 0, 5)
 
 
 class IfcOptionsPresenter(BatchOptionsPresenter):
-    selection_description = (
-        "Tick the models to export. Every model is exported with the settings from the "
-        "Options tab, into the export folder set there."
+    source_description = "Pick where the models come from, then load them."
+    selection_description = "Tick the models to export."
+    options_description = (
+        "These settings apply to every ticked model. Run starts the export."
     )
 
     def __init__(self, defaults=None):

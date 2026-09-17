@@ -27,7 +27,9 @@ BANNER = """      :::::::::      ::: ::::::::::: ::::::::  :::    :::
 
 
 class BatchOptionsPresenter(object):
+    source_description = "Pick where the models come from, then load them."
     selection_description = "Tick the models to include in this batch run."
+    options_description = "These settings apply to every model you selected."
     item_property_header = None
     bulk_label = None
     form = None
@@ -205,7 +207,9 @@ class BatchSelectionForm(forms.WPFWindow):
 
     def _build_selection_header(self):
         presenter = self.options_presenter
+        self.tbSourceDescription.Text = presenter.source_description
         self.tbSelectionDescription.Text = presenter.selection_description
+        self.tbOptionsDescription.Text = presenter.options_description
 
         self.columnHeader.Children.Add(widgets.text("", width=CHECKBOX_WIDTH))
         self.columnHeader.Children.Add(

@@ -17,10 +17,14 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
     COPY_OUTPUT = "copy_output"
     EDIT_SOURCES = "edit_sources"
 
+    source_description = "Pick where the models come from, then load them."
     selection_description = (
-        "Tick the models that should get a Navisworks view. The profile decides which "
-        "categories are hidden in that view; it is guessed from the file name and can "
-        "be changed per model below."
+        "Tick the models that should get a Navisworks view. The profile decides "
+        "which categories are hidden; it is guessed from the file name and can be "
+        "changed per model."
+    )
+    options_description = (
+        "These settings apply to every ticked model. Run starts the batch."
     )
     item_property_header = "Profile"
     bulk_label = "Set the same profile for every model:"

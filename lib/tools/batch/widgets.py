@@ -64,8 +64,16 @@ def checkbox(content="", checked=False, width=None, margin=None):
 
 
 def textbox(text="", width=None):
+    """Single-line text box.
+
+    Centred vertically and given a little side padding: pyRevit's theme sets
+    no padding and leaves content top-aligned, so in a row sized by the 26px
+    icon buttons the text otherwise sits high and hard against the border.
+    """
     control = TextBox()
     control.Text = text
+    control.VerticalContentAlignment = VerticalAlignment.Center
+    control.Padding = Thickness(4, 0, 4, 0)
     if width:
         control.Width = width
     return control
