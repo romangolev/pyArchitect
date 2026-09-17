@@ -19,6 +19,7 @@ from System.Windows.Controls import (
     DockPanel,
     Grid,
     Orientation,
+    RadioButton,
     Separator,
     StackPanel,
     TextBlock,
@@ -58,6 +59,18 @@ def checkbox(content="", checked=False, width=None, margin=None):
     control.IsChecked = checked
     if width:
         control.Width = width
+    if margin:
+        control.Margin = Thickness(*margin)
+    return control
+
+
+def radiobutton(content="", checked=False, group=None, margin=None):
+    """One choice in a set. Leave every option unchecked to force a decision."""
+    control = RadioButton()
+    control.Content = content
+    control.IsChecked = checked
+    if group:
+        control.GroupName = group
     if margin:
         control.Margin = Thickness(*margin)
     return control
@@ -136,11 +149,19 @@ def separator(margin=None):
     return control
 
 
-def group(title, *controls):
-    """Titled block: a bold caption over a hairline rule, then the controls."""
+def group(title, *controls, **kwargs):
+    """Titled block: a bold caption over a hairline rule, then the controls.
+
+    Pass `margin` to space it from whatever sits above; stacked groups need it,
+    since the caption would otherwise butt straight against the block before.
+    """
     caption = text(title, bold=True)
     caption.Margin = Thickness(0, 0, 0, 3)
-    return stack(caption, separator((0, 0, 0, 8)), *controls)
+    panel = stack(caption, separator((0, 0, 0, 8)), *controls)
+    margin = kwargs.get("margin")
+    if margin:
+        panel.Margin = Thickness(*margin)
+    return panel
 
 
 def columns(*panels, **kwargs):

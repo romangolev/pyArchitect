@@ -11,6 +11,7 @@ from tools.navis.profiles import load_profiles
 
 
 DEFAULT_COPY_FOLDER = "Navisworks"
+WRITE_MODE_GROUP = "navis_write_mode"
 
 
 class NavisOptionsPresenter(BatchOptionsPresenter):
@@ -20,11 +21,11 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
     source_description = "Pick where the models come from, then load them."
     selection_description = (
         "Tick the models that should get a Navisworks view. The profile decides "
-        "which categories are hidden; it is guessed from the file name and can be "
-        "changed per model."
+        "which categories are hidden and can be changed per model."
     )
     options_description = (
-        "These settings apply to every ticked model. Run starts the batch."
+        "These settings apply to every ticked model. Choose how the result is "
+        "saved and where it goes, then run the batch."
     )
     item_property_header = "Profile"
     bulk_label = "Set the same profile for every model:"
@@ -37,7 +38,8 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.create_log = None
         self.log_folder = None
         self.copy_destination = None
-        self.write_mode = None
+        self.write_copies = None
+        self.write_in_place = None
         self.copy_output_group = None
 
     def build(self, host):
@@ -56,14 +58,17 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             ),
             on_change=self._copy_destination_changed,
         )
-        self.write_mode = widgets.combobox(
-            [
-                "Create and modify output copies (source models stay untouched)",
-                "Edit and save selected source models in place",
-            ],
-            -1,
+        self.write_copies = widgets.radiobutton(
+            "Create output copies (source models stay untouched)",
+            group=WRITE_MODE_GROUP,
+            margin=(0, 0, 0, 5),
         )
-        self.write_mode.SelectionChanged += self._write_mode_changed
+        self.write_in_place = widgets.radiobutton(
+            "Edit and save the selected source models in place",
+            group=WRITE_MODE_GROUP,
+        )
+        self.write_copies.Checked += self._write_mode_changed
+        self.write_in_place.Checked += self._write_mode_changed
         self.copy_output_group = widgets.group(
             "Output copies",
             widgets.text(
@@ -71,15 +76,18 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 "Navisworks view is created. Source models are not edited."
             ),
             self.copy_destination.control,
+            margin=(0, 14, 0, 0),
         )
         self.copy_output_group.IsEnabled = False
         host.Children.Add(
             widgets.stack(
                 widgets.group(
                     "Where should the Navisworks view be saved? (required)",
-                    self.write_mode,
+                    self.write_copies,
+                    self.write_in_place,
                 ),
                 self.copy_output_group,
+                widgets.separator((0, 16, 0, 0)),
                 widgets.label("Hidden worksets (comma-separated name fragments)"),
                 self.hidden_worksets,
                 self.analysis_only,
@@ -126,16 +134,19 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
 
     def _write_mode_changed(self, sender, args):
         if self.copy_output_group:
-            self.copy_output_group.IsEnabled = (
-                self.write_mode.SelectedIndex == 0
-            )
+            self.copy_output_group.IsEnabled = bool(self.write_copies.IsChecked)
         if self.form:
             self.form.refresh_run_state()
 
     def validation_error(self):
-        if self.write_mode is None or self.write_mode.SelectedIndex < 0:
-            return "Choose whether to create output copies or edit the source models on the Options tab."
-        if self.write_mode.SelectedIndex == 1:
+        if self.write_copies is None:
+            return None
+        if not (self.write_copies.IsChecked or self.write_in_place.IsChecked):
+            return (
+                "Choose whether to create output copies or edit the source models "
+                "on the Options tab."
+            )
+        if self.write_in_place.IsChecked:
             return None
         if self.copy_destination is None or not self.copy_destination.path:
             return "Choose an output folder for the Navisworks model copies on the Options tab."
@@ -197,13 +208,11 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             "log_folder": self.log_folder.path,
             "save_mode": (
                 self.COPY_OUTPUT
-                if self.write_mode.SelectedIndex == 0
+                if self.write_copies.IsChecked
                 else self.EDIT_SOURCES
             ),
             "copy_destination": (
-                self.copy_destination.path
-                if self.write_mode.SelectedIndex == 0
-                else ""
+                self.copy_destination.path if self.write_copies.IsChecked else ""
             ),
         }
 

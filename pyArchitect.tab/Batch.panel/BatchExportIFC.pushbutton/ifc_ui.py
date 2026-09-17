@@ -82,7 +82,8 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
     source_description = "Pick where the models come from, then load them."
     selection_description = "Tick the models to export."
     options_description = (
-        "These settings apply to every ticked model. Run starts the export."
+        "These settings apply to every ticked model. Set the export folder, then "
+        "run the export."
     )
 
     def __init__(self, defaults=None):
