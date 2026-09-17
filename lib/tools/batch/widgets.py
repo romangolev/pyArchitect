@@ -12,14 +12,20 @@ from System.Windows.Media import FontFamily
 from System.Windows.Controls import (
     Button,
     CheckBox,
+    ColumnDefinition,
     ComboBox,
     Dock,
     DockPanel,
+    Grid,
     Orientation,
+    Separator,
     StackPanel,
     TextBlock,
     TextBox,
 )
+
+
+COLUMN_GUTTER = 28
 
 
 def text(value, width=None, bold=False, centered=False):
@@ -40,12 +46,14 @@ def label(value):
     return control
 
 
-def checkbox(content="", checked=False, width=None):
+def checkbox(content="", checked=False, width=None, margin=None):
     control = CheckBox()
     control.Content = content
     control.IsChecked = checked
     if width:
         control.Width = width
+    if margin:
+        control.Margin = Thickness(*margin)
     return control
 
 
@@ -104,6 +112,34 @@ def stack(*controls):
 
 def row(*controls):
     return _panel(Orientation.Horizontal, controls)
+
+
+def separator(margin=None):
+    """Hairline rule; pyRevit's theme paints it with the control border brush."""
+    control = Separator()
+    if margin:
+        control.Margin = Thickness(*margin)
+    return control
+
+
+def group(title, *controls):
+    """Titled block: a bold caption over a hairline rule, then the controls."""
+    caption = text(title, bold=True)
+    caption.Margin = Thickness(0, 0, 0, 3)
+    return stack(caption, separator((0, 0, 0, 8)), *controls)
+
+
+def columns(*panels, **kwargs):
+    """Equal-width columns with a gutter between them."""
+    gutter = kwargs.get("gutter", COLUMN_GUTTER)
+    grid = Grid()
+    for index, panel in enumerate(panels):
+        grid.ColumnDefinitions.Add(ColumnDefinition())
+        if index:
+            panel.Margin = Thickness(gutter, 0, 0, 0)
+        Grid.SetColumn(panel, index)
+        grid.Children.Add(panel)
+    return grid
 
 
 def fill_row(filling, *trailing):

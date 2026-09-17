@@ -6,6 +6,8 @@ import System
 
 import Autodesk.Revit.DB as DB
 
+from System.Windows import Thickness
+
 from pyrevit import forms
 
 from core import config
@@ -20,31 +22,62 @@ FOLDER_GLYPH = u"\uED25"
 RESET_GLYPH = u"\uE72C"
 
 
-FLAG_LABELS = [
-    ("SplitWallsAndColumns", "Split walls and columns by level"),
-    ("IncludeSteelElements", "Include steel elements"),
-    ("Export2DElements", "Export 2D elements"),
-    ("ExportPartsAsBuildingElements", "Export parts"),
-    ("ExportSolidModelRep", "Export solid model representation"),
-    ("UseFamilyAndTypeNameForReference", "Use family/type reference"),
-    ("IncludeSiteElevation", "Include site elevation"),
-    ("StoreIFCGUID", "Store IFC GUID in model"),
-    ("VisibleElementsOfCurrentView", "Export visible elements only"),
-    ("ExportRoomsInView", "Export rooms/spaces"),
-    ("ExportInternalRevitPropertySets", "Export Revit property sets"),
-    ("ExportIFCCommonPropertySets", "Export IFC common property sets"),
-    ("ExportBaseQuantities", "Export base quantities"),
-    ("ExportSchedulesAsPsets", "Export schedules as property sets"),
-    ("ExportUserDefinedPsets", "Export user-defined property sets"),
+FLAG_GROUPS = [
+    (
+        "Geometry & elements",
+        [
+            ("SplitWallsAndColumns", "Split walls and columns by level"),
+            ("IncludeSteelElements", "Include steel elements"),
+            ("Export2DElements", "Export 2D elements"),
+            ("ExportPartsAsBuildingElements", "Export parts"),
+            ("ExportSolidModelRep", "Export solid model representation"),
+            ("VisibleElementsOfCurrentView", "Export visible elements only"),
+            ("ExportRoomsInView", "Export rooms/spaces"),
+            ("IncludeSiteElevation", "Include site elevation"),
+        ],
+    ),
+    (
+        "Property sets",
+        [
+            ("ExportInternalRevitPropertySets", "Export Revit property sets"),
+            ("ExportIFCCommonPropertySets", "Export IFC common property sets"),
+            ("ExportBaseQuantities", "Export base quantities"),
+            ("ExportSchedulesAsPsets", "Export schedules as property sets"),
+            ("ExportUserDefinedPsets", "Export user-defined property sets"),
+        ],
+    ),
+    (
+        "Identity",
+        [
+            ("UseFamilyAndTypeNameForReference", "Use family/type reference"),
+            ("StoreIFCGUID", "Store IFC GUID in model"),
+        ],
+    ),
 ]
 
-CHECKBOX_LABELS = [
-    ("open_without_links", "Open without Revit links", False),
-    ("export_links_merged", "Export links in the same IFC", False),
-    ("export_links_separately", "Export linked models separately", False),
-    ("save_after", "Save/synchronize after export", False),
-    ("open_folders", "Open export folders when complete", True),
+OPTION_GROUPS = [
+    (
+        "Linked models",
+        [
+            ("open_without_links", "Open without Revit links", False),
+            ("export_links_merged", "Export links in the same IFC", False),
+            ("export_links_separately", "Export linked models separately", False),
+        ],
+    ),
+    (
+        "After the run",
+        [
+            ("save_after", "Save/synchronize after export", False),
+            ("open_folders", "Open export folders when complete", True),
+        ],
+    ),
 ]
+
+FLAG_LABELS = [pair for _, pairs in FLAG_GROUPS for pair in pairs]
+
+CHECKBOX_LABELS = [entry for _, entries in OPTION_GROUPS for entry in entries]
+
+ROW_MARGIN = (0, 0, 0, 5)
 
 
 class IfcOptionsPresenter(BatchOptionsPresenter):
@@ -83,29 +116,60 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         export_folder_row = widgets.fill_row(self.export_folder, browse, reset)
 
         self.flag_controls = dict(
-            (key, widgets.checkbox(text, self.defaults.bool_flags[key]))
+            (
+                key,
+                widgets.checkbox(
+                    text, self.defaults.bool_flags[key], margin=ROW_MARGIN
+                ),
+            )
             for key, text in FLAG_LABELS
         )
         self.controls = dict(
-            (name, widgets.checkbox(text, checked))
+            (name, widgets.checkbox(text, checked, margin=ROW_MARGIN))
             for name, text, checked in CHECKBOX_LABELS
         )
         self.controls["open_without_links"].Click += self._enforce_link_options
         self.controls["export_links_merged"].Click += self._enforce_link_options
         self.controls["export_links_separately"].Click += self._enforce_link_options
 
+        flags = dict(
+            (title, [self.flag_controls[key] for key, _ in pairs])
+            for title, pairs in FLAG_GROUPS
+        )
+        options = dict(
+            (title, [self.controls[name] for name, _, _ in entries])
+            for title, entries in OPTION_GROUPS
+        )
+
+        identity = widgets.group("Identity", *flags["Identity"])
+        identity.Margin = Thickness(0, 16, 0, 0)
+
         host.Children.Add(
             widgets.stack(
-                widgets.label("IFC version"),
-                self.version,
-                widgets.label("Default 3D view name"),
-                self.default_view,
+                widgets.columns(
+                    widgets.stack(widgets.label("IFC version"), self.version),
+                    widgets.stack(
+                        widgets.label("Default 3D view name"), self.default_view
+                    ),
+                    gutter=14,
+                ),
                 widgets.label("Export folder"),
                 export_folder_row,
-                *(
-                    [self.flag_controls[key] for key, _ in FLAG_LABELS]
-                    + [self.controls[name] for name, _, _ in CHECKBOX_LABELS]
-                )
+                widgets.separator((0, 16, 0, 14)),
+                widgets.columns(
+                    widgets.group(
+                        "Geometry & elements", *flags["Geometry & elements"]
+                    ),
+                    widgets.stack(
+                        widgets.group("Property sets", *flags["Property sets"]),
+                        identity,
+                    ),
+                ),
+                widgets.separator((0, 16, 0, 14)),
+                widgets.columns(
+                    widgets.group("Linked models", *options["Linked models"]),
+                    widgets.group("After the run", *options["After the run"]),
+                ),
             )
         )
 

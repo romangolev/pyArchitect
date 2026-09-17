@@ -1,6 +1,6 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="pyArchitect Navisworks settings" Width="560" Height="390"
+        Title="pyArchitect Navisworks settings" Width="620" Height="720"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Grid Margin="14">
         <Grid.RowDefinitions>
@@ -11,18 +11,58 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Text="Navisworks 3D view name" />
-        <TextBox x:Name="tbViewName" Grid.Row="1" Margin="0,4,0,12" />
-        <TextBlock Grid.Row="2" Text="Default profile" />
-        <ComboBox x:Name="cbProfile" Grid.Row="3" Margin="0,4,0,12" />
-        <StackPanel Grid.Row="4">
-            <CheckBox x:Name="cbHideLinks" Margin="0,0,0,8"
-                      Content="Hide Revit links in the Navisworks view" />
-            <CheckBox x:Name="cbRecreate" Margin="0,0,0,12"
-                      Content="Recreate an existing view during batch processing" />
-            <Button x:Name="btnEditProfiles" Width="160" HorizontalAlignment="Left"
-                    Content="Edit profile presets..." />
-        </StackPanel>
+        <ScrollViewer Grid.Row="0" Grid.RowSpan="5" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <TextBlock Text="Navisworks 3D view name" />
+                <TextBox x:Name="tbViewName" Margin="0,4,0,12" />
+                <TextBlock Text="Default profile" />
+                <ComboBox x:Name="cbProfile" Margin="0,4,0,12" />
+                <GroupBox Header="Appearance" Margin="0,0,0,10">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock VerticalAlignment="Center" Text="Detail level" />
+                        <ComboBox x:Name="cbDetailLevel" Grid.Column="1" />
+                        <TextBlock Grid.Row="1" VerticalAlignment="Center" Margin="0,8,0,0"
+                                   Text="Display style" />
+                        <ComboBox x:Name="cbDisplayStyle" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" />
+                        <CheckBox x:Name="cbFineMepDetail" Grid.Row="2" Grid.ColumnSpan="2" Margin="0,10,0,0"
+                                  Content="Use Fine detail for MEP fittings, insulation, equipment and devices" />
+                        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="Walls and curtain panels transparency (0-100)" />
+                            <TextBox x:Name="tbSurfaceTransparency" Width="45" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+                <GroupBox Header="Visibility and control" Margin="0,0,0,10">
+                    <StackPanel Margin="8">
+                        <CheckBox x:Name="cbRemoveTemplate" Margin="0,0,0,6"
+                                  Content="Remove the view template before applying these settings" />
+                        <CheckBox x:Name="cbHideAnnotations" Margin="0,0,0,6" Content="Hide annotation categories" />
+                        <CheckBox x:Name="cbHideAnalytical" Margin="0,0,0,6" Content="Hide analytical model categories" />
+                        <CheckBox x:Name="cbHideImports" Margin="0,0,0,6" Content="Hide imported categories" />
+                        <CheckBox x:Name="cbHidePointClouds" Margin="0,0,0,6" Content="Hide point clouds" />
+                        <CheckBox x:Name="cbHideCoordinationModels" Margin="0,0,0,6" Content="Hide coordination model handles" />
+                        <CheckBox x:Name="cbHideLinks" Margin="0,0,0,6" Content="Hide Revit links" />
+                        <CheckBox x:Name="cbHideCenterlines" Margin="0,0,0,6" Content="Hide MEP centre-line subcategories" />
+                        <CheckBox x:Name="cbHideStructuralSymbols" Margin="0,0,0,6" Content="Hide structural connection symbol subcategories" />
+                        <CheckBox x:Name="cbRecreate" Margin="0,0,0,10"
+                                  Content="Recreate an existing view during batch processing" />
+                        <Button x:Name="btnEditProfiles" Width="160" HorizontalAlignment="Left"
+                                Content="Edit profile presets..." />
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="btnCancel" Width="90" Margin="0,0,6,0" Content="Cancel" />
             <Button x:Name="btnSave" Width="90" Content="Save" />

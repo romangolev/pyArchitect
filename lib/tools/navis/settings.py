@@ -19,9 +19,35 @@ from tools.navis.profiles import (
 OPTIONS = [
     ("view_name", "navis_view_name", "Navisworks"),
     ("profile", "navis_profile", "UNIVERSAL"),
+    # Keep the original Navis view look, but make every view-wide choice
+    # explicit and editable.  The old command used these values directly in
+    # its script, which meant they disappeared when the command was rebuilt.
+    ("remove_view_template", "navis_remove_view_template", True),
+    ("detail_level", "navis_detail_level", "Medium"),
+    ("display_style", "navis_display_style", "FlatColors"),
+    ("apply_fine_mep_detail", "navis_apply_fine_mep_detail", True),
+    ("surface_transparency", "navis_surface_transparency", 50),
+    ("hide_annotations", "navis_hide_annotations", True),
+    ("hide_analytical_models", "navis_hide_analytical_models", True),
+    ("hide_imports", "navis_hide_imports", True),
+    ("hide_point_clouds", "navis_hide_point_clouds", True),
+    ("hide_coordination_models", "navis_hide_coordination_models", True),
     ("hide_revit_links", "navis_hide_revit_links", True),
+    ("hide_centerlines", "navis_hide_centerlines", True),
+    ("hide_structural_connection_symbols", "navis_hide_structural_connection_symbols", True),
     ("recreate_existing", "navis_recreate_existing", True),
 ]
+
+
+DETAIL_LEVELS = ("Coarse", "Medium", "Fine")
+DISPLAY_STYLES = (
+    ("Wireframe", "Wireframe"),
+    ("HiddenLine", "Hidden line"),
+    ("Shading", "Shaded"),
+    ("FlatColors", "Flat colors"),
+    ("ConsistentColors", "Consistent colors"),
+    ("Realistic", "Realistic"),
+)
 
 
 def category_label(name):
@@ -40,6 +66,14 @@ class NavisViewSettings(object):
     def __init__(self, **overrides):
         for name, _, default in OPTIONS:
             setattr(self, name, overrides.get(name, default))
+
+
+def _index_of(values, selected, default=0):
+    """Return a safe ComboBox index for an old or hand-edited config value."""
+    try:
+        return values.index(selected)
+    except ValueError:
+        return default
 
 
 def load():
@@ -104,8 +138,26 @@ class NavisSettingsWindow(forms.WPFWindow):
         self.settings = settings
         self.profiles = profiles
         self.saved = False
+        for detail_level in DETAIL_LEVELS:
+            self.cbDetailLevel.Items.Add(detail_level)
+        for _, caption in DISPLAY_STYLES:
+            self.cbDisplayStyle.Items.Add(caption)
         self.tbViewName.Text = settings.view_name
+        self.cbRemoveTemplate.IsChecked = settings.remove_view_template
+        self.cbDetailLevel.SelectedIndex = _index_of(DETAIL_LEVELS, settings.detail_level, 1)
+        self.cbDisplayStyle.SelectedIndex = _index_of(
+            [value for value, _ in DISPLAY_STYLES], settings.display_style, 3
+        )
+        self.cbFineMepDetail.IsChecked = settings.apply_fine_mep_detail
+        self.tbSurfaceTransparency.Text = str(settings.surface_transparency)
+        self.cbHideAnnotations.IsChecked = settings.hide_annotations
+        self.cbHideAnalytical.IsChecked = settings.hide_analytical_models
+        self.cbHideImports.IsChecked = settings.hide_imports
+        self.cbHidePointClouds.IsChecked = settings.hide_point_clouds
+        self.cbHideCoordinationModels.IsChecked = settings.hide_coordination_models
         self.cbHideLinks.IsChecked = settings.hide_revit_links
+        self.cbHideCenterlines.IsChecked = settings.hide_centerlines
+        self.cbHideStructuralSymbols.IsChecked = settings.hide_structural_connection_symbols
         self.cbRecreate.IsChecked = settings.recreate_existing
         self._load_profiles(settings.profile)
         self.btnEditProfiles.Click += self._edit_profiles
@@ -128,6 +180,16 @@ class NavisSettingsWindow(forms.WPFWindow):
     def _save(self, sender, args):
         view_name = self.tbViewName.Text.strip()
         profile = self.profiles.at(self.cbProfile.SelectedIndex)
+        detail_level = (
+            DETAIL_LEVELS[self.cbDetailLevel.SelectedIndex]
+            if self.cbDetailLevel.SelectedIndex >= 0
+            else None
+        )
+        display_style = (
+            DISPLAY_STYLES[self.cbDisplayStyle.SelectedIndex][0]
+            if self.cbDisplayStyle.SelectedIndex >= 0
+            else None
+        )
         if not view_name:
             forms.alert(
                 "Specify a Navisworks 3D view name.",
@@ -139,9 +201,41 @@ class NavisSettingsWindow(forms.WPFWindow):
                 "Select a default profile.", title="pyArchitect Navisworks settings"
             )
             return
+        if detail_level is None or display_style is None:
+            forms.alert(
+                "Select a detail level and display style.",
+                title="pyArchitect Navisworks settings",
+            )
+            return
+        try:
+            surface_transparency = int(self.tbSurfaceTransparency.Text.strip())
+        except (TypeError, ValueError):
+            surface_transparency = -1
+        if surface_transparency < 0 or surface_transparency > 100:
+            forms.alert(
+                "Surface transparency must be a whole number from 0 to 100.",
+                title="pyArchitect Navisworks settings",
+            )
+            return
         self.settings.view_name = view_name
         self.settings.profile = profile.id
+        self.settings.remove_view_template = bool(self.cbRemoveTemplate.IsChecked)
+        self.settings.detail_level = detail_level
+        self.settings.display_style = display_style
+        self.settings.apply_fine_mep_detail = bool(self.cbFineMepDetail.IsChecked)
+        self.settings.surface_transparency = surface_transparency
+        self.settings.hide_annotations = bool(self.cbHideAnnotations.IsChecked)
+        self.settings.hide_analytical_models = bool(self.cbHideAnalytical.IsChecked)
+        self.settings.hide_imports = bool(self.cbHideImports.IsChecked)
+        self.settings.hide_point_clouds = bool(self.cbHidePointClouds.IsChecked)
+        self.settings.hide_coordination_models = bool(
+            self.cbHideCoordinationModels.IsChecked
+        )
         self.settings.hide_revit_links = bool(self.cbHideLinks.IsChecked)
+        self.settings.hide_centerlines = bool(self.cbHideCenterlines.IsChecked)
+        self.settings.hide_structural_connection_symbols = bool(
+            self.cbHideStructuralSymbols.IsChecked
+        )
         self.settings.recreate_existing = bool(self.cbRecreate.IsChecked)
         self.saved = True
         self.Close()
