@@ -153,15 +153,18 @@ def _legacy_profile_data():
 
 
 def get_profiles_json():
-    """Return stored preset JSON, migrating legacy files on first use."""
+    """Return the stored preset JSON, falling back to the bundled presets.
+
+    Only presets the user saves are persisted.  The bundled set is read fresh
+    on every call instead of being snapshotted into the config, so edits to
+    profiles.json reach installs that never customised their presets.
+    """
     stored = config.get_option(PROFILES_JSON_OPTION, "", section=CONFIG_SECTION)
     if stored:
         return stored
 
     data = _legacy_profile_data() or _bundled_profile_data()
-    serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    config.set_option(PROFILES_JSON_OPTION, serialized, section=CONFIG_SECTION)
-    return serialized
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
 
 
 def save_profiles_json(value):
