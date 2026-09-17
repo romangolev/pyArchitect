@@ -42,7 +42,6 @@
                                 <TextBlock Text="One RSN:// route per line" />
                                 <TextBox x:Name="tbRoutes" Grid.Row="1" Margin="0,5,0,0" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" />
                                 <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button x:Name="btnAddServerModel" Width="140" Margin="0,0,5,0" Content="Add from server" />
                                     <Button x:Name="btnImportCsv" Width="110" Margin="0,0,5,0" Content="Import CSV" />
                                     <Button x:Name="btnLoadRoutes" Width="110" Content="Load models" />
                                 </StackPanel>
