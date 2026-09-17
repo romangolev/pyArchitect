@@ -1,22 +1,29 @@
 # -*- coding: utf-8 -*-
 
+import re
+
+
+DRIVE_LETTER = re.compile(r"^[A-Za-z]:$")
+
 
 def normalize_rsn_path(path):
+    """Return a canonical ``RSN://host/path`` route, or None if it is not one.
 
-    path = path.strip()
+    Accepts a route that already carries the scheme, in either slash style, and
+    a bare ``host/path`` whose first segment looks like a host name.  A local
+    path is rejected rather than coerced: a drive letter would otherwise pass
+    the host test on its colon and turn ``C:\\M.rvt`` into ``RSN://C:/M.rvt``.
+    """
+    path = path.strip().replace("\\", "/")
 
     if not path:
         return None
 
     if path.upper().startswith("RSN://"):
-        path = path.replace("\\", "/")
-
         while "//" in path[6:]:
             path = path[:6] + path[6:].replace("//", "/")
 
         return path
-
-    path = path.replace("\\", "/")
 
     parts = path.split("/")
 
@@ -24,6 +31,12 @@ def normalize_rsn_path(path):
         return None
 
     server = parts[0].strip()
+
+    if DRIVE_LETTER.match(server):
+        return None
+
+    if server.upper().rstrip(":") == "RSN":
+        return None
 
     if "." not in server and ":" not in server:
         return None

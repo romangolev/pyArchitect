@@ -6,6 +6,7 @@ from pyrevit import forms
 
 from tools.batch import widgets
 from tools.batch.input import BatchInput, BatchInputCsv, BatchInputFactory
+from tools import revit_server
 from tools.revit_documents import is_server_path
 
 from System.Windows import Visibility
@@ -91,6 +92,7 @@ class BatchSelectionForm(forms.WPFWindow):
         self.options_presenter.attach(self)
         self.options_presenter.build(self.optionsHost)
         self._build_selection_header()
+        self.btnAddServerModel.Click += self._add_server_model
         self.btnLoadRoutes.Click += self._load_routes
         self.btnImportCsv.Click += self._import_csv
         self.btnContinue.Click += self._continue
@@ -258,6 +260,42 @@ class BatchSelectionForm(forms.WPFWindow):
             bool(self.cbRecursive.IsChecked),
         )
         self._render_items()
+
+    def _add_server_model(self, sender, args):
+        """Append a model picked in Revit's Open dialog to the route box."""
+        if not revit_server.available_hosts():
+            forms.alert(
+                "No Revit Server is configured for this Revit version, so its "
+                "Open dialog has no server to browse. Add the host to RSN.ini "
+                "under %PROGRAMDATA%, then restart Revit.",
+                title=self.Title,
+            )
+            return
+
+        try:
+            route = revit_server.pick_server_model()
+        except ValueError:
+            forms.alert(
+                "That model is not on a Revit Server. Use the Local folder "
+                "tab for models on disk.",
+                title=self.Title,
+            )
+            return
+        except Exception as exception:
+            forms.alert(
+                "Cannot reach the Revit Server: {}".format(exception),
+                title=self.Title,
+            )
+            return
+
+        if not route:
+            return
+
+        existing = self.tbRoutes.Text
+        if existing and not existing.endswith("\n"):
+            existing += "\n"
+        self.tbRoutes.Text = existing + route + "\n"
+        self._load_routes(None, None)
 
     def _load_routes(self, sender, args):
         self.batch_input = self.input_factory.from_rsn_routes(self.tbRoutes.Text)
