@@ -113,9 +113,23 @@ def _copy_section(source, container, section_name):
     """Copy every option of one section into the extension's settings file."""
     if source is None:
         return
+    # Some pyRevit 6 configuration wrappers report a section during lookup
+    # but raise NoSectionError when their iterator is consumed.  A missing
+    # legacy section must never prevent a fresh pyArchitect config from being
+    # created, so enumerate it defensively before touching the target file.
+    try:
+        names = list(source)
+    except Exception:
+        return
+
     target = _section(container, section_name, create=True)
-    for name in source:
-        target.set_option(name, _read(source, name, None))
+    for name in names:
+        try:
+            target.set_option(name, _read(source, name, None))
+        except Exception:
+            # Preserve every readable legacy option, but skip an individual
+            # malformed entry rather than failing the whole first-run setup.
+            pass
 
 
 def _adopt_legacy(container):
