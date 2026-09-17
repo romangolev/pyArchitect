@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import os
+
+from pyrevit import forms
+
 from tools.batch import widgets
 from tools.batch.form import BatchOptionsPresenter, show_batch_form
+from tools.revit_documents import is_server_path
 from tools.navis.profiles import load_profiles
 
 
@@ -21,6 +26,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.upgrade_models = None
         self.create_log = None
         self.log_folder = None
+        self.copy_destination = None
 
     def build(self, host):
         self.hidden_worksets = widgets.textbox()
@@ -28,8 +34,20 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.upgrade_models = widgets.checkbox("Allow model upgrade")
         self.create_log = widgets.checkbox("Save an additional report copy", True)
         self.log_folder = widgets.textbox()
+        self.copy_destination = widgets.textbox()
+        self.copy_destination.TextChanged += self._copy_destination_changed
+        browse_copies = widgets.button("Browse...", width=90, margin=(8, 0, 0, 0))
+        browse_copies.Click += self._pick_copy_destination
         host.Children.Add(
             widgets.stack(
+                widgets.group(
+                    "Output copies (required)",
+                    widgets.text(
+                        "Each selected RVT is copied to this folder before the "
+                        "Navisworks view is created. Source models are not edited."
+                    ),
+                    widgets.fill_row(self.copy_destination, browse_copies),
+                ),
                 widgets.label("Hidden worksets (comma-separated name fragments)"),
                 self.hidden_worksets,
                 self.analysis_only,
@@ -39,6 +57,41 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 self.log_folder,
             )
         )
+
+    def _pick_copy_destination(self, sender, args):
+        folder = forms.pick_folder()
+        if folder:
+            self.copy_destination.Text = folder
+
+    def _copy_destination_changed(self, sender, args):
+        if self.form:
+            self.form.refresh_run_state()
+
+    def validation_error(self):
+        if self.copy_destination is None or not self.copy_destination.Text.strip():
+            return "Choose an output folder for the Navisworks model copies on the Options tab."
+
+        destination = self.copy_destination.Text.strip()
+        if not os.path.isdir(destination):
+            return "The selected copy destination does not exist."
+
+        items = self.form.selected_items() if self.form else []
+        names = set()
+        for item in items:
+            if is_server_path(item.source_path):
+                return "Revit Server routes cannot be copied to a local output folder."
+            target = os.path.join(destination, os.path.basename(item.source_path))
+            if os.path.normcase(os.path.abspath(target)) == os.path.normcase(
+                os.path.abspath(item.source_path)
+            ):
+                return "Choose an output folder different from the source model folder."
+            target_key = os.path.normcase(target)
+            if target_key in names:
+                return "Selected models have the same file name; choose fewer models or rename one."
+            names.add(target_key)
+            if os.path.exists(target):
+                return "A destination copy already exists: {}".format(target)
+        return None
 
     def create_item_property(self, item):
         selected = item.options.get("profile", self.profiles.guess(item.name))
@@ -73,6 +126,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             ],
             "create_log": bool(self.create_log.IsChecked),
             "log_folder": self.log_folder.Text.strip(),
+            "copy_destination": self.copy_destination.Text.strip(),
         }
 
 

@@ -11,9 +11,33 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <TextBlock Text="Profile" />
-        <ComboBox x:Name="cbProfile" Grid.Row="1" Margin="0,4,0,12" />
+        <StackPanel Grid.Row="1" Margin="0,4,0,12">
+            <DockPanel>
+                <Button x:Name="btnAddProfile" Width="100" DockPanel.Dock="Right" Margin="6,0,0,0"
+                        Content="Add preset" />
+                <Button x:Name="btnDeleteProfile" Width="100" DockPanel.Dock="Right" Margin="6,0,0,0"
+                        Content="Delete preset" />
+                <ComboBox x:Name="cbProfile" />
+            </DockPanel>
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="145" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock VerticalAlignment="Center" Text="Preset name" />
+                <TextBox x:Name="tbProfileName" Grid.Column="1" />
+                <TextBlock Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0"
+                           Text="Model-name markers" />
+                <TextBox x:Name="tbNameMarkers" Grid.Row="1" Grid.Column="1" Margin="0,6,0,0"
+                         ToolTip="Comma-separated values used to pick this preset in batch mode" />
+            </Grid>
+        </StackPanel>
         <TextBlock Grid.Row="2"
-                   Text="Checked categories are hidden in the selected profile. Scroll and click to enable or disable each category."
+                   Text="Checked categories are hidden in this preset. New presets inherit the UNIVERSAL view rules; add only the discipline-specific categories you need."
                    TextWrapping="Wrap" />
         <ListBox x:Name="lbCategories" Grid.Row="3" Margin="0,8,0,8" />
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">

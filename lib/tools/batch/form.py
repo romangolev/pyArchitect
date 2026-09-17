@@ -88,13 +88,29 @@ class BatchSelectionForm(forms.WPFWindow):
 
         self.refresh_run_state()
 
+    def _model_error(self):
+        """Why no batch can run yet, regardless of which tool is hosted.
+
+        Every batch needs at least one ticked model, so this is checked by the
+        form rather than left to each presenter's validation_error.
+        """
+        if not self.batch_input.items:
+            return "Load models on the Selection tab first."
+        for panel in self.lbModels.Items:
+            if panel.Tag[1].IsChecked:
+                return None
+        return "Tick at least one model on the Selection properties tab."
+
     def refresh_run_state(self):
-        """Enable Run only while the presenter reports usable options.
+        """Enable Run only while the form and the presenter are both satisfied.
 
         Skipped when the form only edits options: saving settings is not a run,
         so an option left blank must still be storable.
         """
-        error = None if self.options_only else self.options_presenter.validation_error()
+        if self.options_only:
+            error = None
+        else:
+            error = self._model_error() or self.options_presenter.validation_error()
         self.btnRun.IsEnabled = not error
         self.btnRun.ToolTip = error
         self._accent_run_button(not error)
@@ -161,6 +177,14 @@ class BatchSelectionForm(forms.WPFWindow):
     def loaded_items(self):
         """Items currently loaded on the selection tab."""
         return self.batch_input.items
+
+    def selected_items(self):
+        """Items ticked for the pending run, without committing the form."""
+        return [
+            panel.Tag[0]
+            for panel in self.lbModels.Items
+            if panel.Tag[1].IsChecked
+        ]
 
     def _build_selection_header(self):
         presenter = self.options_presenter
@@ -255,6 +279,7 @@ class BatchSelectionForm(forms.WPFWindow):
         self.tabProperties.IsEnabled = bool(self.batch_input.items)
         for item in self.batch_input.items:
             checkbox = widgets.checkbox(checked=True, width=25)
+            checkbox.Click += self._model_ticked
             controls = [checkbox, widgets.text(item.source_path, width=500)]
             property_control = self.options_presenter.create_item_property(item)
             if property_control:
@@ -264,13 +289,16 @@ class BatchSelectionForm(forms.WPFWindow):
             panel.Tag = (item, checkbox, property_control)
             self.lbModels.Items.Add(panel)
         self._hint(self.tbSelectionHint)
-        self._hint(self.tbRunHint)
+        self.refresh_run_state()
+
+    def _model_ticked(self, sender, args):
         self.refresh_run_state()
 
     def _select_all(self, sender, args):
         selected = bool(self.cbSelectAll.IsChecked)
         for panel in self.lbModels.Items:
             panel.Tag[1].IsChecked = selected
+        self.refresh_run_state()
 
     def _run(self, sender, args):
         if self.options_only:
@@ -288,21 +316,8 @@ class BatchSelectionForm(forms.WPFWindow):
             )
             selected_items.append(item)
         if not selected_items:
-            if not self.batch_input.items:
-                self._hint(
-                    self.tbRunHint,
-                    u"No models loaded \u2014 load them on the Selection tab.",
-                )
-                self.tabs.SelectedItem = self.tabSelection
-            else:
-                self._hint(
-                    self.tbRunHint,
-                    u"No models ticked \u2014 tick at least one on the "
-                    "Selection properties tab.",
-                )
-                self.tabs.SelectedItem = self.tabProperties
+            self.refresh_run_state()
             return
-        self._hint(self.tbRunHint)
         self.result = {
             "input": BatchInput(selected_items),
             "options": self.options_presenter.read_options(),

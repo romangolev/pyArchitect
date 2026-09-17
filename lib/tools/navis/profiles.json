@@ -1,24 +1,8 @@
 {
-    "always_hidden_categories": [
-        "OST_Mass",
-        "OST_MassForm",
-        "OST_Parts",
-        "OST_Lines",
-        "OST_Site",
-        "OST_MEPSpaces",
-        "OST_Wire"
-    ],
+    "always_hidden_categories": ["OST_Lines"],
     "centerline_categories": [
         "OST_DuctCurves",
-        "OST_FlexDuctCurves",
-        "OST_PipeCurves",
-        "OST_FlexPipeCurves",
-        "OST_CableTray",
-        "OST_Conduit",
-        "OST_DuctFitting",
-        "OST_PipeFitting",
-        "OST_ConduitFitting",
-        "OST_CableTrayFitting"
+        "OST_PipeCurves"
     ],
     "centerline_subcategory_names": [
         "Center line",
@@ -80,41 +64,31 @@
     "profiles": [
         {
             "id": "UNIVERSAL",
-            "caption": "UNIV"
+            "caption": "UNIVERSAL"
         },
         {
-            "id": "AR",
+            "id": "ARCH",
             "caption": "ARCH",
-            "name_markers": ["ARCH", "АР"],
+            "name_markers": ["ARCH", "AR", "АР"],
             "hidden_groups": ["mep"]
         },
         {
-            "id": "KR",
+            "id": "STR",
             "caption": "STR",
-            "name_markers": ["STR", "КР"],
+            "name_markers": ["STR", "KR", "КР"],
             "hidden_groups": ["mep"]
         },
         {
-            "id": "OV",
-            "caption": "HVAC",
-            "name_markers": ["HVAC", "ОВ"],
+            "id": "MECH",
+            "caption": "MECH",
+            "name_markers": ["MECH", "HVAC", "ОВ", "VK", "ВК", "PLMB"],
             "hidden_groups": ["architecture_and_structure", "building_shell"]
         },
         {
-            "id": "VK",
-            "caption": "PLMB",
-            "name_markers": ["PLMB", "ВК"],
-            "hidden_groups": ["architecture_and_structure", "building_shell", "ducts"]
-        },
-        {
-            "id": "EOM",
-            "caption": "ELEC",
-            "name_markers": ["ELEC", "ЭОМ"],
+            "id": "ELCT",
+            "caption": "ELCT",
+            "name_markers": ["ELCT", "ELEC", "ELECTRICAL", "ЭОМ"],
             "hidden_groups": ["architecture_and_structure", "building_shell", "pipes"]
-        },
-        {
-            "id": "CUSTOM",
-            "caption": "CUSTOM"
         }
     ]
 }

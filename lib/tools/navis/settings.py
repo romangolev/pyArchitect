@@ -249,7 +249,7 @@ class NavisSettingsWindow(forms.WPFWindow):
 
 
 class ProfileEditor(forms.WPFWindow):
-    """Checkbox editor for category visibility in each Navis profile."""
+    """Editor for on-demand category-visibility profile presets."""
 
     resolve_theme = True
     XAML_PATH = os.path.join(os.path.dirname(__file__), "profile_editor.xaml")
@@ -262,13 +262,12 @@ class ProfileEditor(forms.WPFWindow):
         self.category_names = self._category_names()
         self.profile_categories = {}
         self.current_profile_index = None
-        for profile in self.profiles:
-            self.cbProfile.Items.Add(profile.get("caption", profile["id"]))
         self.cbProfile.SelectionChanged += self._select_profile
+        self.btnAddProfile.Click += self._add_profile
+        self.btnDeleteProfile.Click += self._delete_profile
         self.btnSave.Click += self._save
         self.btnCancel.Click += self._cancel
-        if self.profiles:
-            self.cbProfile.SelectedIndex = 0
+        self._load_profiles()
 
     def _category_names(self):
         names = set()
@@ -288,11 +287,89 @@ class ProfileEditor(forms.WPFWindow):
     def _store_current_profile(self):
         if self.current_profile_index is None:
             return
+        profile = self.profiles[self.current_profile_index]
+        caption = self.tbProfileName.Text.strip()
+        # Keep a valid caption while users are moving between controls.  The
+        # generated profile id remains a dependable fallback for older data.
+        profile["caption"] = caption or profile["id"]
+        profile["name_markers"] = [
+            marker.strip()
+            for marker in self.tbNameMarkers.Text.split(",")
+            if marker.strip()
+        ]
         selected = set(
             name for name, checkbox in self.category_checks.items() if checkbox.IsChecked
         )
-        profile = self.profiles[self.current_profile_index]
         self.profile_categories[profile["id"]] = selected
+
+    def _load_profiles(self, selected_id=None):
+        self.cbProfile.Items.Clear()
+        for profile in self.profiles:
+            self.cbProfile.Items.Add(profile.get("caption", profile["id"]))
+        if not self.profiles:
+            self.current_profile_index = None
+            self.tbProfileName.Text = ""
+            self.tbNameMarkers.Text = ""
+            self.lbCategories.Items.Clear()
+            return
+        index = 0
+        if selected_id:
+            for candidate_index, profile in enumerate(self.profiles):
+                if profile["id"] == selected_id:
+                    index = candidate_index
+                    break
+        self.cbProfile.SelectedIndex = index
+
+    def _new_profile_id(self, caption):
+        """Create an identifier safe for config storage and batch matching."""
+        stem = "".join(
+            character if character.isalnum() else "_" for character in caption.upper()
+        ).strip("_") or "PRESET"
+        existing = set(profile["id"] for profile in self.profiles)
+        candidate = stem
+        suffix = 2
+        while candidate in existing:
+            candidate = "{}_{}".format(stem, suffix)
+            suffix += 1
+        return candidate
+
+    def _add_profile(self, sender, args):
+        self._store_current_profile()
+        caption = "New preset"
+        profile = {
+            "id": self._new_profile_id(caption),
+            "caption": caption,
+            "name_markers": [],
+            "hidden_categories": [],
+        }
+        self.profiles.append(profile)
+        self.current_profile_index = None
+        self._load_profiles(profile["id"])
+
+    def _delete_profile(self, sender, args):
+        index = self.cbProfile.SelectedIndex
+        if index < 0 or index >= len(self.profiles):
+            return
+        profile = self.profiles[index]
+        if profile["id"] == "UNIVERSAL":
+            forms.alert(
+                "The UNIVERSAL preset is the required default and cannot be deleted.",
+                title="Navisworks profile presets",
+            )
+            return
+        if not forms.alert(
+            "Delete the '{}' preset?".format(profile.get("caption", profile["id"])),
+            yes=True,
+            no=True,
+            title="Navisworks profile presets",
+        ):
+            return
+        self._store_current_profile()
+        removed = self.profiles.pop(index)
+        self.profile_categories.pop(removed["id"], None)
+        selected_id = self.profiles[max(0, index - 1)]["id"]
+        self.current_profile_index = None
+        self._load_profiles(selected_id)
 
     def _select_profile(self, sender, args):
         self._store_current_profile()
@@ -301,6 +378,8 @@ class ProfileEditor(forms.WPFWindow):
             return
         self.current_profile_index = index
         profile = self.profiles[index]
+        self.tbProfileName.Text = profile.get("caption", profile["id"])
+        self.tbNameMarkers.Text = ", ".join(profile.get("name_markers", []))
         selected = self.profile_categories.get(
             profile["id"], self._effective_categories(profile)
         )
@@ -328,6 +407,12 @@ class ProfileEditor(forms.WPFWindow):
 
     def _save(self, sender, args):
         self._store_current_profile()
+        if not self.profiles:
+            forms.alert(
+                "At least the UNIVERSAL preset is required.",
+                title="Navisworks profile presets",
+            )
+            return
         for profile in self.profiles:
             categories = self.profile_categories.get(profile["id"])
             if categories is None:

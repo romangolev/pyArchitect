@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from pyrevit import script
 
 from tools.batch.processor import BatchProcessor
@@ -22,6 +24,11 @@ class BatchNavisViewWorkflow(object):
             print("No models selected.")
             return []
 
+        copy_destination = settings.get("copy_destination", "").strip()
+        if not copy_destination or not os.path.isdir(copy_destination):
+            print("A valid output folder for Navisworks model copies is required.")
+            return []
+
         analysis_only = settings.get("analysis_only", False)
         operation = NavisViewBatchOperation(settings.get("hidden_worksets", []))
         report = BatchOperationReport(operation.operation_id)
@@ -35,6 +42,7 @@ class BatchNavisViewWorkflow(object):
             models,
             analysis_only,
             settings.get("upgrade_models", False),
+            copy_destination,
         )
 
         self._print_summary(operation, results, analysis_only)
