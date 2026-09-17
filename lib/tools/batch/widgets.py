@@ -8,6 +8,7 @@ clr.AddReference("PresentationFramework")
 clr.AddReference("WindowsBase")
 
 from System.Windows import FontWeights, Thickness, VerticalAlignment
+from System.Windows import TextTrimming
 from System.Windows.Media import FontFamily
 from System.Windows.Controls import (
     Button,
@@ -27,12 +28,17 @@ from System.Windows.Controls import (
 
 COLUMN_GUTTER = 28
 
+FOLDER_GLYPH = u"\uED25"
+DEFAULT_FOLDER_GLYPH = u"\uE80F"
 
-def text(value, width=None, bold=False, centered=False):
+
+def text(value, width=None, bold=False, centered=False, trim=False):
     control = TextBlock()
     control.Text = value
     if width:
         control.Width = width
+    if trim:
+        control.TextTrimming = TextTrimming.CharacterEllipsis
     if bold:
         control.FontWeight = FontWeights.Bold
     if centered:

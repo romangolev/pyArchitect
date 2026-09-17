@@ -207,7 +207,9 @@ class BatchSelectionForm(forms.WPFWindow):
             return
 
         self.bulk_control.Width = PROPERTY_WIDTH
-        apply_button = widgets.button("Apply to all", width=110, margin=(8, 0, 0, 0))
+        apply_button = widgets.button(
+            "Apply to all", width=PROPERTY_WIDTH, margin=(0, 0, 0, 4)
+        )
         apply_button.Click += self._apply_bulk_value
         self.bulkHost.Children.Add(
             widgets.text(
@@ -216,8 +218,7 @@ class BatchSelectionForm(forms.WPFWindow):
                 centered=True,
             )
         )
-        self.bulkHost.Children.Add(self.bulk_control)
-        self.bulkHost.Children.Add(apply_button)
+        self.bulkHost.Children.Add(widgets.stack(apply_button, self.bulk_control))
 
     def _apply_bulk_value(self, sender, args):
         for panel in self.lbModels.Items:
@@ -278,9 +279,11 @@ class BatchSelectionForm(forms.WPFWindow):
         self.lbModels.Items.Clear()
         self.tabProperties.IsEnabled = bool(self.batch_input.items)
         for item in self.batch_input.items:
-            checkbox = widgets.checkbox(checked=True, width=25)
+            checkbox = widgets.checkbox(checked=True, width=CHECKBOX_WIDTH)
             checkbox.Click += self._model_ticked
-            controls = [checkbox, widgets.text(item.source_path, width=500)]
+            path = widgets.text(item.source_path, width=PATH_WIDTH, trim=True)
+            path.ToolTip = item.source_path
+            controls = [checkbox, path]
             property_control = self.options_presenter.create_item_property(item)
             if property_control:
                 property_control.Width = PROPERTY_WIDTH

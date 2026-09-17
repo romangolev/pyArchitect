@@ -24,10 +24,16 @@ class BatchNavisViewWorkflow(object):
             print("No models selected.")
             return []
 
-        copy_destination = settings.get("copy_destination", "").strip()
-        if not copy_destination or not os.path.isdir(copy_destination):
-            print("A valid output folder for Navisworks model copies is required.")
+        save_mode = settings.get("save_mode")
+        if save_mode not in ("copy_output", "edit_sources"):
+            print("Choose whether to create output copies or edit source models.")
             return []
+        copy_destination = None
+        if save_mode == "copy_output":
+            copy_destination = settings.get("copy_destination", "").strip()
+            if not copy_destination or not os.path.isdir(copy_destination):
+                print("A valid output folder for Navisworks model copies is required.")
+                return []
 
         analysis_only = settings.get("analysis_only", False)
         operation = NavisViewBatchOperation(settings.get("hidden_worksets", []))

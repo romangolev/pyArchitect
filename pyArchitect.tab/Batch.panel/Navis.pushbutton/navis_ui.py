@@ -10,7 +10,13 @@ from tools.revit_documents import is_server_path
 from tools.navis.profiles import load_profiles
 
 
+DEFAULT_COPY_FOLDER = "Navisworks"
+
+
 class NavisOptionsPresenter(BatchOptionsPresenter):
+    COPY_OUTPUT = "copy_output"
+    EDIT_SOURCES = "edit_sources"
+
     selection_description = (
         "Tick the models that should get a Navisworks view. The profile decides which "
         "categories are hidden in that view; it is guessed from the file name and can "
@@ -27,6 +33,8 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.create_log = None
         self.log_folder = None
         self.copy_destination = None
+        self.write_mode = None
+        self.copy_output_group = None
 
     def build(self, host):
         self.hidden_worksets = widgets.textbox()
@@ -36,18 +44,39 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.log_folder = widgets.textbox()
         self.copy_destination = widgets.textbox()
         self.copy_destination.TextChanged += self._copy_destination_changed
-        browse_copies = widgets.button("Browse...", width=90, margin=(8, 0, 0, 0))
+        self.write_mode = widgets.combobox(
+            [
+                "Create and modify output copies (source models stay untouched)",
+                "Edit and save selected source models in place",
+            ],
+            -1,
+        )
+        self.write_mode.SelectionChanged += self._write_mode_changed
+        browse_copies = widgets.icon_button(
+            widgets.FOLDER_GLYPH, "Pick the output folder"
+        )
         browse_copies.Click += self._pick_copy_destination
+        default_copies = widgets.icon_button(
+            widgets.DEFAULT_FOLDER_GLYPH,
+            "Use a '{}' folder beside the models".format(DEFAULT_COPY_FOLDER),
+        )
+        default_copies.Click += self._default_copy_destination
+        self.copy_output_group = widgets.group(
+            "Output copies",
+            widgets.text(
+                "Each selected RVT is copied to this folder before the "
+                "Navisworks view is created. Source models are not edited."
+            ),
+            widgets.fill_row(self.copy_destination, browse_copies, default_copies),
+        )
+        self.copy_output_group.IsEnabled = False
         host.Children.Add(
             widgets.stack(
                 widgets.group(
-                    "Output copies (required)",
-                    widgets.text(
-                        "Each selected RVT is copied to this folder before the "
-                        "Navisworks view is created. Source models are not edited."
-                    ),
-                    widgets.fill_row(self.copy_destination, browse_copies),
+                    "Where should the Navisworks view be saved? (required)",
+                    self.write_mode,
                 ),
+                self.copy_output_group,
                 widgets.label("Hidden worksets (comma-separated name fragments)"),
                 self.hidden_worksets,
                 self.analysis_only,
@@ -63,11 +92,53 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         if folder:
             self.copy_destination.Text = folder
 
+    def _default_copy_destination(self, sender, args):
+        """Point the copies at a subfolder beside the loaded models.
+
+        A subfolder rather than the models' own folder: copying a model over
+        itself is rejected by validation_error, so the models' folder can never
+        be the default.  The folder is created because an output folder that
+        does not exist yet fails validation too, leaving a dead end.
+        """
+        source = self.form.default_export_folder() if self.form else ""
+        if not source:
+            forms.alert(
+                "No default output folder is available. Revit Server routes have "
+                "no local folder, so pick an output folder instead.",
+                title="Batch Navisworks view",
+            )
+            return
+        folder = os.path.join(source, DEFAULT_COPY_FOLDER)
+        if not os.path.isdir(folder):
+            try:
+                os.makedirs(folder)
+            except Exception as exception:
+                forms.alert(
+                    "Cannot create the default output folder:\n{}\n{}".format(
+                        folder, exception
+                    ),
+                    title="Batch Navisworks view",
+                )
+                return
+        self.copy_destination.Text = folder
+
     def _copy_destination_changed(self, sender, args):
         if self.form:
             self.form.refresh_run_state()
 
+    def _write_mode_changed(self, sender, args):
+        if self.copy_output_group:
+            self.copy_output_group.IsEnabled = (
+                self.write_mode.SelectedIndex == 0
+            )
+        if self.form:
+            self.form.refresh_run_state()
+
     def validation_error(self):
+        if self.write_mode is None or self.write_mode.SelectedIndex < 0:
+            return "Choose whether to create output copies or edit the source models on the Options tab."
+        if self.write_mode.SelectedIndex == 1:
+            return None
         if self.copy_destination is None or not self.copy_destination.Text.strip():
             return "Choose an output folder for the Navisworks model copies on the Options tab."
 
@@ -126,7 +197,16 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             ],
             "create_log": bool(self.create_log.IsChecked),
             "log_folder": self.log_folder.Text.strip(),
-            "copy_destination": self.copy_destination.Text.strip(),
+            "save_mode": (
+                self.COPY_OUTPUT
+                if self.write_mode.SelectedIndex == 0
+                else self.EDIT_SOURCES
+            ),
+            "copy_destination": (
+                self.copy_destination.Text.strip()
+                if self.write_mode.SelectedIndex == 0
+                else ""
+            ),
         }
 
 

@@ -18,8 +18,6 @@ from tools.batch.ifc import IFCBatchExporter, ExportSettings, ModelExportItem
 
 OPTIONS_CONFIG_KEY = "batch_ifc_options"
 
-FOLDER_GLYPH = u"\uED25"
-RESET_GLYPH = u"\uE72C"
 
 
 FLAG_GROUPS = [
@@ -109,9 +107,11 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         self.export_folder = widgets.textbox(self.defaults.export_folder)
         self.export_folder.TextChanged += self._export_folder_changed
 
-        browse = widgets.icon_button(FOLDER_GLYPH, "Pick export folder")
+        browse = widgets.icon_button(widgets.FOLDER_GLYPH, "Pick export folder")
         browse.Click += self._pick_export_folder
-        reset = widgets.icon_button(RESET_GLYPH, "Use the folder the models came from")
+        reset = widgets.icon_button(
+            widgets.DEFAULT_FOLDER_GLYPH, "Use the folder the models came from"
+        )
         reset.Click += self._reset_export_folder
         export_folder_row = widgets.fill_row(self.export_folder, browse, reset)
 
