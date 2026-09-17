@@ -68,10 +68,15 @@ class BatchSelectionForm(forms.WPFWindow):
         self.result = None
         self._danger_brush = None
 
+        self.source_folder = widgets.FolderPicker(
+            pick_tooltip="Pick the folder that holds the Revit models",
+            on_pick=self._load_folder,
+        )
+        self.sourceFolderHost.Content = self.source_folder.control
+
         self.options_presenter.attach(self)
         self.options_presenter.build(self.optionsHost)
         self._build_selection_header()
-        self.btnBrowse.Click += self._browse
         self.btnLoadRoutes.Click += self._load_routes
         self.btnImportCsv.Click += self._import_csv
         self.btnContinue.Click += self._continue
@@ -163,7 +168,7 @@ class BatchSelectionForm(forms.WPFWindow):
         Prefers the folder the models were loaded from, then the folder the
         loaded local models share.  RSN routes have no local folder.
         """
-        folder = self.tbFolder.Text.strip()
+        folder = self.source_folder.path
         if folder and os.path.isdir(folder):
             return folder
         folders = set(
@@ -228,15 +233,8 @@ class BatchSelectionForm(forms.WPFWindow):
                     self.bulk_control, property_control
                 )
 
-    def _browse(self, sender, args):
-        folder = forms.pick_folder()
-        if not folder:
-            return
-        self.tbFolder.Text = folder
-        self._load_folder()
-
     def _load_folder(self):
-        folder = self.tbFolder.Text.strip()
+        folder = self.source_folder.path
         if not folder:
             return
         self.batch_input = self.input_factory.from_folder(

@@ -104,16 +104,13 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             ),
         )
         self.default_view = widgets.textbox(self.defaults.default_view_name)
-        self.export_folder = widgets.textbox(self.defaults.export_folder)
-        self.export_folder.TextChanged += self._export_folder_changed
-
-        browse = widgets.icon_button(widgets.FOLDER_GLYPH, "Pick export folder")
-        browse.Click += self._pick_export_folder
-        reset = widgets.icon_button(
-            widgets.DEFAULT_FOLDER_GLYPH, "Use the folder the models came from"
+        self.export_folder = widgets.FolderPicker(
+            self.defaults.export_folder,
+            pick_tooltip="Pick the export folder",
+            on_default=self._default_export_folder,
+            default_tooltip="Use the folder the models came from",
+            on_change=self._export_folder_changed,
         )
-        reset.Click += self._reset_export_folder
-        export_folder_row = widgets.fill_row(self.export_folder, browse, reset)
 
         self.flag_controls = dict(
             (
@@ -154,7 +151,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
                     gutter=14,
                 ),
                 widgets.label("Export folder"),
-                export_folder_row,
+                self.export_folder.control,
                 widgets.separator((0, 16, 0, 14)),
                 widgets.columns(
                     widgets.group(
@@ -173,12 +170,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             )
         )
 
-    def _pick_export_folder(self, sender, args):
-        folder = forms.pick_folder()
-        if folder:
-            self.export_folder.Text = folder
-
-    def _reset_export_folder(self, sender, args):
+    def _default_export_folder(self):
         default = self.form.default_export_folder() if self.form else ""
         if not default:
             forms.alert(
@@ -186,15 +178,14 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
                 "local folder, so pick an export folder instead.",
                 title="Batch IFC export",
             )
-            return
-        self.export_folder.Text = default
+        return default
 
     def _export_folder_changed(self, sender, args):
         if self.form:
             self.form.refresh_run_state()
 
     def validation_error(self):
-        if self.export_folder is None or self.export_folder.Text.strip():
+        if self.export_folder is None or self.export_folder.path:
             return None
         items = self.form.loaded_items() if self.form else []
         if items and all(item.options.get("export_path") for item in items):
@@ -212,7 +203,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         settings = ExportSettings()
         settings.ifc_version = getattr(DB.IFCVersion, str(self.version.SelectedItem))
         settings.default_view_name = self.default_view.Text.strip()
-        settings.export_folder = self.export_folder.Text.strip()
+        settings.export_folder = self.export_folder.path
         for key, control in self.flag_controls.items():
             settings.bool_flags[key] = bool(control.IsChecked)
         for name, control in self.controls.items():

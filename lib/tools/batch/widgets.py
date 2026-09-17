@@ -161,3 +161,69 @@ def fill_row(filling, *trailing):
         panel.Children.Add(control)
     panel.Children.Add(filling)
     return panel
+
+
+class FolderPicker(object):
+    """A path box with a folder button, and optionally a 'use default' button.
+
+    Every folder field in the extension is built from this so they share one
+    look and one set of behaviours.  Add `control` to a layout and read or
+    write the value through `path`.
+
+    Args:
+        value: initial path.
+        pick_tooltip: hover text for the folder button.
+        on_pick: called after the user picks a folder, for callers that react
+            to a new path (rescanning a folder) without reacting to typing.
+        on_default: returns the default path, or a falsy value to leave the
+            box alone.  Supplying it is what adds the second button, so each
+            field decides for itself what "default" means.
+        default_tooltip: hover text for the default button.
+        on_change: TextChanged handler, for callers that revalidate on typing.
+    """
+
+    def __init__(
+        self,
+        value="",
+        pick_tooltip="Pick a folder",
+        on_pick=None,
+        on_default=None,
+        default_tooltip="Use the default folder",
+        on_change=None,
+    ):
+        self._on_pick = on_pick
+        self._on_default = on_default
+        self.textbox = textbox(value)
+        if on_change:
+            self.textbox.TextChanged += on_change
+
+        buttons = [icon_button(FOLDER_GLYPH, pick_tooltip)]
+        buttons[0].Click += self._pick
+        if on_default:
+            default = icon_button(DEFAULT_FOLDER_GLYPH, default_tooltip)
+            default.Click += self._default
+            buttons.append(default)
+        self.control = fill_row(self.textbox, *buttons)
+
+    def _get_path(self):
+        return self.textbox.Text.strip()
+
+    def _set_path(self, value):
+        self.textbox.Text = value or ""
+
+    path = property(_get_path, _set_path)
+
+    def _pick(self, sender, args):
+        from pyrevit import forms
+
+        folder = forms.pick_folder()
+        if not folder:
+            return
+        self.path = folder
+        if self._on_pick:
+            self._on_pick()
+
+    def _default(self, sender, args):
+        folder = self._on_default()
+        if folder:
+            self.path = folder

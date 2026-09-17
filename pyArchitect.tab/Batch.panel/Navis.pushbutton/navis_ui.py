@@ -41,9 +41,17 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.analysis_only = widgets.checkbox("Analysis only")
         self.upgrade_models = widgets.checkbox("Allow model upgrade")
         self.create_log = widgets.checkbox("Save an additional report copy", True)
-        self.log_folder = widgets.textbox()
-        self.copy_destination = widgets.textbox()
-        self.copy_destination.TextChanged += self._copy_destination_changed
+        self.log_folder = widgets.FolderPicker(
+            pick_tooltip="Pick the report folder"
+        )
+        self.copy_destination = widgets.FolderPicker(
+            pick_tooltip="Pick the output folder",
+            on_default=self._default_copy_destination,
+            default_tooltip="Use a '{}' folder beside the models".format(
+                DEFAULT_COPY_FOLDER
+            ),
+            on_change=self._copy_destination_changed,
+        )
         self.write_mode = widgets.combobox(
             [
                 "Create and modify output copies (source models stay untouched)",
@@ -52,22 +60,13 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             -1,
         )
         self.write_mode.SelectionChanged += self._write_mode_changed
-        browse_copies = widgets.icon_button(
-            widgets.FOLDER_GLYPH, "Pick the output folder"
-        )
-        browse_copies.Click += self._pick_copy_destination
-        default_copies = widgets.icon_button(
-            widgets.DEFAULT_FOLDER_GLYPH,
-            "Use a '{}' folder beside the models".format(DEFAULT_COPY_FOLDER),
-        )
-        default_copies.Click += self._default_copy_destination
         self.copy_output_group = widgets.group(
             "Output copies",
             widgets.text(
                 "Each selected RVT is copied to this folder before the "
                 "Navisworks view is created. Source models are not edited."
             ),
-            widgets.fill_row(self.copy_destination, browse_copies, default_copies),
+            self.copy_destination.control,
         )
         self.copy_output_group.IsEnabled = False
         host.Children.Add(
@@ -83,16 +82,11 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 self.upgrade_models,
                 self.create_log,
                 widgets.label("Report folder"),
-                self.log_folder,
+                self.log_folder.control,
             )
         )
 
-    def _pick_copy_destination(self, sender, args):
-        folder = forms.pick_folder()
-        if folder:
-            self.copy_destination.Text = folder
-
-    def _default_copy_destination(self, sender, args):
+    def _default_copy_destination(self):
         """Point the copies at a subfolder beside the loaded models.
 
         A subfolder rather than the models' own folder: copying a model over
@@ -107,7 +101,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 "no local folder, so pick an output folder instead.",
                 title="Batch Navisworks view",
             )
-            return
+            return ""
         folder = os.path.join(source, DEFAULT_COPY_FOLDER)
         if not os.path.isdir(folder):
             try:
@@ -119,8 +113,8 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                     ),
                     title="Batch Navisworks view",
                 )
-                return
-        self.copy_destination.Text = folder
+                return ""
+        return folder
 
     def _copy_destination_changed(self, sender, args):
         if self.form:
@@ -139,10 +133,10 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
             return "Choose whether to create output copies or edit the source models on the Options tab."
         if self.write_mode.SelectedIndex == 1:
             return None
-        if self.copy_destination is None or not self.copy_destination.Text.strip():
+        if self.copy_destination is None or not self.copy_destination.path:
             return "Choose an output folder for the Navisworks model copies on the Options tab."
 
-        destination = self.copy_destination.Text.strip()
+        destination = self.copy_destination.path
         if not os.path.isdir(destination):
             return "The selected copy destination does not exist."
 
@@ -196,14 +190,14 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 if value.strip()
             ],
             "create_log": bool(self.create_log.IsChecked),
-            "log_folder": self.log_folder.Text.strip(),
+            "log_folder": self.log_folder.path,
             "save_mode": (
                 self.COPY_OUTPUT
                 if self.write_mode.SelectedIndex == 0
                 else self.EDIT_SOURCES
             ),
             "copy_destination": (
-                self.copy_destination.Text.strip()
+                self.copy_destination.path
                 if self.write_mode.SelectedIndex == 0
                 else ""
             ),

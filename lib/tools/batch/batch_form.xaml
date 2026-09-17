@@ -25,14 +25,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="Folder containing Revit models" />
-                                <Grid Grid.Row="1" Margin="0,5,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="90" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="tbFolder" Margin="0,0,5,0" />
-                                    <Button x:Name="btnBrowse" Grid.Column="1" Content="Browse" />
-                                </Grid>
+                                <ContentControl x:Name="sourceFolderHost" Grid.Row="1" Margin="0,5,0,0" />
                                 <CheckBox x:Name="cbRecursive" Grid.Row="2" Margin="0,10,0,0" IsChecked="True" Content="Search subfolders" />
                             </Grid>
                         </TabItem>
