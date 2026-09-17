@@ -16,6 +16,9 @@ from tools.batch.ifc import IFCBatchExporter, ExportSettings, ModelExportItem
 
 OPTIONS_CONFIG_KEY = "batch_ifc_options"
 
+FOLDER_GLYPH = u"\uED25"
+RESET_GLYPH = u"\uE72C"
+
 
 FLAG_LABELS = [
     ("SplitWallsAndColumns", "Split walls and columns by level"),
@@ -71,6 +74,13 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         )
         self.default_view = widgets.textbox(self.defaults.default_view_name)
         self.export_folder = widgets.textbox(self.defaults.export_folder)
+        self.export_folder.TextChanged += self._export_folder_changed
+
+        browse = widgets.icon_button(FOLDER_GLYPH, "Pick export folder")
+        browse.Click += self._pick_export_folder
+        reset = widgets.icon_button(RESET_GLYPH, "Use the folder the models came from")
+        reset.Click += self._reset_export_folder
+        export_folder_row = widgets.fill_row(self.export_folder, browse, reset)
 
         self.flag_controls = dict(
             (key, widgets.checkbox(text, self.defaults.bool_flags[key]))
@@ -91,13 +101,41 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
                 widgets.label("Default 3D view name"),
                 self.default_view,
                 widgets.label("Export folder"),
-                self.export_folder,
+                export_folder_row,
                 *(
                     [self.flag_controls[key] for key, _ in FLAG_LABELS]
                     + [self.controls[name] for name, _, _ in CHECKBOX_LABELS]
                 )
             )
         )
+
+    def _pick_export_folder(self, sender, args):
+        folder = forms.pick_folder()
+        if folder:
+            self.export_folder.Text = folder
+
+    def _reset_export_folder(self, sender, args):
+        default = self.form.default_export_folder() if self.form else ""
+        if not default:
+            forms.alert(
+                "No default export folder is available. Revit Server routes have no "
+                "local folder, so pick an export folder instead.",
+                title="Batch IFC export",
+            )
+            return
+        self.export_folder.Text = default
+
+    def _export_folder_changed(self, sender, args):
+        if self.form:
+            self.form.refresh_run_state()
+
+    def validation_error(self):
+        if self.export_folder is None or self.export_folder.Text.strip():
+            return None
+        items = self.form.loaded_items() if self.form else []
+        if items and all(item.options.get("export_path") for item in items):
+            return None
+        return "Set an export folder on the Options tab before running the batch."
 
     def _enforce_link_options(self, sender, args):
         if sender == self.controls["open_without_links"] and sender.IsChecked:

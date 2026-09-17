@@ -6,8 +6,11 @@ from pyrevit import forms
 
 from tools.batch import widgets
 from tools.batch.input import BatchInput, BatchInputCsv, BatchInputFactory
+from tools.revit_documents import is_server_path
 
 from System.Windows import Visibility
+from System.Windows.Controls import Button
+from System.Windows.Media import Color, SolidColorBrush
 
 
 CHECKBOX_WIDTH = 25
@@ -19,6 +22,15 @@ class BatchOptionsPresenter(object):
     selection_description = "Tick the models to include in this batch run."
     item_property_header = None
     bulk_label = None
+    form = None
+
+    def attach(self, form):
+        """Give the presenter access to the hosting form before build()."""
+        self.form = form
+
+    def validation_error(self):
+        """Return why Run must stay disabled, or None when the options are usable."""
+        return None
 
     def build(self, host):
         raise NotImplementedError
@@ -54,13 +66,16 @@ class BatchSelectionForm(forms.WPFWindow):
         self.batch_input = BatchInput()
         self.bulk_control = None
         self.result = None
+        self._danger_brush = None
 
+        self.options_presenter.attach(self)
         self.options_presenter.build(self.optionsHost)
         self._build_selection_header()
         self.btnBrowse.Click += self._browse
         self.btnLoadRoutes.Click += self._load_routes
         self.btnImportCsv.Click += self._import_csv
         self.btnContinue.Click += self._continue
+        self.btnContinueOptions.Click += self._continue_to_options
         self.cbSelectAll.Click += self._select_all
         self.btnRun.Click += self._run
         self.btnCancel.Click += self._cancel
@@ -70,6 +85,82 @@ class BatchSelectionForm(forms.WPFWindow):
             self.tabProperties.Visibility = Visibility.Collapsed
             self.tabs.SelectedItem = self.tabOptions
             self.btnRun.Content = "Save options"
+
+        self.refresh_run_state()
+
+    def refresh_run_state(self):
+        """Enable Run only while the presenter reports usable options.
+
+        Skipped when the form only edits options: saving settings is not a run,
+        so an option left blank must still be storable.
+        """
+        error = None if self.options_only else self.options_presenter.validation_error()
+        self.btnRun.IsEnabled = not error
+        self.btnRun.ToolTip = error
+        self._accent_run_button(not error)
+
+    def _hint_brush(self):
+        """Brush for inline validation text, themed where the theme offers one."""
+        if self._danger_brush is None:
+            brush = self.TryFindResource("pyRevitDangerForegroundBrush")
+            if brush is None:
+                brush = SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x61))
+            self._danger_brush = brush
+        return self._danger_brush
+
+    def _hint(self, control, message=None):
+        """Show a validation message beside a button, or clear it.
+
+        Preferred over a modal alert: the message sits where the user already
+        is, points at the tab that resolves it, and disappears on its own once
+        the form moves on.
+        """
+        if not message:
+            control.Visibility = Visibility.Collapsed
+            return
+        control.Text = message
+        control.Foreground = self._hint_brush()
+        control.Visibility = Visibility.Visible
+
+    def _accent_run_button(self, highlighted):
+        """Paint Run in the theme accent while it can actually be pressed.
+
+        Assigned from here rather than from a style in the XAML: a
+        <Window.Resources> block would replace the resource dictionary pyRevit
+        merges into the window before the XAML is parsed, taking the theme with
+        it.  Both brushes exist in every pyRevit version that themes forms.
+        """
+        for prop, key in (
+            ("Background", "pyRevitAccentBrush"),
+            ("BorderBrush", "pyRevitAccentBrush"),
+            ("Foreground", "pyRevitDarkBrush"),
+        ):
+            brush = self.TryFindResource(key) if highlighted else None
+            if brush is None:
+                self.btnRun.ClearValue(getattr(Button, prop + "Property"))
+            else:
+                setattr(self.btnRun, prop, brush)
+
+    def default_export_folder(self):
+        """Folder to seed an export path from, or '' when none applies.
+
+        Prefers the folder the models were loaded from, then the folder the
+        loaded local models share.  RSN routes have no local folder.
+        """
+        folder = self.tbFolder.Text.strip()
+        if folder and os.path.isdir(folder):
+            return folder
+        folders = set(
+            os.path.dirname(item.source_path)
+            for item in self.batch_input.items
+            if not is_server_path(item.source_path)
+        )
+        folders.discard("")
+        return folders.pop() if len(folders) == 1 else ""
+
+    def loaded_items(self):
+        """Items currently loaded on the selection tab."""
+        return self.batch_input.items
 
     def _build_selection_header(self):
         presenter = self.options_presenter
@@ -148,9 +239,16 @@ class BatchSelectionForm(forms.WPFWindow):
         if self.sourceTabs.SelectedIndex == 0:
             self._load_folder()
         if not self.batch_input.items:
-            forms.alert("No models loaded.", title=self.Title)
+            self._hint(
+                self.tbSelectionHint,
+                u"No models loaded \u2014 pick a folder or add RSN routes above.",
+            )
             return
+        self._hint(self.tbSelectionHint)
         self.tabs.SelectedItem = self.tabProperties
+
+    def _continue_to_options(self, sender, args):
+        self.tabs.SelectedItem = self.tabOptions
 
     def _render_items(self):
         self.lbModels.Items.Clear()
@@ -165,6 +263,9 @@ class BatchSelectionForm(forms.WPFWindow):
             panel = widgets.row(*controls)
             panel.Tag = (item, checkbox, property_control)
             self.lbModels.Items.Add(panel)
+        self._hint(self.tbSelectionHint)
+        self._hint(self.tbRunHint)
+        self.refresh_run_state()
 
     def _select_all(self, sender, args):
         selected = bool(self.cbSelectAll.IsChecked)
@@ -187,8 +288,21 @@ class BatchSelectionForm(forms.WPFWindow):
             )
             selected_items.append(item)
         if not selected_items:
-            forms.alert("Select at least one model.", title=self.Title)
+            if not self.batch_input.items:
+                self._hint(
+                    self.tbRunHint,
+                    u"No models loaded \u2014 load them on the Selection tab.",
+                )
+                self.tabs.SelectedItem = self.tabSelection
+            else:
+                self._hint(
+                    self.tbRunHint,
+                    u"No models ticked \u2014 tick at least one on the "
+                    "Selection properties tab.",
+                )
+                self.tabs.SelectedItem = self.tabProperties
             return
+        self._hint(self.tbRunHint)
         self.result = {
             "input": BatchInput(selected_items),
             "options": self.options_presenter.read_options(),

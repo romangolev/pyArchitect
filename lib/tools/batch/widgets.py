@@ -8,10 +8,13 @@ clr.AddReference("PresentationFramework")
 clr.AddReference("WindowsBase")
 
 from System.Windows import FontWeights, Thickness, VerticalAlignment
+from System.Windows.Media import FontFamily
 from System.Windows.Controls import (
     Button,
     CheckBox,
     ComboBox,
+    Dock,
+    DockPanel,
     Orientation,
     StackPanel,
     TextBlock,
@@ -75,6 +78,18 @@ def button(content, width=None, margin=None):
     return control
 
 
+def icon_button(glyph, tooltip=None, margin=(4, 0, 0, 0)):
+    """Square glyph button matching pyRevit's own small toolbar buttons."""
+    control = button(glyph, width=26, margin=margin)
+    control.Height = 26
+    control.Padding = Thickness(0)
+    control.FontFamily = FontFamily("Segoe MDL2 Assets")
+    control.FontSize = 13
+    if tooltip:
+        control.ToolTip = tooltip
+    return control
+
+
 def _panel(orientation, controls):
     panel = StackPanel()
     panel.Orientation = orientation
@@ -89,3 +104,18 @@ def stack(*controls):
 
 def row(*controls):
     return _panel(Orientation.Horizontal, controls)
+
+
+def fill_row(filling, *trailing):
+    """Row where `filling` takes the free width and `trailing` stays its own size.
+
+    A horizontal StackPanel never stretches its children, so a text box in one
+    keeps a fixed width while the fields around it follow the window.
+    """
+    panel = DockPanel()
+    panel.LastChildFill = True
+    for control in reversed(trailing):
+        DockPanel.SetDock(control, Dock.Right)
+        panel.Children.Add(control)
+    panel.Children.Add(filling)
+    return panel

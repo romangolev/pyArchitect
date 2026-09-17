@@ -24,6 +24,18 @@ OPTIONS = [
 ]
 
 
+def category_label(name):
+    """Readable label for a BuiltInCategory name.
+
+    Drops the ``OST_`` prefix every category shares, then doubles any remaining
+    underscore: WPF reads a single underscore in a control's content as an
+    access-key marker and swallows it, which is what turns ``OST_CableTray``
+    into ``OSTCableTray`` on screen.
+    """
+    label = name[4:] if name.startswith("OST_") else name
+    return label.replace("_", "__")
+
+
 class NavisViewSettings(object):
     def __init__(self, **overrides):
         for name, _, default in OPTIONS:
@@ -205,15 +217,16 @@ class ProfileEditor(forms.WPFWindow):
         for name in self.category_names:
             checkbox = CheckBox()
             available = category_is_available(name)
-            checkbox.Content = name
+            checkbox.Content = category_label(name)
             checkbox.IsChecked = name in selected
+            checkbox.ToolTip = name
             if not available:
                 checkbox.Content = "{} (not available in this Revit version)".format(
-                    name
+                    category_label(name)
                 )
                 checkbox.ToolTip = (
-                    "This category is not available in the running Revit version "
-                    "and cannot be edited."
+                    "{} is not available in the running Revit version "
+                    "and cannot be edited.".format(name)
                 )
                 checkbox.IsEnabled = False
             self.category_checks[name] = checkbox
