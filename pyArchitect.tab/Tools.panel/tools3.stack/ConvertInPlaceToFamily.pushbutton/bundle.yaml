@@ -1,0 +1,34 @@
+title:
+  es_es: |-
+    Convertir en sitio
+    a familia
+  en_us: |-
+    Convert In-Place
+    to Family
+  ru: |-
+    Преобразовать
+    в семейство
+
+tooltip:
+  es_es: >-
+    Convierte un único componente modelado in situ en una familia cargable.
+    Crea un RFA con la geometría sólida final, lo carga, lo coloca en la misma
+    ubicación y solo entonces elimina el original. La geometría queda como
+    formas libres: no se conservan bocetos, parámetros, restricciones, vacíos
+    ni materiales por cara.
+  en_us: >-
+    Converts one model-in-place component into a loadable family. Creates an
+    RFA from its final solid geometry, loads it, puts it at the same location,
+    and only then removes the original. Geometry becomes free-form solids;
+    sketches, parameters, constraints, void history, and per-face materials
+    are not retained.
+  ru: >-
+    Преобразует один компонент, созданный на месте, в загружаемое семейство.
+    Создает RFA из итоговой твердотельной геометрии, загружает его, размещает
+    на том же месте и только затем удаляет исходный компонент. Геометрия
+    становится свободной формой: эскизы, параметры, зависимости, историю
+    пустот и материалы граней сохранить нельзя.
+
+author: Roman Golev
+engine:
+  persistent: true
