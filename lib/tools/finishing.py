@@ -531,8 +531,8 @@ class FinishingTool(object):
         duplicated_wall_type = type_of_wall.Duplicate(str(uuid.uuid4()))
         cs1 = duplicated_wall_type.GetCompoundStructure()
         layers1 = cs1.GetLayers()
-        for layer in layers1:
-            cs1.SetLayerWidth(layer.LayerId, 2 * cs1.GetLayerWidth(layer.LayerId))
+        for layer_index, layer in enumerate(layers1):
+            cs1.SetLayerWidth(layer_index, 2 * layer.Width)
         duplicated_wall_type.SetCompoundStructure(cs1)
         return duplicated_wall_type
 
