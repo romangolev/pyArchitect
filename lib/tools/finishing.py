@@ -62,7 +62,9 @@ class FinishingRoom(object):
     def boundary_count(self):
         return len(self.boundaries)
 
-    def make_finishing_floor(self, floor_type, rswitches, app, mode="default"):
+    def make_finishing_floor(
+        self, floor_type, rswitches, app, mode="default", room_parameter=None
+    ):
         room = self.rvt_room_elem
         room_offset1 = room.get_Parameter(
             DB.BuiltInParameter.ROOM_LOWER_OFFSET
@@ -128,6 +130,7 @@ class FinishingRoom(object):
         new_floor.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(
             param_value
         )
+        self.set_room_parameter(new_floor, room_parameter)
         return new_floor
 
     def do_we_need_to_make_wall(self, bound, rswitches):
@@ -159,45 +162,88 @@ class FinishingRoom(object):
 
         return any([condition1, condition2, condition3])
 
-    def make_finishing_walls_outer(self, temp_type, rswitches):
-        filtered_boundaries = [
-            bound
-            for bound in self.outer_boundaries
-            if bound.GetCurve().Length > 10 / 304.8
-        ]
-        self.boundwalls = [
-            self.doc.GetElement(bound.ElementId) for bound in filtered_boundaries
-        ]
-        for bound in filtered_boundaries:
-            if self.do_we_need_to_make_wall(bound, rswitches):
-                new_wall = self.make_finishing_wall_by_line(bound.GetCurve(), temp_type)
-                self.new_walls_and_hosts[new_wall] = self.doc.GetElement(
-                    bound.ElementId
+    def get_host_type_key(self, bound):
+        """Return a key that keeps walls separate at different host types."""
+        host = self.doc.GetElement(bound.ElementId)
+        if host is None or host.Category is None:
+            return None
+        try:
+            type_id = host.GetTypeId().IntegerValue
+        except:
+            type_id = host.Id.IntegerValue
+        return (host.Category.Id.IntegerValue, type_id)
+
+    @staticmethod
+    def curves_can_be_merged(first_curve, second_curve):
+        """Only merge connected, collinear line segments; arcs stay untouched."""
+        if not isinstance(first_curve, DB.Line) or not isinstance(second_curve, DB.Line):
+            return False
+        tolerance = 1e-6
+        if (
+            first_curve.GetEndPoint(1).DistanceTo(second_curve.GetEndPoint(0))
+            > tolerance
+        ):
+            return False
+        return (
+            abs(first_curve.Direction.CrossProduct(second_curve.Direction).Z)
+            < tolerance
+            and first_curve.Direction.DotProduct(second_curve.Direction) > 0
+        )
+
+    def get_merged_boundary_groups(self, boundaries, rswitches):
+        """Combine adjacent fragments only when their host category and type match."""
+        groups = []
+        current = None
+        for bound in boundaries:
+            curve = bound.GetCurve()
+            if (
+                curve.Length <= 10 / 304.8
+                or not self.do_we_need_to_make_wall(bound, rswitches)
+            ):
+                current = None
+                continue
+
+            host = self.doc.GetElement(bound.ElementId)
+            host_key = self.get_host_type_key(bound)
+            if (
+                current is not None
+                and current["host_key"] == host_key
+                and self.curves_can_be_merged(current["curve"], curve)
+            ):
+                current["curve"] = DB.Line.CreateBound(
+                    current["curve"].GetEndPoint(0), curve.GetEndPoint(1)
                 )
-                self.new_walls.append(new_wall)
+                current["hosts"].append(host)
+            else:
+                current = {"curve": curve, "host_key": host_key, "hosts": [host]}
+                groups.append(current)
+        return groups
 
-    def make_finishing_walls_inner(self, temp_type, rswitches):
+    def make_finishing_walls_outer(self, temp_type, rswitches, room_parameter=None):
+        for group in self.get_merged_boundary_groups(self.outer_boundaries, rswitches):
+            new_wall = self.make_finishing_wall_by_line(
+                group["curve"], temp_type, rswitches, room_parameter
+            )
+            self.new_walls_and_hosts[new_wall] = group["hosts"]
+            self.new_walls.append(new_wall)
+
+    def make_finishing_walls_inner(self, temp_type, rswitches, room_parameter=None):
         for boundary in self.inner_boundaries:
-            for bound in boundary:
-                if self.do_we_need_to_make_wall(bound, rswitches):
-                    try:
-                        new_wall = self.make_finishing_wall_by_line(
-                            bound.GetCurve(), temp_type
-                        )
-                        if hasattr(bound, "ElementId"):
-                            self.new_walls_and_hosts[new_wall] = self.doc.GetElement(
-                                bound.ElementId
-                            )
-                        else:
-                            self.new_walls_and_hosts[new_wall] = None
-                        self.new_walls.append(new_wall)
-                    except:
-                        import traceback
+            for group in self.get_merged_boundary_groups(boundary, rswitches):
+                try:
+                    new_wall = self.make_finishing_wall_by_line(
+                        group["curve"], temp_type, rswitches, room_parameter
+                    )
+                    self.new_walls_and_hosts[new_wall] = group["hosts"]
+                    self.new_walls.append(new_wall)
+                except:
+                    import traceback
 
-                        print(traceback.format_exc())
-                        pass
+                    print(traceback.format_exc())
 
-    def make_finishing_wall_by_line(self, line, temp_type):
+    def make_finishing_wall_by_line(
+        self, line, temp_type, rswitches, room_parameter=None
+    ):
         room = self.rvt_room_elem
         room_height = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
         if room_height > 0:
@@ -212,9 +258,13 @@ class FinishingRoom(object):
         new_wall.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(
             "Wall finishing"
         )
+        if rswitches["Allow Wall Joins at Ends"] == False:
+            DB.WallUtils.DisallowWallJoinAtEnd(new_wall, 0)
+            DB.WallUtils.DisallowWallJoinAtEnd(new_wall, 1)
+        self.set_room_parameter(new_wall, room_parameter)
         return new_wall
 
-    def make_finishing_ceiling(self, ceiling_type, rswitches):
+    def make_finishing_ceiling(self, ceiling_type, rswitches, room_parameter=None):
         room = self.rvt_room_elem
         room_offset2 = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
         room_boundary_options = DB.SpatialElementBoundaryOptions()
@@ -248,7 +298,22 @@ class FinishingRoom(object):
         new_ceiling.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(
             "Ceiling Finishing"
         )
+        self.set_room_parameter(new_ceiling, room_parameter)
         return new_ceiling
+
+    def set_room_parameter(self, element, room_parameter):
+        """Write the selected room identity into a writable instance text parameter."""
+        if room_parameter is None:
+            return
+        parameter_name, value_source = room_parameter
+        value = self.room_number if value_source == "Room Number" else self.room_name
+        for parameter in element.GetParameters(parameter_name):
+            if (
+                not parameter.IsReadOnly
+                and parameter.StorageType == DB.StorageType.String
+            ):
+                parameter.Set(value or "")
+                return
 
     def make_openings(self, nf):
         co_curves = DB.CurveArray()
@@ -331,71 +396,47 @@ class FinishingRoom(object):
 
     def get_door_width(self, door):
         door_type = self.doc.GetElement(door.GetTypeId())
+        opening_width_parameters = [
+            DB.BuiltInParameter.FAMILY_WIDTH_PARAM,
+            DB.BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM,
+        ]
+        fallback_width_parameters = [
+            DB.BuiltInParameter.FURNITURE_WIDTH,
+            DB.BuiltInParameter.DOOR_WIDTH,
+            DB.BuiltInParameter.CASEWORK_WIDTH,
+            DB.BuiltInParameter.GENERIC_WIDTH,
+        ]
+        widths = []
+        for element in [door, door_type]:
+            for parameter_id in opening_width_parameters:
+                try:
+                    width = element.get_Parameter(parameter_id).AsDouble()
+                    if width > 0.0:
+                        widths.append(width)
+                except:
+                    pass
 
-        door_width = None
-        try:
-            width_value = door_type.get_Parameter(
-                DB.BuiltInParameter.FAMILY_WIDTH_PARAM
-            ).AsDouble()
-            if width_value != 0.0:
-                door_width = width_value
-        except:
-            pass
+        # The floor must span the opening: choose the larger of Width and
+        # Rough Width. Other standard width parameters support families that
+        # do not expose either door-opening parameter.
+        if widths:
+            return max(widths)
 
-        if door_width == 0.0 or door_width == None:
-            try:
-                width_value = door_type.get_Parameter(
-                    DB.BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM
-                ).AsDouble()
-                if width_value != 0.0:
-                    door_width = width_value
-            except:
-                pass
+        for element in [door, door_type]:
+            for parameter_id in fallback_width_parameters:
+                try:
+                    width = element.get_Parameter(parameter_id).AsDouble()
+                    if width > 0.0:
+                        widths.append(width)
+                except:
+                    pass
 
-        if door_width == 0.0 or door_width == None:
-            try:
-                width_value = door_type.get_Parameter(
-                    DB.BuiltInParameter.FURNITURE_WIDTH
-                ).AsDouble()
-                if width_value != 0.0:
-                    door_width = width_value
-            except:
-                pass
-
-        if door_width == 0.0 or door_width == None:
-            try:
-                width_value = door_type.get_Parameter(
-                    DB.BuiltInParameter.DOOR_WIDTH
-                ).AsDouble()
-                if width_value != 0.0:
-                    door_width = width_value
-            except:
-                pass
-        if door_width == 0.0 or door_width == None:
-            try:
-                width_value = door_type.get_Parameter(
-                    DB.BuiltInParameter.CASEWORK_WIDTH
-                ).AsDouble()
-                if width_value != 0.0:
-                    door_width = width_value
-            except:
-                pass
-        if door_width == 0.0 or door_width == None:
-            try:
-                width_value = door_type.get_Parameter(
-                    DB.BuiltInParameter.GENERIC_WIDTH
-                ).AsDouble()
-                if width_value != 0.0:
-                    door_width = width_value
-            except:
-                pass
-
-        if door_width == 0.0 or door_width == None:
+        if not widths:
             raise ValueError(
                 "Coudn't get door width. Build in parameters 'Width' and 'Rough Width' are 0.0"
             )
 
-        return door_width
+        return max(widths)
 
     def generate_floor_outline(self):
         """
@@ -536,19 +577,74 @@ class FinishingTool(object):
         duplicated_wall_type.SetCompoundStructure(cs1)
         return duplicated_wall_type
 
+    def get_writable_text_parameter_names(self, build_in_category):
+        """Return text instance parameters available to the requested category."""
+        elements = (
+            DB.FilteredElementCollector(self.doc)
+            .OfCategory(build_in_category)
+            .WhereElementIsNotElementType()
+        )
+        for element in elements:
+            parameter_names = []
+            for parameter in element.Parameters:
+                if (
+                    parameter.Definition is not None
+                    and not parameter.IsReadOnly
+                    and parameter.StorageType == DB.StorageType.String
+                ):
+                    parameter_names.append(parameter.Definition.Name)
+            if parameter_names:
+                return sorted(set(parameter_names))
+        return []
+
+    def pick_room_parameter_assignment(self, build_in_category):
+        parameter_names = self.get_writable_text_parameter_names(build_in_category)
+        if not parameter_names:
+            forms.alert(
+                "No writable instance text parameters were found for this category.",
+                title="Room parameter assignment",
+            )
+            return None
+
+        parameter_name = forms.SelectFromList.show(
+            parameter_names,
+            title="Room parameter assignment",
+            button_name="Use parameter",
+        )
+        if not parameter_name:
+            return None
+
+        value_source = forms.SelectFromList.show(
+            ["Room Number", "Room Name"],
+            title="Room parameter assignment",
+            button_name="Write value",
+        )
+        if not value_source:
+            return None
+        return (parameter_name, value_source)
+
     def create_floors(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
-        switches = ["Consider Thickness", "Include Door Notches"]
+        switches = [
+            "Consider Thickness",
+            "Include Door Notches",
+            "Write Room Data to Text Parameter",
+        ]
         floor_type, rswitches = self.pick_finishing_type_id(
             DB.BuiltInCategory.OST_Floors, switches
         )
+        room_parameter = None
+        if rswitches["Write Room Data to Text Parameter"]:
+            room_parameter = self.pick_room_parameter_assignment(
+                DB.BuiltInCategory.OST_Floors
+            )
 
         with WrappedTransactionGroup(self.doc, "Create Floor"):
             for room in selected_rooms:
                 with WrappedTransaction(self.doc, "Create Floor"):
                     new_floor = room.make_finishing_floor(
-                        floor_type, rswitches, self.app
+                        floor_type, rswitches, self.app, room_parameter=room_parameter
                     )
 
                 if room.boundary_count > 1:
@@ -558,10 +654,21 @@ class FinishingTool(object):
     def create_walls(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
-        switches = ["Inside loops finishing", "Include Room Separation Lines"]
+        switches = [
+            "Inside loops finishing",
+            "Include Room Separation Lines",
+            "Join Geometry with Host Walls",
+            "Allow Wall Joins at Ends",
+            "Write Room Data to Text Parameter",
+        ]
         wall_type, rswitches = self.pick_finishing_type_id(
             DB.BuiltInCategory.OST_Walls, switches
         )
+        room_parameter = None
+        if rswitches["Write Room Data to Text Parameter"]:
+            room_parameter = self.pick_room_parameter_assignment(
+                DB.BuiltInCategory.OST_Walls
+            )
 
         with WrappedTransactionGroup(self.doc, "Make wall finishings"):
             with WrappedTransaction(self.doc, "Create Temp Type"):
@@ -571,37 +678,34 @@ class FinishingTool(object):
                 self.doc, "Create Finishing Walls", warning_suppressor=True
             ):
                 for room in selected_rooms:
-                    room.make_finishing_walls_outer(tmp, rswitches)
+                    room.make_finishing_walls_outer(tmp, rswitches, room_parameter)
                     if rswitches["Inside loops finishing"] == True:
-                        room.make_finishing_walls_inner(tmp, rswitches)
-
-            new_walls_ids = List[DB.ElementId]([i.Id for i in room.new_walls])
-            with WrappedTransaction(self.doc, "Change type back to original"):
-                DB.Element.ChangeTypeId(self.doc, new_walls_ids, wall_type.Id)
-
-            with WrappedTransaction(
-                self.doc, "Join finishing Walls with hosts", warning_suppressor=True
-            ):
-                for i, y in zip(room.new_walls, room.boundwalls):
-                    try:
-                        DB.JoinGeometryUtils.JoinGeometry(self.doc, i, y)
-                    except Exception:
-                        pass
-
-            with WrappedTransaction(
-                self.doc,
-                "Join finishing Walls with it's next host",
-                warning_suppressor=True,
-            ):
-                i = 0
-                for new_wall, host in room.new_walls_and_hosts.items():
-                    i += 1
-                    try:
-                        DB.JoinGeometryUtils.JoinGeometry(
-                            self.doc, list(room.new_walls_and_hosts.keys())[i], host
+                        room.make_finishing_walls_inner(
+                            tmp, rswitches, room_parameter
                         )
-                    except Exception:
-                        pass
+
+            new_walls = [wall for room in selected_rooms for wall in room.new_walls]
+            if new_walls:
+                new_walls_ids = List[DB.ElementId]([wall.Id for wall in new_walls])
+                with WrappedTransaction(self.doc, "Change type back to original"):
+                    DB.Element.ChangeTypeId(self.doc, new_walls_ids, wall_type.Id)
+
+            if rswitches["Join Geometry with Host Walls"]:
+                with WrappedTransaction(
+                    self.doc, "Join finishing Walls with hosts", warning_suppressor=True
+                ):
+                    for room in selected_rooms:
+                        for new_wall, hosts in room.new_walls_and_hosts.items():
+                            for host in hosts:
+                                try:
+                                    if not DB.JoinGeometryUtils.AreElementsJoined(
+                                        self.doc, new_wall, host
+                                    ):
+                                        DB.JoinGeometryUtils.JoinGeometry(
+                                            self.doc, new_wall, host
+                                        )
+                                except Exception:
+                                    pass
 
             with WrappedTransaction(self.doc, "Delete Temp Type"):
                 self.doc.Delete(tmp.Id)
@@ -612,13 +716,19 @@ class FinishingTool(object):
 
         if int(self.app.VersionNumber) > 2021:
             ceiling_type, rswitches = self.pick_finishing_type_id(
-                DB.BuiltInCategory.OST_Ceilings
+                DB.BuiltInCategory.OST_Ceilings,
+                ["Consider Thickness", "Write Room Data to Text Parameter"],
             )
+            room_parameter = None
+            if rswitches["Write Room Data to Text Parameter"]:
+                room_parameter = self.pick_room_parameter_assignment(
+                    DB.BuiltInCategory.OST_Ceilings
+                )
             with WrappedTransactionGroup(self.doc, "Create Ceiling"):
                 for room in selected_rooms:
                     with WrappedTransaction(self.doc, "Create Ceiling"):
                         new_ceiling = room.make_finishing_ceiling(
-                            ceiling_type, rswitches
+                            ceiling_type, rswitches, room_parameter
                         )
                     if room.boundary_count > 1:
                         with WrappedTransaction(self.doc, "Create Opening(s)"):
@@ -626,13 +736,23 @@ class FinishingTool(object):
 
         elif int(self.app.VersionNumber) <= 2021:
             ceiling_type, rswitches = self.pick_finishing_type_id(
-                DB.BuiltInCategory.OST_Floors
+                DB.BuiltInCategory.OST_Floors,
+                ["Consider Thickness", "Write Room Data to Text Parameter"],
             )
+            room_parameter = None
+            if rswitches["Write Room Data to Text Parameter"]:
+                room_parameter = self.pick_room_parameter_assignment(
+                    DB.BuiltInCategory.OST_Floors
+                )
             with WrappedTransactionGroup(self.doc, "Create Floor"):
                 for room in selected_rooms:
                     with WrappedTransaction(self.doc, "Create Floor"):
                         new_floor = room.make_finishing_floor(
-                            ceiling_type, rswitches, self.app, mode="ceiling"
+                            ceiling_type,
+                            rswitches,
+                            self.app,
+                            mode="ceiling",
+                            room_parameter=room_parameter,
                         )
 
                     if room.boundary_count > 1:
