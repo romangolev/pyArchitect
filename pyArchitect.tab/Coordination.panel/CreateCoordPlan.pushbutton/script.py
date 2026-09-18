@@ -83,6 +83,7 @@ def create_coord_plan(doc, vft, lvl):
     elem.DetailLevel = DB.ViewDetailLevel.Coarse
     elem.DisplayStyle = DB.DisplayStyle.Wireframe
     elem.Discipline = DB.ViewDiscipline.Coordination
+    elem.Orientation = DB.ViewPlanOrientation.TrueNorth
     elem.Name = "Coordination Plan"
     elem.SetCategoryHidden(get_categoryID("Site"), False)
     elem.SetCategoryHidden(get_categoryID('BasePoint'), False)
