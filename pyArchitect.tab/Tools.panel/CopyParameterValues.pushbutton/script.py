@@ -252,6 +252,8 @@ class CopyValues:
 
 
 class MyWindow(WPFWindow):
+    resolve_theme = True
+
     def __init__(self, xaml_file_name):
         WPFWindow.__init__(self, xaml_file_name)
         self.set_icon(op.join(op.dirname(op.realpath(__file__)), 'icon16.png'))

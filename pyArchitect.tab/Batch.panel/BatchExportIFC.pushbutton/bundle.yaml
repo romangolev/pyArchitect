@@ -1,0 +1,55 @@
+title:
+  en_us: |-
+    Batch
+    IFC Export
+  ru: |-
+    Пакетный
+    экспорт IFC
+  es_es: |-
+    Exportar
+    IFC (lote)
+tooltip:
+  en_us: >-
+    Export a batch of Revit models to IFC.
+    _________________________________________________________________
+
+    Pick the models from a local folder, from Revit Server routes, or from a
+    CSV with SourcePath and Options columns. Each model is opened in the
+    background, the requested 3D view is resolved and exported to IFC with the
+    settings from the Options tab: IFC version, property sets, base quantities,
+    how linked models are handled, and the export folder.
+
+    Runs without an open document. Shift+Click to edit the export settings
+    without running a batch.
+
+  ru: >-
+    Пакетный экспорт моделей Revit в IFC.
+    _________________________________________________________________
+
+    Модели выбираются из локальной папки, по маршрутам Revit Server или из CSV
+    со столбцами SourcePath и Options. Каждая модель открывается в фоне,
+    нужный 3D вид находится и выгружается в IFC с настройками из вкладки
+    "Options": версия IFC, наборы свойств, базовые величины, обработка связей
+    и папка экспорта.
+
+    Работает без открытой модели. Shift+Click — изменить настройки экспорта,
+    не запуская пакет.
+
+  es_es: >-
+    Exportación por lotes de modelos de Revit a IFC.
+    _________________________________________________________________
+
+    Los modelos se eligen desde una carpeta local, desde rutas de Revit Server
+    o desde un CSV con las columnas SourcePath y Options. Cada modelo se abre
+    en segundo plano, se resuelve la vista 3D solicitada y se exporta a IFC con
+    los ajustes de la pestaña "Options": versión IFC, conjuntos de propiedades,
+    cantidades base, tratamiento de los vínculos y carpeta de exportación.
+
+    Funciona sin documento abierto. Shift+Click para editar los ajustes de
+    exportación sin ejecutar un lote.
+
+author: Roman Golev
+engine:
+  persistent: false
+
+context: zero-doc

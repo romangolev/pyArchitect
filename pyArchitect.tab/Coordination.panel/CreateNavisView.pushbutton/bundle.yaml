@@ -19,9 +19,8 @@ tooltip:
     Creates Navis 3D view
     _________________________________________________________________
 
-    Creates new 3D View for Navisworks export (Hides all annotations, imports, etc.)
-    Searches for existing 3D Views, gives an option to delete existing view and
-    create new one or preserve existed.
+    Creates or updates the configured Navisworks 3D view using the selected
+    pyArchitect profile. Shift+Click to set the default profile and edit presets.
   ru: >-
     Создаёт 3D вид Navis.
     _________________________________________________________________
