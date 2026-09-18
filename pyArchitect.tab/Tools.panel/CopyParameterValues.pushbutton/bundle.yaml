@@ -1,16 +1,21 @@
 title:
   es_es: |-
-    Copy Values
+    Copiar
+    valores
   en_us: |-
     Copy Values
   ru: |-
-    Copy Values
+    Копировать
+    значения
   fr_fr: |-
-    Copy Values
+    Copier
+    valeurs
   de_de: |-
-    Copy Values
+    Werte
+    kopieren
   pt_br: |-
-    Copy Values
+    Copiar
+    valores
 tooltip:
   es_es: >-
     Copiar el valor del parámetro de una propiedad seleccionada a otra

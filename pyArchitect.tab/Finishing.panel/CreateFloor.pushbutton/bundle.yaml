@@ -1,22 +1,22 @@
 title:
   es_es: |-
-    Floor
-    Finishing
+    Acabado
+    Suelo
   en_us: |-
     Floor
     Finishing
   ru: |-
-    Floor
-    Finishing
+    Отделка
+    пола
 tooltip: 
   es_es: >-
-    Crea pisos para habitaciones seleccionadas
+    Crea suelos para habitaciones seleccionadas
     _________________________________________________________________
     Sigue los pasos :
     Paso 1 - Seleccione habitación (es)
     Paso 2: Seleccione la opción desplazamiento y elija el tipo de acabado
 
-    La opción "CConsider Thickness" tiene en cuenta el grosor del techo y lo desplaza hacia abajo
+    La opción "Consider Thickness" tiene en cuenta el grosor del suelo y lo desplaza hacia abajo
   en_us: >-
     Creates floors for selected rooms
     _________________________________________________________________
@@ -24,7 +24,7 @@ tooltip:
     Step 1 — Select room(s) 
     Step 2 — Select offset option and choose finishing type 
 
-    Option "Consider Thickness" takes into account ceiling's Thickness and shifts it down
+    Option "Consider Thickness" takes into account floor's Thickness and shifts it down
   ru: >-
     Создание отделки пола для выбранных помещений
     _________________________________________________________________
@@ -32,7 +32,7 @@ tooltip:
     Шаг 1 — Выделить помещение(я)
     Шаг 2 — Выбрать опцию смещения и тип отделки
 
-    Функция "Consider Thickness" смещает отделку потолка вниз на его толщину
+    Функция "Consider Thickness" смещает отделку пола вниз на её толщину
 
 author: Roman Golev
 engine:

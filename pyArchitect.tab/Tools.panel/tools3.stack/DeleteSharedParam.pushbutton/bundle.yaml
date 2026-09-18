@@ -1,13 +1,13 @@
 title:
   es_es: |-
-    Delete
-    Shared Parameter
+    Eliminar
+    parám. compartido
   en_us: |-
     Delete
     Shared Parameter
   ru: |-
-    Delete
-    Shared Parameter
+    Удалить
+    общий параметр
 tooltip: 
   es_es: >-
     Elimina completamente los parametros compartidos seleccionados del proyecto.

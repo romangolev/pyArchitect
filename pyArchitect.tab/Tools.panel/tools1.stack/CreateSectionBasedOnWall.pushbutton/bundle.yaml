@@ -1,13 +1,13 @@
 title:
   es_es: |-
-    Section
-    for Wall
+    Sección
+    de muro
   en_us: |-
     Section
     for Wall
   ru: |-
-    Section
-    for Wall
+    Разрез
+    по стене
 tooltip: 
   es_es: >-
     Crea una sección basada en muros seleccionados

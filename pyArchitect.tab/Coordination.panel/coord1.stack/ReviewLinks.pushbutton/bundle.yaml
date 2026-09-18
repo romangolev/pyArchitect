@@ -1,10 +1,12 @@
 title:
   es_es: |-
-    Review Links
+    Revisar
+    vínculos
   en_us: |-
     Review Links
   ru: |-
-    Review Links
+    Проверка
+    связей
 tooltip: 
   es_es: >-
     Comprueba si los enlaces están anclados y si ese enlace está en un conjunto de trabajo separado (iniciado desde ##Link_).

@@ -1,13 +1,13 @@
 title:
   es_es: |-
-    Volume
-    Query
+    Consulta
+    volumen
   en_us: |-
     Volume
     Query
   ru: |-
-    Volume
-    Query
+    Запрос
+    объёма
 tooltip: 
   es_es: >-
     Devuelve el volumen del elemento para los elementos seleccionados. Calcula totales en metros cúbicos 

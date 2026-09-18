@@ -1,0 +1,21 @@
+title:
+  es_es: |-
+    GUID de
+    parámetros
+  en_us: |-
+    Shared
+    Param GUIDs
+  ru: |-
+    GUID общих
+    параметров
+tooltip:
+  es_es: >-
+    Lista los parámetros compartidos del proyecto junto con sus GUID
+  en_us: >-
+    Lists the shared parameters of the project together with their GUIDs
+  ru: >-
+    Выводит список общих параметров проекта вместе с их GUID
+
+author: Roman Golev
+engine:
+  persistent: true
