@@ -1,0 +1,4 @@
+layout:
+  - CreateSectionBasedOnWall
+  - JoinTool
+  - SelectMirrored

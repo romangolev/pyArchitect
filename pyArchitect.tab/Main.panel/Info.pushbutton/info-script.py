@@ -11,8 +11,6 @@ import os.path as op
 import core
 import datetime
 
-__context__ = 'zero-doc'
-
 try:
     remote_version = core.get_git_version()
 except:
