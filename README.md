@@ -45,7 +45,7 @@ which pulls the latest commits for every installed extension.
 
 ### Features
 
-Main extension itself looks the following way: ![ribbon logo](/docs/static/ribbon.png)
+Main extension itself looks the following way: ![pyArchitect ribbon](docs/static/ribbon.png)
 Extension has several panels in the tab:
 
 * **Main** — control panel, information about the extension

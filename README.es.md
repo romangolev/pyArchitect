@@ -45,7 +45,7 @@ descarga los últimos commits de todas las extensiones instaladas.
 
 ### Funciones
 
-Así se ve la extensión en la cinta: ![ribbon logo](/docs/static/ribbon.png)
+Así se ve la extensión en la cinta: ![Cinta de pyArchitect](docs/static/ribbon-es.png)
 La pestaña contiene los siguientes paneles:
 
 * **Main** — panel de control e información sobre la extensión
