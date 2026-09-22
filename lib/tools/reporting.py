@@ -30,7 +30,8 @@ class ActivityReport(object):
 
     @staticmethod
     def _tsv_value(value):
-        return unicode(value).replace("\t", " ").replace("\r", " ").replace("\n", " ")
+        text = u"{}".format(value)
+        return text.replace("\t", " ").replace("\r", " ").replace("\n", " ")
 
     def save(self, folder=None):
         folder = folder or config.get_option("report_folder", DEFAULT_REPORT_FOLDER)
