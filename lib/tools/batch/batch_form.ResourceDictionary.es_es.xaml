@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="BatchFormTitle">Operación por lotes</sys:String>
+    <sys:String x:Key="TabSelection">1. Selección</sys:String>
+    <sys:String x:Key="TabProperties">2. Propiedades de la selección</sys:String>
+    <sys:String x:Key="TabOptions">3. Opciones</sys:String>
+    <sys:String x:Key="SourceLocalFolder">Carpeta local</sys:String>
+    <sys:String x:Key="SourceFolderLabel">Carpeta con los modelos de Revit</sys:String>
+    <sys:String x:Key="SearchSubfolders">Buscar en subcarpetas</sys:String>
+    <sys:String x:Key="SourceRsnRoutes">Rutas RSN</sys:String>
+    <sys:String x:Key="RsnRoutesLabel">Una ruta RSN:// por línea</sys:String>
+    <sys:String x:Key="ImportCsv">Importar CSV</sys:String>
+    <sys:String x:Key="LoadModels">Cargar modelos</sys:String>
+    <sys:String x:Key="Continue">Continuar</sys:String>
+    <sys:String x:Key="SelectAllModels">Seleccionar todos los modelos</sys:String>
+    <sys:String x:Key="Cancel">Cancelar</sys:String>
+    <sys:String x:Key="Run">Ejecutar</sys:String>
+</ResourceDictionary>

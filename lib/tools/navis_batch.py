@@ -6,12 +6,12 @@ from pyrevit import script
 
 from tools.batch.processor import BatchProcessor
 from tools.batch.reporting import print_result_report, save_report_copy
+from tools.batch.strings import S
 from tools.navis.batch_operation import NavisViewBatchOperation
 from tools.reporting import BatchOperationReport
 from tools.revit_documents import RevitDocumentRepository
 
 
-COLUMNS = ["Model", "Operation", "Result", "Details"]
 SUCCESS_VALUES = ("CREATED", "UPDATED", "EXISTS", "MISSING")
 
 
@@ -21,18 +21,18 @@ class BatchNavisViewWorkflow(object):
 
     def run(self, models, settings):
         if not models:
-            print("No models selected.")
+            print(S("navis.run.no_models"))
             return []
 
         save_mode = settings.get("save_mode")
         if save_mode not in ("copy_output", "edit_sources"):
-            print("Choose whether to create output copies or edit source models.")
+            print(S("navis.run.no_save_mode"))
             return []
         copy_destination = None
         if save_mode == "copy_output":
             copy_destination = settings.get("copy_destination", "").strip()
             if not copy_destination or not os.path.isdir(copy_destination):
-                print("A valid output folder for Navisworks model copies is required.")
+                print(S("navis.run.no_output_folder"))
                 return []
 
         analysis_only = settings.get("analysis_only", False)
@@ -64,15 +64,22 @@ class BatchNavisViewWorkflow(object):
         ]
         print_result_report(
             script.get_output(),
-            "{} batch processor".format(operation.display_name),
+            S("navis.run.report_title", operation.display_name),
             rows,
-            COLUMNS,
+            [
+                S("navis.column.model"),
+                S("navis.column.operation"),
+                S("navis.column.result"),
+                S("navis.column.details"),
+            ],
             SUCCESS_VALUES,
             status_index=2,
         )
 
-        mode = "Analysis" if analysis_only else "Execution"
-        print("{} completed for {} model(s).".format(mode, len(results)))
+        mode = S(
+            "navis.run.mode.analysis" if analysis_only else "navis.run.mode.execution"
+        )
+        print(S("navis.run.completed", mode, len(results)))
 
     @staticmethod
     def _save_reports(report, settings):
@@ -83,7 +90,7 @@ class BatchNavisViewWorkflow(object):
 
         folder = settings.get("log_folder", "").strip()
         if not folder:
-            print("LOG FOLDER NOT SPECIFIED")
+            print(S("navis.run.no_log_folder"))
             return
 
-        save_report_copy(report, folder, "LOG")
+        save_report_copy(report, folder, S("report.label.log"))

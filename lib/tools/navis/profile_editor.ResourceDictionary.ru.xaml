@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="ProfileEditorTitle">Профили NavisView</sys:String>
+    <sys:String x:Key="ProfileLabel">Профиль</sys:String>
+    <sys:String x:Key="AddPreset">Добавить</sys:String>
+    <sys:String x:Key="DeletePreset">Удалить</sys:String>
+    <sys:String x:Key="PresetNameLabel">Имя профиля</sys:String>
+    <sys:String x:Key="NameMarkersLabel">Маркеры имени модели</sys:String>
+    <sys:String x:Key="NameMarkersTooltip">Значения через запятую, по которым профиль подбирается в пакетном режиме</sys:String>
+    <sys:String x:Key="CategoriesHint">Отмеченные категории скрываются в этом профиле. Новые профили наследуют правила вида UNIVERSAL; добавляйте только нужные категории своего раздела.</sys:String>
+    <sys:String x:Key="Cancel">Отмена</sys:String>
+    <sys:String x:Key="Save">Сохранить</sys:String>
+</ResourceDictionary>

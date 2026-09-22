@@ -8,6 +8,7 @@ import os
 from Autodesk.Revit.DB import BuiltInCategory
 
 from core import config
+from tools.navis.strings import S
 
 
 BUNDLED_PROFILES_PATH = os.path.join(os.path.dirname(__file__), "profiles.json")
@@ -136,7 +137,7 @@ def _legacy_profile_data():
         try:
             return json.loads(stored)
         except Exception as exception:
-            print("Cannot migrate stored Navisworks profiles: {}".format(exception))
+            print(S("profiles.migrate_failed", exception))
 
     configured = config.get_option(PROFILES_PATH_OPTION, "")
     for path in [configured, USER_PROFILES_PATH]:
@@ -144,11 +145,7 @@ def _legacy_profile_data():
             try:
                 return _read_json_file(path)
             except Exception as exception:
-                print(
-                    "Cannot migrate Navisworks profiles from '{}': {}".format(
-                        path, exception
-                    )
-                )
+                print(S("profiles.migrate_path_failed", path, exception))
     return None
 
 
@@ -173,7 +170,7 @@ def save_profiles_json(value):
     data = json.loads(value)
     library = ProfileLibrary(data)
     if not library.profiles:
-        raise ValueError("At least one Navisworks profile is required")
+        raise ValueError(S("profiles.required"))
     serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     config.set_option(PROFILES_JSON_OPTION, serialized, section=CONFIG_SECTION)
     _LIBRARY = library
@@ -196,6 +193,6 @@ def load_profiles(force_reload=False):
     try:
         _LIBRARY = ProfileLibrary(json.loads(get_profiles_json()))
     except Exception as exception:
-        print("Cannot read configured Navisworks profiles: {}".format(exception))
+        print(S("profiles.read_failed", exception))
         _LIBRARY = ProfileLibrary(_bundled_profile_data())
     return _LIBRARY

@@ -4,6 +4,7 @@ import os
 import shutil
 
 from tools.batch.contracts import BatchOperationContext, BatchOperationResult
+from tools.batch.strings import S
 from tools.export.persistence import save_sync_and_relinquish
 
 
@@ -59,7 +60,10 @@ class BatchProcessor(object):
             and not upgrade_models
         ):
             return [
-                (operation, BatchOperationResult(SKIPPED, "Model requires upgrade"))
+                (
+                    operation,
+                    BatchOperationResult(SKIPPED, S("processor.requires_upgrade")),
+                )
                 for operation in operations
             ]
 
@@ -100,8 +104,8 @@ class BatchProcessor(object):
 
             if copy_destination and not analysis_only:
                 for _, result in results:
-                    result.message = "{} Saved copy: {}".format(
-                        result.message, processed_path
+                    result.message = "{} {}".format(
+                        result.message, S("processor.saved_copy", processed_path)
                     ).strip()
 
             return results
@@ -123,17 +127,17 @@ class BatchProcessor(object):
     def _copy_model(source_path, destination):
         """Make a non-overwriting RVT copy which is safe for a batch edit."""
         if source_path.strip().upper().startswith("RSN://"):
-            raise ValueError("Revit Server routes cannot be copied to a local folder")
+            raise ValueError(S("processor.rsn_not_copyable"))
         if not os.path.isdir(destination):
-            raise ValueError("Copy destination does not exist: {}".format(destination))
+            raise ValueError(S("processor.destination_missing", destination))
 
         target_path = os.path.join(destination, os.path.basename(source_path))
         source_key = os.path.normcase(os.path.abspath(source_path))
         target_key = os.path.normcase(os.path.abspath(target_path))
         if source_key == target_key:
-            raise ValueError("Choose a different folder from the source model folder")
+            raise ValueError(S("processor.same_folder"))
         if os.path.exists(target_path):
-            raise ValueError("Copy already exists and will not be overwritten: {}".format(target_path))
+            raise ValueError(S("processor.copy_exists", target_path))
 
         shutil.copy2(source_path, target_path)
         return target_path

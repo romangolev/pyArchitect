@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="NavisSettingsTitle">Ajustes de NavisView (lote)</sys:String>
+    <sys:String x:Key="ViewNameLabel">Nombre de la vista 3D de Navisworks</sys:String>
+    <sys:String x:Key="DefaultProfileLabel">Perfil predeterminado</sys:String>
+    <sys:String x:Key="GroupAppearance">Apariencia</sys:String>
+    <sys:String x:Key="DetailLevelLabel">Nivel de detalle</sys:String>
+    <sys:String x:Key="DisplayStyleLabel">Estilo visual</sys:String>
+    <sys:String x:Key="FineMepDetail">Usar detalle Alto en accesorios, aislamientos, equipos y dispositivos MEP</sys:String>
+    <sys:String x:Key="SurfaceTransparencyLabel">Transparencia de muros y paneles de muro cortina (0-100)</sys:String>
+    <sys:String x:Key="GroupVisibility">Visibilidad y control</sys:String>
+    <sys:String x:Key="RemoveTemplate">Quitar la plantilla de vista antes de aplicar estos ajustes</sys:String>
+    <sys:String x:Key="HideAnnotations">Ocultar categorías de anotación</sys:String>
+    <sys:String x:Key="HideAnalytical">Ocultar categorías del modelo analítico</sys:String>
+    <sys:String x:Key="HideImports">Ocultar categorías importadas</sys:String>
+    <sys:String x:Key="HidePointClouds">Ocultar nubes de puntos</sys:String>
+    <sys:String x:Key="HideCoordinationModels">Ocultar los controladores de modelos de coordinación</sys:String>
+    <sys:String x:Key="HideLinks">Ocultar vínculos de Revit</sys:String>
+    <sys:String x:Key="HideCenterlines">Ocultar subcategorías de ejes MEP</sys:String>
+    <sys:String x:Key="HideStructuralSymbols">Ocultar subcategorías de símbolos de conexión estructural</sys:String>
+    <sys:String x:Key="RecreateExisting">Recrear una vista existente durante el proceso por lotes</sys:String>
+    <sys:String x:Key="EditProfiles">Editar perfiles...</sys:String>
+    <sys:String x:Key="Cancel">Cancelar</sys:String>
+    <sys:String x:Key="Save">Guardar</sys:String>
+</ResourceDictionary>

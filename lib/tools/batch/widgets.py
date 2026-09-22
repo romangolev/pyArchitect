@@ -10,6 +10,8 @@ clr.AddReference("WindowsBase")
 from System.Windows import FontWeights, Thickness, VerticalAlignment
 from System.Windows import TextTrimming
 from System.Windows.Media import FontFamily
+from tools.batch.strings import S
+
 from System.Windows.Controls import (
     Button,
     CheckBox,
@@ -201,23 +203,25 @@ class FolderPicker(object):
 
     Args:
         value: initial path.
-        pick_tooltip: hover text for the folder button.
+        pick_tooltip: hover text for the folder button; defaults to a
+            localized "pick a folder".
         on_pick: called after the user picks a folder, for callers that react
             to a new path (rescanning a folder) without reacting to typing.
         on_default: returns the default path, or a falsy value to leave the
             box alone.  Supplying it is what adds the second button, so each
             field decides for itself what "default" means.
-        default_tooltip: hover text for the default button.
+        default_tooltip: hover text for the default button; defaults to a
+            localized "use the default folder".
         on_change: TextChanged handler, for callers that revalidate on typing.
     """
 
     def __init__(
         self,
         value="",
-        pick_tooltip="Pick a folder",
+        pick_tooltip=None,
         on_pick=None,
         on_default=None,
-        default_tooltip="Use the default folder",
+        default_tooltip=None,
         on_change=None,
     ):
         self._on_pick = on_pick
@@ -226,10 +230,12 @@ class FolderPicker(object):
         if on_change:
             self.textbox.TextChanged += on_change
 
-        buttons = [icon_button(FOLDER_GLYPH, pick_tooltip)]
+        buttons = [icon_button(FOLDER_GLYPH, pick_tooltip or S("widgets.folder.pick"))]
         buttons[0].Click += self._pick
         if on_default:
-            default = icon_button(DEFAULT_FOLDER_GLYPH, default_tooltip)
+            default = icon_button(
+                DEFAULT_FOLDER_GLYPH, default_tooltip or S("widgets.folder.default")
+            )
             default.Click += self._default
             buttons.append(default)
         self.control = fill_row(self.textbox, *buttons)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="BatchFormTitle">Пакетная операция</sys:String>
+    <sys:String x:Key="TabSelection">1. Выбор</sys:String>
+    <sys:String x:Key="TabProperties">2. Свойства выбора</sys:String>
+    <sys:String x:Key="TabOptions">3. Настройки</sys:String>
+    <sys:String x:Key="SourceLocalFolder">Локальная папка</sys:String>
+    <sys:String x:Key="SourceFolderLabel">Папка с моделями Revit</sys:String>
+    <sys:String x:Key="SearchSubfolders">Искать во вложенных папках</sys:String>
+    <sys:String x:Key="SourceRsnRoutes">Маршруты RSN</sys:String>
+    <sys:String x:Key="RsnRoutesLabel">Один маршрут RSN:// в строке</sys:String>
+    <sys:String x:Key="ImportCsv">Импорт CSV</sys:String>
+    <sys:String x:Key="LoadModels">Загрузить модели</sys:String>
+    <sys:String x:Key="Continue">Далее</sys:String>
+    <sys:String x:Key="SelectAllModels">Выбрать все модели</sys:String>
+    <sys:String x:Key="Cancel">Отмена</sys:String>
+    <sys:String x:Key="Run">Запустить</sys:String>
+</ResourceDictionary>

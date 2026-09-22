@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Shared rendering and persistence helpers for batch-command results."""
 
+from tools.batch.strings import S
 from tools.reporting import ActivityReport
 
 
@@ -10,9 +11,7 @@ def print_result_report(
     success_count = sum(1 for row in rows if row[status_index] in success_values)
     failure_count = len(rows) - success_count
     output.print_md("## {}".format(title))
-    output.print_md(
-        "**{} succeeded, {} failed/skipped**".format(success_count, failure_count)
-    )
+    output.print_md(S("report.summary", success_count, failure_count))
     output.print_table(table_data=rows, columns=columns)
 
 
@@ -24,12 +23,13 @@ def save_batch_report(tool_name, rows, columns):
     return report.save()
 
 
-def save_report_copy(report, folder=None, label="REPORT"):
+def save_report_copy(report, folder=None, label=None):
     """Write a report to disk, reporting success or failure to the output."""
+    label = label or S("report.label.report")
     try:
         path = report.save(folder)
-        print("{} SAVED: {}".format(label, path))
+        print(S("report.saved", label, path))
         return path
     except Exception as exception:
-        print("{} ERROR: {}".format(label, exception))
+        print(S("report.save_failed", label, exception))
         return None

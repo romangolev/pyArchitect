@@ -6,6 +6,7 @@ from pyrevit import forms
 
 from tools.batch import widgets
 from tools.batch.form import BatchOptionsPresenter, show_batch_form
+from tools.batch.strings import S
 from tools.revit_documents import is_server_path
 from tools.navis.profiles import load_profiles
 
@@ -18,17 +19,11 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
     COPY_OUTPUT = "copy_output"
     EDIT_SOURCES = "edit_sources"
 
-    source_description = "Pick where the models come from, then load them."
-    selection_description = (
-        "Tick the models that should get a Navisworks view. The profile decides "
-        "which categories are hidden and can be changed per model."
-    )
-    options_description = (
-        "These settings apply to every ticked model. Choose how the result is "
-        "saved and where it goes, then run the batch."
-    )
-    item_property_header = "Profile"
-    bulk_label = "Set the same profile for every model:"
+    source_description = S("form.source_description")
+    selection_description = S("navis.selection_description")
+    options_description = S("navis.options_description")
+    item_property_header = S("navis.column.profile")
+    bulk_label = S("navis.bulk_label")
 
     def __init__(self, profiles=None):
         self.profiles = profiles or load_profiles()
@@ -44,37 +39,34 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
 
     def build(self, host):
         self.hidden_worksets = widgets.textbox()
-        self.analysis_only = widgets.checkbox("Analysis only")
-        self.upgrade_models = widgets.checkbox("Allow model upgrade")
-        self.create_log = widgets.checkbox("Save an additional report copy", True)
+        self.analysis_only = widgets.checkbox(S("navis.option.analysis_only"))
+        self.upgrade_models = widgets.checkbox(S("navis.option.upgrade_models"))
+        self.create_log = widgets.checkbox(S("navis.option.create_log"), True)
         self.log_folder = widgets.FolderPicker(
-            pick_tooltip="Pick the report folder"
+            pick_tooltip=S("navis.tooltip.report_folder")
         )
         self.copy_destination = widgets.FolderPicker(
-            pick_tooltip="Pick the output folder",
+            pick_tooltip=S("navis.tooltip.output_folder"),
             on_default=self._default_copy_destination,
-            default_tooltip="Use a '{}' folder beside the models".format(
-                DEFAULT_COPY_FOLDER
+            default_tooltip=S(
+                "navis.tooltip.default_output_folder", DEFAULT_COPY_FOLDER
             ),
             on_change=self._copy_destination_changed,
         )
         self.write_copies = widgets.radiobutton(
-            "Create output copies (source models stay untouched)",
+            S("navis.option.write_copies"),
             group=WRITE_MODE_GROUP,
             margin=(0, 0, 0, 5),
         )
         self.write_in_place = widgets.radiobutton(
-            "Edit and save the selected source models in place",
+            S("navis.option.write_in_place"),
             group=WRITE_MODE_GROUP,
         )
         self.write_copies.Checked += self._write_mode_changed
         self.write_in_place.Checked += self._write_mode_changed
         self.copy_output_group = widgets.group(
-            "Output copies",
-            widgets.text(
-                "Each selected RVT is copied to this folder before the "
-                "Navisworks view is created. Source models are not edited."
-            ),
+            S("navis.group.output_copies"),
+            widgets.text(S("navis.output_copies_hint")),
             self.copy_destination.control,
             margin=(0, 14, 0, 0),
         )
@@ -82,18 +74,18 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         host.Children.Add(
             widgets.stack(
                 widgets.group(
-                    "Where should the Navisworks view be saved? (required)",
+                    S("navis.group.save_mode"),
                     self.write_copies,
                     self.write_in_place,
                 ),
                 self.copy_output_group,
                 widgets.separator((0, 16, 0, 0)),
-                widgets.label("Hidden worksets (comma-separated name fragments)"),
+                widgets.label(S("navis.label.hidden_worksets")),
                 self.hidden_worksets,
                 self.analysis_only,
                 self.upgrade_models,
                 self.create_log,
-                widgets.label("Report folder"),
+                widgets.label(S("navis.label.report_folder")),
                 self.log_folder.control,
             )
         )
@@ -109,9 +101,8 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         source = self.form.default_export_folder() if self.form else ""
         if not source:
             forms.alert(
-                "No default output folder is available. Revit Server routes have "
-                "no local folder, so pick an output folder instead.",
-                title="Batch NavisView",
+                S("navis.alert.no_default_output"),
+                title=S("navis.title"),
             )
             return ""
         folder = os.path.join(source, DEFAULT_COPY_FOLDER)
@@ -120,10 +111,8 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 os.makedirs(folder)
             except Exception as exception:
                 forms.alert(
-                    "Cannot create the default output folder:\n{}\n{}".format(
-                        folder, exception
-                    ),
-                    title="Batch NavisView",
+                    S("navis.alert.cannot_create_output", folder, exception),
+                    title=S("navis.title"),
                 )
                 return ""
         return folder
@@ -142,35 +131,32 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         if self.write_copies is None:
             return None
         if not (self.write_copies.IsChecked or self.write_in_place.IsChecked):
-            return (
-                "Choose whether to create output copies or edit the source models "
-                "on the Options tab."
-            )
+            return S("navis.error.no_save_mode")
         if self.write_in_place.IsChecked:
             return None
         if self.copy_destination is None or not self.copy_destination.path:
-            return "Choose an output folder for the Navisworks model copies on the Options tab."
+            return S("navis.error.no_output_folder")
 
         destination = self.copy_destination.path
         if not os.path.isdir(destination):
-            return "The selected copy destination does not exist."
+            return S("navis.error.output_missing")
 
         items = self.form.selected_items() if self.form else []
         names = set()
         for item in items:
             if is_server_path(item.source_path):
-                return "Revit Server routes cannot be copied to a local output folder."
+                return S("navis.error.rsn_copy")
             target = os.path.join(destination, os.path.basename(item.source_path))
             if os.path.normcase(os.path.abspath(target)) == os.path.normcase(
                 os.path.abspath(item.source_path)
             ):
-                return "Choose an output folder different from the source model folder."
+                return S("navis.error.same_folder")
             target_key = os.path.normcase(target)
             if target_key in names:
-                return "Selected models have the same file name; choose fewer models or rename one."
+                return S("navis.error.duplicate_names")
             names.add(target_key)
             if os.path.exists(target):
-                return "A destination copy already exists: {}".format(target)
+                return S("navis.error.copy_exists", target)
         return None
 
     def create_item_property(self, item):
@@ -218,7 +204,7 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
 
 
 def show_form():
-    result = show_batch_form("Batch NavisView", NavisOptionsPresenter())
+    result = show_batch_form(S("navis.title"), NavisOptionsPresenter())
     if not result:
         return None, None
     return result["input"].items, result["options"]
