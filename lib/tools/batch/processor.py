@@ -13,9 +13,8 @@ ERROR = "ERROR"
 
 
 class BatchProcessor(object):
-    def __init__(self, document_repository, report):
+    def __init__(self, document_repository):
         self.document_repository = document_repository
-        self.report = report
 
     def run(
         self,
@@ -37,12 +36,6 @@ class BatchProcessor(object):
                 copy_destination,
             )
             results.append((model, operation_results))
-            for operation, result in operation_results:
-                self.report.add(
-                    model.source_path,
-                    result.status,
-                    "{}: {}".format(operation.operation_id, result.message),
-                )
 
         return results
 

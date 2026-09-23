@@ -11,13 +11,10 @@ from pyrevit import forms, script
 
 from ifc_ui import show_form, show_options_form
 from tools.batch.ifc import IFCBatchExporter
-from tools.batch.reporting import print_result_report, save_batch_report
 from tools.batch.strings import S
 
 
 __helpurl__ = ""
-
-REPORT_COLUMNS = ["Model", "View", "Result"]
 
 
 def main():
@@ -25,7 +22,9 @@ def main():
     if not settings:
         return
 
-    exporter = IFCBatchExporter(__revit__.Application, __revit__, script.get_logger())
+    logger = script.get_logger()
+    logger.debug("Starting IFC batch export for %s model(s)", len(selected))
+    exporter = IFCBatchExporter(__revit__.Application, __revit__, logger)
     results = []
     with forms.ProgressBar(title=S("ifc.progress")) as progress_bar:
         for index, item in enumerate(selected):
@@ -33,13 +32,16 @@ def main():
             results.extend(exporter.export_item(item, settings))
         progress_bar.update_progress(len(selected), len(selected))
 
-    print_result_report(
-        script.get_output(),
-        S("ifc.report_title"),
-        results,
-        [S("ifc.column.model"), S("ifc.column.view"), S("ifc.column.result")],
+    output = script.get_output()
+    output.print_md("## {}".format(S("ifc.results_title")))
+    output.print_table(
+        table_data=results,
+        columns=[S("ifc.column.model"), S("ifc.column.view"), S("ifc.column.result")],
     )
-    report_path = save_batch_report("BatchIFCExport", results, REPORT_COLUMNS)
+    for model, view, result in results:
+        if result != "OK":
+            logger.warning(u"{} ({}): {}".format(model, view, result))
+    logger.info(S("ifc.alert.finished", len(results)))
 
     if settings.open_folders:
         for folder in set(item.export_path for item in selected):
@@ -49,7 +51,7 @@ def main():
                 pass
 
     forms.alert(
-        S("ifc.alert.finished", len(results), report_path),
+        S("ifc.alert.finished", len(results)),
         title=S("ifc.title"),
     )
 

@@ -3,13 +3,12 @@
 
 Static window text lives in the ``batch_form.ResourceDictionary.<locale>.xaml``
 files pyRevit merges into the form; this catalog covers everything the batch
-code builds at runtime - option labels, validation hints, alerts, report
-headers and result messages.
+code builds at runtime - option labels, validation hints, alerts, output
+headings and result messages.
 
 ``en_us`` is the default and the only entry a key must have.  Status tokens
-(``OK``, ``SKIPPED``, ``ERROR``, ``CREATED``...) and the column names written
-into the saved TSV reports stay English on purpose: they are compared against
-in code and parsed by whatever reads the reports.
+(``OK``, ``SKIPPED``, ``ERROR``, ``CREATED``...) stay English on purpose:
+they are compared against in code rather than read.
 """
 
 from core.localization import StringTable
@@ -118,32 +117,6 @@ S = StringTable({
         "en_us": u"Copy already exists and will not be overwritten: {}",
         "ru": u"Копия уже существует и не будет перезаписана: {}",
         "es_es": u"La copia ya existe y no se sobrescribirá: {}",
-    },
-
-    "report.summary": {
-        "en_us": u"**{} succeeded, {} failed/skipped**",
-        "ru": u"**Успешно: {}, с ошибками или пропущено: {}**",
-        "es_es": u"**{} con éxito, {} con errores u omitidos**",
-    },
-    "report.saved": {
-        "en_us": u"{} SAVED: {}",
-        "ru": u"{} СОХРАНЁН: {}",
-        "es_es": u"{} GUARDADO: {}",
-    },
-    "report.save_failed": {
-        "en_us": u"{} ERROR: {}",
-        "ru": u"{} ОШИБКА: {}",
-        "es_es": u"{} ERROR: {}",
-    },
-    "report.label.report": {
-        "en_us": u"REPORT",
-        "ru": u"ОТЧЁТ",
-        "es_es": u"INFORME",
-    },
-    "report.label.log": {
-        "en_us": u"LOG",
-        "ru": u"ЖУРНАЛ",
-        "es_es": u"REGISTRO",
     },
 
     "ifc.title": {
@@ -355,10 +328,10 @@ S = StringTable({
         "ru": u"Экспорт модели {value} из {max_value}",
         "es_es": u"Exportando {value} de {max_value} modelos",
     },
-    "ifc.report_title": {
-        "en_us": u"Batch IFC Export report",
-        "ru": u"Отчёт о пакетном экспорте IFC",
-        "es_es": u"Informe de exportación IFC (lote)",
+    "ifc.results_title": {
+        "en_us": u"Batch IFC Export results",
+        "ru": u"Результаты пакетного экспорта IFC",
+        "es_es": u"Resultados de exportación IFC (lote)",
     },
     "ifc.column.model": {
         "en_us": u"Model",
@@ -376,10 +349,9 @@ S = StringTable({
         "es_es": u"Resultado",
     },
     "ifc.alert.finished": {
-        "en_us": u"{} export operation(s) finished.\nReport saved to:\n{}",
-        "ru": u"Операций экспорта выполнено: {}.\nОтчёт сохранён:\n{}",
-        "es_es": u"{} operación(es) de exportación finalizadas.\n"
-                 u"Informe guardado en:\n{}",
+        "en_us": u"{} export operation(s) finished. See the pyRevit output for details.",
+        "ru": u"Выполнено операций экспорта: {}. Подробности — в выводе pyRevit.",
+        "es_es": u"{} operación(es) de exportación finalizadas. Consulta la salida de pyRevit para ver los detalles.",
     },
     "ifc.result.file_not_found": {
         "en_us": u"{} (file not found)",
@@ -476,16 +448,6 @@ S = StringTable({
         "ru": u"Разрешить обновление версии моделей",
         "es_es": u"Permitir la actualización de los modelos",
     },
-    "navis.option.create_log": {
-        "en_us": u"Save an additional report copy",
-        "ru": u"Сохранить дополнительную копию отчёта",
-        "es_es": u"Guardar una copia adicional del informe",
-    },
-    "navis.tooltip.report_folder": {
-        "en_us": u"Pick the report folder",
-        "ru": u"Выберите папку отчётов",
-        "es_es": u"Elige la carpeta de informes",
-    },
     "navis.tooltip.output_folder": {
         "en_us": u"Pick the output folder",
         "ru": u"Выберите папку результата",
@@ -528,11 +490,6 @@ S = StringTable({
         "en_us": u"Hidden worksets (comma-separated name fragments)",
         "ru": u"Скрытые рабочие наборы (фрагменты имён через запятую)",
         "es_es": u"Subproyectos ocultos (fragmentos de nombre separados por comas)",
-    },
-    "navis.label.report_folder": {
-        "en_us": u"Report folder",
-        "ru": u"Папка отчётов",
-        "es_es": u"Carpeta de informes",
     },
     "navis.alert.no_default_output": {
         "en_us": u"No default output folder is available. Revit Server routes "
@@ -608,10 +565,10 @@ S = StringTable({
         "es_es": u"Se requiere una carpeta de salida válida para las copias de "
                  u"los modelos de Navisworks.",
     },
-    "navis.run.report_title": {
-        "en_us": u"{} batch processor",
-        "ru": u"Пакетная обработка: {}",
-        "es_es": u"Procesador por lotes: {}",
+    "navis.run.results_title": {
+        "en_us": u"{} batch results",
+        "ru": u"Результаты пакетной обработки: {}",
+        "es_es": u"Resultados por lotes: {}",
     },
     "navis.run.mode.analysis": {
         "en_us": u"Analysis",
@@ -627,11 +584,6 @@ S = StringTable({
         "en_us": u"{} completed for {} model(s).",
         "ru": u"{}: обработано моделей — {}.",
         "es_es": u"{} completada para {} modelo(s).",
-    },
-    "navis.run.no_log_folder": {
-        "en_us": u"LOG FOLDER NOT SPECIFIED",
-        "ru": u"ПАПКА ЖУРНАЛА НЕ УКАЗАНА",
-        "es_es": u"CARPETA DE REGISTRO NO INDICADA",
     },
     "navis.column.model": {
         "en_us": u"Model",

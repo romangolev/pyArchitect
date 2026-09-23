@@ -30,8 +30,6 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.hidden_worksets = None
         self.analysis_only = None
         self.upgrade_models = None
-        self.create_log = None
-        self.log_folder = None
         self.copy_destination = None
         self.write_copies = None
         self.write_in_place = None
@@ -41,10 +39,6 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
         self.hidden_worksets = widgets.textbox()
         self.analysis_only = widgets.checkbox(S("navis.option.analysis_only"))
         self.upgrade_models = widgets.checkbox(S("navis.option.upgrade_models"))
-        self.create_log = widgets.checkbox(S("navis.option.create_log"), True)
-        self.log_folder = widgets.FolderPicker(
-            pick_tooltip=S("navis.tooltip.report_folder")
-        )
         self.copy_destination = widgets.FolderPicker(
             pick_tooltip=S("navis.tooltip.output_folder"),
             on_default=self._default_copy_destination,
@@ -84,9 +78,6 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 self.hidden_worksets,
                 self.analysis_only,
                 self.upgrade_models,
-                self.create_log,
-                widgets.label(S("navis.label.report_folder")),
-                self.log_folder.control,
             )
         )
 
@@ -190,8 +181,6 @@ class NavisOptionsPresenter(BatchOptionsPresenter):
                 for value in self.hidden_worksets.Text.split(",")
                 if value.strip()
             ],
-            "create_log": bool(self.create_log.IsChecked),
-            "log_folder": self.log_folder.path,
             "save_mode": (
                 self.COPY_OUTPUT
                 if self.write_copies.IsChecked
