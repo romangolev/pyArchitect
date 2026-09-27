@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="NavisSettingsTitle">Batch NavisView settings</sys:String>
+    <sys:String x:Key="ViewNameLabel">Navisworks 3D view name</sys:String>
+    <sys:String x:Key="DefaultProfileLabel">Default profile</sys:String>
+    <sys:String x:Key="GroupAppearance">Appearance</sys:String>
+    <sys:String x:Key="DetailLevelLabel">Detail level</sys:String>
+    <sys:String x:Key="DisplayStyleLabel">Display style</sys:String>
+    <sys:String x:Key="FineMepDetail">Use Fine detail for MEP fittings, insulation, equipment and devices</sys:String>
+    <sys:String x:Key="SurfaceTransparencyLabel">Walls and curtain panels transparency (0-100)</sys:String>
+    <sys:String x:Key="GroupVisibility">Visibility and control</sys:String>
+    <sys:String x:Key="RemoveTemplate">Remove the view template before applying these settings</sys:String>
+    <sys:String x:Key="HideAnnotations">Hide annotation categories</sys:String>
+    <sys:String x:Key="HideAnalytical">Hide analytical model categories</sys:String>
+    <sys:String x:Key="HideImports">Hide imported categories</sys:String>
+    <sys:String x:Key="HidePointClouds">Hide point clouds</sys:String>
+    <sys:String x:Key="HideCoordinationModels">Hide coordination model handles</sys:String>
+    <sys:String x:Key="HideLinks">Hide Revit links</sys:String>
+    <sys:String x:Key="HideCenterlines">Hide MEP centre-line subcategories</sys:String>
+    <sys:String x:Key="HideStructuralSymbols">Hide structural connection symbol subcategories</sys:String>
+    <sys:String x:Key="RecreateExisting">Recreate an existing view during batch processing</sys:String>
+    <sys:String x:Key="EditProfiles">Edit profile presets...</sys:String>
+    <sys:String x:Key="Cancel">Cancel</sys:String>
+    <sys:String x:Key="Save">Save</sys:String>
+</ResourceDictionary>

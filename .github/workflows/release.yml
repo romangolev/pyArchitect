@@ -22,10 +22,27 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
 
+      - name: Extract release notes from changelog
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          awk '
+            $0 ~ "^## \\[" ENVIRON["VERSION"] "\\]" { found=1; next }
+            found && /^## / { exit }
+            found { print }
+            END {
+              if (!found) {
+                print "No CHANGELOG.md entry found for version " ENVIRON["VERSION"] > "/dev/stderr"
+                exit 1
+              }
+            }
+          ' CHANGELOG.md > release-notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
+          body_path: release-notes.md
           generate_release_notes: true
           name: Release ${{ steps.version.outputs.VERSION }}
           draft: false

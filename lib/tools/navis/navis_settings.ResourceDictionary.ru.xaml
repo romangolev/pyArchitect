@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="NavisSettingsTitle">Настройки пакетного NavisView</sys:String>
+    <sys:String x:Key="ViewNameLabel">Имя 3D-вида для Navisworks</sys:String>
+    <sys:String x:Key="DefaultProfileLabel">Профиль по умолчанию</sys:String>
+    <sys:String x:Key="GroupAppearance">Внешний вид</sys:String>
+    <sys:String x:Key="DetailLevelLabel">Уровень детализации</sys:String>
+    <sys:String x:Key="DisplayStyleLabel">Визуальный стиль</sys:String>
+    <sys:String x:Key="FineMepDetail">Высокая детализация для фитингов, изоляции, оборудования и устройств ИЖС</sys:String>
+    <sys:String x:Key="SurfaceTransparencyLabel">Прозрачность стен и витражных панелей (0-100)</sys:String>
+    <sys:String x:Key="GroupVisibility">Видимость и управление</sys:String>
+    <sys:String x:Key="RemoveTemplate">Снимать шаблон вида перед применением настроек</sys:String>
+    <sys:String x:Key="HideAnnotations">Скрывать категории аннотаций</sys:String>
+    <sys:String x:Key="HideAnalytical">Скрывать категории аналитической модели</sys:String>
+    <sys:String x:Key="HideImports">Скрывать импортированные категории</sys:String>
+    <sys:String x:Key="HidePointClouds">Скрывать облака точек</sys:String>
+    <sys:String x:Key="HideCoordinationModels">Скрывать метки координационных моделей</sys:String>
+    <sys:String x:Key="HideLinks">Скрывать связи Revit</sys:String>
+    <sys:String x:Key="HideCenterlines">Скрывать подкатегории осевых линий ИЖС</sys:String>
+    <sys:String x:Key="HideStructuralSymbols">Скрывать подкатегории символов несущих соединений</sys:String>
+    <sys:String x:Key="RecreateExisting">Пересоздавать существующий вид при пакетной обработке</sys:String>
+    <sys:String x:Key="EditProfiles">Изменить профили...</sys:String>
+    <sys:String x:Key="Cancel">Отмена</sys:String>
+    <sys:String x:Key="Save">Сохранить</sys:String>
+</ResourceDictionary>

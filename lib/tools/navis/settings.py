@@ -7,6 +7,7 @@ import os
 from pyrevit import forms
 
 from core import config
+from tools.navis.strings import S
 from tools.navis.profiles import (
     CONFIG_SECTION,
     category_is_available,
@@ -41,12 +42,12 @@ OPTIONS = [
 
 DETAIL_LEVELS = ("Coarse", "Medium", "Fine")
 DISPLAY_STYLES = (
-    ("Wireframe", "Wireframe"),
-    ("HiddenLine", "Hidden line"),
-    ("Shading", "Shaded"),
-    ("FlatColors", "Flat colors"),
-    ("ConsistentColors", "Consistent colors"),
-    ("Realistic", "Realistic"),
+    "Wireframe",
+    "HiddenLine",
+    "Shading",
+    "FlatColors",
+    "ConsistentColors",
+    "Realistic",
 )
 
 
@@ -106,8 +107,8 @@ def edit_profiles():
         editor = ProfileEditor(json.loads(get_profiles_json()))
     except Exception as exception:
         forms.alert(
-            "Cannot open profile presets:\n{}".format(exception),
-            title="Batch NavisView settings",
+            S("alert.profiles_open_failed", exception),
+            title=S("settings.title"),
         )
         return None
     if not editor.show():
@@ -116,13 +117,13 @@ def edit_profiles():
         save_profiles_json(editor.value)
     except Exception as exception:
         forms.alert(
-            "Profile presets were not saved:\n{}".format(exception),
-            title="Batch NavisView settings",
+            S("alert.profiles_not_saved", exception),
+            title=S("settings.title"),
         )
         return None
     forms.alert(
-        "Profiles saved to the pyArchitect configuration.",
-        title="Batch NavisView settings",
+        S("alert.profiles_saved"),
+        title=S("settings.title"),
     )
     return True
 
@@ -139,14 +140,14 @@ class NavisSettingsWindow(forms.WPFWindow):
         self.profiles = profiles
         self.saved = False
         for detail_level in DETAIL_LEVELS:
-            self.cbDetailLevel.Items.Add(detail_level)
-        for _, caption in DISPLAY_STYLES:
-            self.cbDisplayStyle.Items.Add(caption)
+            self.cbDetailLevel.Items.Add(S("detail." + detail_level))
+        for display_style in DISPLAY_STYLES:
+            self.cbDisplayStyle.Items.Add(S("style." + display_style))
         self.tbViewName.Text = settings.view_name
         self.cbRemoveTemplate.IsChecked = settings.remove_view_template
         self.cbDetailLevel.SelectedIndex = _index_of(DETAIL_LEVELS, settings.detail_level, 1)
         self.cbDisplayStyle.SelectedIndex = _index_of(
-            [value for value, _ in DISPLAY_STYLES], settings.display_style, 3
+            DISPLAY_STYLES, settings.display_style, 3
         )
         self.cbFineMepDetail.IsChecked = settings.apply_fine_mep_detail
         self.tbSurfaceTransparency.Text = str(settings.surface_transparency)
@@ -186,25 +187,23 @@ class NavisSettingsWindow(forms.WPFWindow):
             else None
         )
         display_style = (
-            DISPLAY_STYLES[self.cbDisplayStyle.SelectedIndex][0]
+            DISPLAY_STYLES[self.cbDisplayStyle.SelectedIndex]
             if self.cbDisplayStyle.SelectedIndex >= 0
             else None
         )
         if not view_name:
             forms.alert(
-                "Specify a Navisworks 3D view name.",
-                title="Batch NavisView settings",
+                S("alert.view_name_required"),
+                title=S("settings.title"),
             )
             return
         if profile is None:
-            forms.alert(
-                "Select a default profile.", title="Batch NavisView settings"
-            )
+            forms.alert(S("alert.profile_required"), title=S("settings.title"))
             return
         if detail_level is None or display_style is None:
             forms.alert(
-                "Select a detail level and display style.",
-                title="Batch NavisView settings",
+                S("alert.detail_and_style_required"),
+                title=S("settings.title"),
             )
             return
         try:
@@ -213,8 +212,8 @@ class NavisSettingsWindow(forms.WPFWindow):
             surface_transparency = -1
         if surface_transparency < 0 or surface_transparency > 100:
             forms.alert(
-                "Surface transparency must be a whole number from 0 to 100.",
-                title="Batch NavisView settings",
+                S("alert.transparency_range"),
+                title=S("settings.title"),
             )
             return
         self.settings.view_name = view_name
@@ -335,7 +334,7 @@ class ProfileEditor(forms.WPFWindow):
 
     def _add_profile(self, sender, args):
         self._store_current_profile()
-        caption = "New preset"
+        caption = S("editor.new_preset")
         profile = {
             "id": self._new_profile_id(caption),
             "caption": caption,
@@ -353,15 +352,15 @@ class ProfileEditor(forms.WPFWindow):
         profile = self.profiles[index]
         if profile["id"] == "UNIVERSAL":
             forms.alert(
-                "The UNIVERSAL preset is the required default and cannot be deleted.",
-                title="NavisView profiles",
+                S("editor.universal_protected"),
+                title=S("profiles.title"),
             )
             return
         if not forms.alert(
-            "Delete the '{}' preset?".format(profile.get("caption", profile["id"])),
+            S("editor.delete_confirm", profile.get("caption", profile["id"])),
             yes=True,
             no=True,
-            title="NavisView profiles",
+            title=S("profiles.title"),
         ):
             return
         self._store_current_profile()
@@ -394,13 +393,10 @@ class ProfileEditor(forms.WPFWindow):
             checkbox.IsChecked = name in selected
             checkbox.ToolTip = name
             if not available:
-                checkbox.Content = "{} (not available in this Revit version)".format(
-                    category_label(name)
+                checkbox.Content = S(
+                    "editor.category_unavailable", category_label(name)
                 )
-                checkbox.ToolTip = (
-                    "{} is not available in the running Revit version "
-                    "and cannot be edited.".format(name)
-                )
+                checkbox.ToolTip = S("editor.category_unavailable_tooltip", name)
                 checkbox.IsEnabled = False
             self.category_checks[name] = checkbox
             self.lbCategories.Items.Add(checkbox)
@@ -409,8 +405,8 @@ class ProfileEditor(forms.WPFWindow):
         self._store_current_profile()
         if not self.profiles:
             forms.alert(
-                "At least the UNIVERSAL preset is required.",
-                title="NavisView profiles",
+                S("editor.at_least_one"),
+                title=S("profiles.title"),
             )
             return
         for profile in self.profiles:

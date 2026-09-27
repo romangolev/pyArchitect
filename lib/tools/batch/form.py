@@ -6,6 +6,7 @@ from pyrevit import forms
 
 from tools.batch import widgets
 from tools.batch.input import BatchInput, BatchInputCsv, BatchInputFactory
+from tools.batch.strings import S
 from tools.revit_documents import is_server_path
 
 from System.Windows import Visibility
@@ -27,9 +28,9 @@ BANNER = """      :::::::::      ::: ::::::::::: ::::::::  :::    :::
 
 
 class BatchOptionsPresenter(object):
-    source_description = "Pick where the models come from, then load them."
-    selection_description = "Tick the models to include in this batch run."
-    options_description = "These settings apply to every model you selected."
+    source_description = S("form.source_description")
+    selection_description = S("form.selection_description")
+    options_description = S("form.options_description")
     item_property_header = None
     bulk_label = None
     form = None
@@ -79,7 +80,7 @@ class BatchSelectionForm(forms.WPFWindow):
         self._danger_brush = None
 
         self.source_folder = widgets.FolderPicker(
-            pick_tooltip="Pick the folder that holds the Revit models",
+            pick_tooltip=S("form.source_folder_tooltip"),
             on_pick=self._load_folder,
         )
         self.sourceFolderHost.Content = self.source_folder.control
@@ -103,7 +104,7 @@ class BatchSelectionForm(forms.WPFWindow):
             self.tabSelection.Visibility = Visibility.Collapsed
             self.tabProperties.Visibility = Visibility.Collapsed
             self.tabs.SelectedItem = self.tabOptions
-            self.btnRun.Content = "Save options"
+            self.btnRun.Content = S("form.save_options")
 
         self.refresh_run_state()
 
@@ -114,11 +115,11 @@ class BatchSelectionForm(forms.WPFWindow):
         form rather than left to each presenter's validation_error.
         """
         if not self.batch_input.items:
-            return "Load models on the Selection tab first."
+            return S("form.error.nothing_loaded")
         for panel in self.lbModels.Items:
             if panel.Tag[1].IsChecked:
                 return None
-        return "Tick at least one model on the Selection properties tab."
+        return S("form.error.nothing_ticked")
 
     def refresh_run_state(self):
         """Enable Run only while the form and the presenter are both satisfied.
@@ -213,7 +214,7 @@ class BatchSelectionForm(forms.WPFWindow):
 
         self.columnHeader.Children.Add(widgets.text("", width=CHECKBOX_WIDTH))
         self.columnHeader.Children.Add(
-            widgets.text("Model", width=PATH_WIDTH, bold=True)
+            widgets.text(S("form.column.model"), width=PATH_WIDTH, bold=True)
         )
         if presenter.item_property_header:
             self.columnHeader.Children.Add(
@@ -229,12 +230,12 @@ class BatchSelectionForm(forms.WPFWindow):
 
         self.bulk_control.Width = PROPERTY_WIDTH
         apply_button = widgets.button(
-            "Apply to all", width=PROPERTY_WIDTH, margin=(0, 0, 0, 4)
+            S("form.apply_to_all"), width=PROPERTY_WIDTH, margin=(0, 0, 0, 4)
         )
         apply_button.Click += self._apply_bulk_value
         self.bulkHost.Children.Add(
             widgets.text(
-                presenter.bulk_label or "Set for all models",
+                presenter.bulk_label or S("form.bulk_label"),
                 width=CHECKBOX_WIDTH + PATH_WIDTH,
                 centered=True,
             )
@@ -270,7 +271,7 @@ class BatchSelectionForm(forms.WPFWindow):
         try:
             self.batch_input = self.input_csv.load(file_path)
         except Exception as exception:
-            forms.alert("Cannot read batch CSV: {}".format(exception), title=self.Title)
+            forms.alert(S("form.csv_error", exception), title=self.Title)
             return
         self._render_items()
 
@@ -278,10 +279,7 @@ class BatchSelectionForm(forms.WPFWindow):
         if self.sourceTabs.SelectedIndex == 0:
             self._load_folder()
         if not self.batch_input.items:
-            self._hint(
-                self.tbSelectionHint,
-                u"No models loaded \u2014 pick a folder or add RSN routes above.",
-            )
+            self._hint(self.tbSelectionHint, S("form.hint.nothing_loaded"))
             return
         self._hint(self.tbSelectionHint)
         self.tabs.SelectedItem = self.tabProperties

@@ -7,6 +7,7 @@ import Autodesk.Revit.DB as DB
 
 from core.transaction import WrappedTransaction
 from tools.batch.documents import OpenedBatchDocument, RevitDocumentOpener
+from tools.batch.strings import S
 from tools.export.persistence import save_sync_and_relinquish
 
 
@@ -24,7 +25,7 @@ class ModelExportItem(object):
 
     @property
     def label(self):
-        return self.name if self.exists else "{} (file not found)".format(self.name)
+        return self.name if self.exists else S("ifc.result.file_not_found", self.name)
 
 
 class ExportSettings(object):
@@ -128,7 +129,7 @@ class IFCBatchExporter(object):
         except Exception as ex:
             if self.logger:
                 self.logger.warning(
-                    "Could not save/sync '{}': {}".format(document.Title, ex)
+                    S("ifc.result.save_sync_failed", document.Title, ex)
                 )
 
     def _export_linked_documents(self, document, export_path, settings, results):
@@ -136,7 +137,9 @@ class IFCBatchExporter(object):
         for link_instance in links.WhereElementIsNotElementType().ToElements():
             link_document = link_instance.GetLinkDocument()
             if link_document is None:
-                results.append((link_instance.Name, "link", "Not loaded - skipped"))
+                results.append(
+                    (link_instance.Name, "link", S("ifc.result.link_not_loaded"))
+                )
                 continue
             try:
                 options = self.build_options(settings, "", None)
@@ -150,12 +153,18 @@ class IFCBatchExporter(object):
                     (
                         link_document.Title,
                         "link",
-                        "OK" if exported else "Export returned failure",
+                        "OK"
+                        if exported
+                        else S("ifc.result.export_returned_failure"),
                     )
                 )
             except Exception as ex:
                 results.append(
-                    (link_document.Title, "link", "Export failed: {}".format(ex))
+                    (
+                        link_document.Title,
+                        "link",
+                        S("ifc.result.export_failed", ex),
+                    )
                 )
 
     def export_item(self, item, settings):
@@ -167,7 +176,7 @@ class IFCBatchExporter(object):
                 (
                     item.name,
                     "-",
-                    "Cannot export links when opening without Revit links",
+                    S("ifc.result.links_conflict"),
                 )
             ]
         try:
@@ -179,7 +188,7 @@ class IFCBatchExporter(object):
                         os.makedirs(item.export_path)
                 except Exception as ex:
                     return [
-                        (item.name, "-", "Cannot create export folder: {}".format(ex))
+                        (item.name, "-", S("ifc.result.folder_failed", ex))
                     ]
 
                 view_names = item.views or (
@@ -191,7 +200,9 @@ class IFCBatchExporter(object):
                     self.resolve_views(document, view_names)
                 ):
                     if view_names and view is None:
-                        results.append((item.name, label, "View not found - skipped"))
+                        results.append(
+                            (item.name, label, S("ifc.result.view_not_found"))
+                        )
                         continue
                     file_name = file_names[index]
                     try:
@@ -206,16 +217,18 @@ class IFCBatchExporter(object):
                         results.append(
                             (
                                 item.name,
-                                label or "(default view)",
-                                "OK" if exported else "Export returned failure",
+                                label or S("ifc.result.default_view"),
+                                "OK"
+                                if exported
+                                else S("ifc.result.export_returned_failure"),
                             )
                         )
                     except Exception as ex:
                         results.append(
                             (
                                 item.name,
-                                label or "(default view)",
-                                "Export failed: {}".format(ex),
+                                label or S("ifc.result.default_view"),
+                                S("ifc.result.export_failed", ex),
                             )
                         )
 
@@ -226,5 +239,5 @@ class IFCBatchExporter(object):
                 if settings.save_after:
                     self._save_or_sync(document)
         except Exception as ex:
-            results.append((item.name, "-", "Failed to prepare/open: {}".format(ex)))
+            results.append((item.name, "-", S("ifc.result.open_failed", ex)))
         return results
