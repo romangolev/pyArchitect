@@ -78,6 +78,7 @@ Every tool has an embedded description. To see the description and hint, hover m
 | Tools | Plates Volume | Writes the volume and mass of all plates into the Comments parameter |
 | Tools | Volume Query | Returns the volume of the selected elements and totals it in cubic meters |
 | Tools | Categories List + ID | Lists the categories of the model with their IDs |
+| Tools | Convert In-Place to Family | Creates a loadable RFA from one selected model-in-place component, reloads it, places it back at the same location, then removes the original |
 | Tools | Delete Unplaced Rooms | Removes all unplaced rooms from the project |
 | Tools | Delete Shared Parameter | Removes the selected shared parameters from the project in one batch, so a parameter with the same GUID but different properties can be added afterwards |
 | Tools | All Elements Of Category | Selects every element of the chosen category |

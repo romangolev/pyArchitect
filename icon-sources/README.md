@@ -12,6 +12,7 @@ extended to new buttons later.
 | `ifc-logo.png` | buildingSMART / IFC knot, 512px. The original download was a "png-clipart" with a *painted* checkerboard instead of real transparency; this copy has the background keyed out and the trailing ® removed. |
 | `navisworks-n.png` | The Navisworks **N** taken from `CreateNavisView.pushbutton/icon.png` with its export-cube sub-badge cleared from the bottom-right, kept at the native 96px so it stays aligned. |
 | `make_batch_icon.py` | Generator. Requires Pillow (CPython — this is a build-time script, not something pyRevit runs). |
+| `make_convert_icon.py` | Draws the Convert In-Place to Family pair from scratch: an outlined cube with a knocked-out arrow badge. Requires Pillow. |
 
 ## Usage
 
@@ -31,6 +32,13 @@ python icon-sources/make_batch_icon.py icon-sources/navisworks-n.png \
 ```
 
 Both commands reproduce the checked-in icons byte-for-byte.
+
+Regenerate the Convert In-Place to Family pair:
+
+```
+python icon-sources/make_convert_icon.py \
+    pyArchitect.tab/Tools.panel/tools3.stack/ConvertInPlaceToFamily.pushbutton
+```
 
 ## How the pair is composed
 
