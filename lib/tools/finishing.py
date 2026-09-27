@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+from collections import OrderedDict
 import Autodesk.Revit.DB as DB
 from pyrevit import forms
 from System.Collections.Generic import List, Dictionary
@@ -755,13 +756,15 @@ class FinishingTool(object):
     def create_walls(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
-        switches = [
-            "Inside loops finishing",
-            "Include Room Separation Lines",
-            "Join Geometry with Host Walls",
-            "Allow Wall Joins at Ends",
-            "Write Room Data to Text Parameter",
-        ]
+        switches = OrderedDict(
+            [
+                ("Inside loops finishing", False),
+                ("Include Room Separation Lines", False),
+                ("Join Geometry with Host Walls", True),
+                ("Allow Wall Joins at Ends", False),
+                ("Write Room Data to Text Parameter", False),
+            ]
+        )
         wall_type, rswitches = self.pick_finishing_type_id(
             DB.BuiltInCategory.OST_Walls, switches
         )
