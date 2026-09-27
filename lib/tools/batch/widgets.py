@@ -262,3 +262,31 @@ class FolderPicker(object):
         folder = self._on_default()
         if folder:
             self.path = folder
+
+
+class FilePicker(object):
+    """A path box and file button with the same layout as FolderPicker."""
+
+    def __init__(self, value="", file_ext="json", pick_tooltip=None, on_change=None):
+        self.file_ext = file_ext
+        self.textbox = textbox(value)
+        if on_change:
+            self.textbox.TextChanged += on_change
+        pick = icon_button(FOLDER_GLYPH, pick_tooltip or S("widgets.file.pick"))
+        pick.Click += self._pick
+        self.control = fill_row(self.textbox, pick)
+
+    def _get_path(self):
+        return self.textbox.Text.strip()
+
+    def _set_path(self, value):
+        self.textbox.Text = value or ""
+
+    path = property(_get_path, _set_path)
+
+    def _pick(self, sender, args):
+        from pyrevit import forms
+
+        path = forms.pick_file(file_ext=self.file_ext)
+        if path:
+            self.path = path
