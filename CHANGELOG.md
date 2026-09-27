@@ -38,7 +38,8 @@ and pull-request details are added automatically to each GitHub release.
   corners join cleanly with each other and with the perpendicular host walls
   instead of leaving one corner unjoined, overlapping, or notched.
 - Floor and ceiling finishing in rooms that already have wall finishing now
-  reach the structural walls and keep their door notches.
+  reach the structural walls and keep their door notches, and are joined with
+  any wall finishing they overlap.
 
 ### Removed
 

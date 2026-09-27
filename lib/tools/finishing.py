@@ -832,6 +832,27 @@ class FinishingTool(object):
                 with WrappedTransaction(self.doc, "Restore wall finishing boundaries"):
                     self.set_room_bounding(released, 1)
 
+    def join_with_wall_finishing(self, elements):
+        with WrappedTransaction(
+            self.doc, "Join with wall finishing", warning_suppressor=True
+        ):
+            for element in elements:
+                walls = (
+                    DB.FilteredElementCollector(self.doc)
+                    .OfClass(DB.Wall)
+                    .WherePasses(DB.ElementIntersectsElementFilter(element))
+                )
+                for wall in walls:
+                    if not self.is_finishing_wall(wall):
+                        continue
+                    try:
+                        if not DB.JoinGeometryUtils.AreElementsJoined(
+                            self.doc, element, wall
+                        ):
+                            DB.JoinGeometryUtils.JoinGeometry(self.doc, element, wall)
+                    except Exception:
+                        pass
+
     def create_floors(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
@@ -849,6 +870,7 @@ class FinishingTool(object):
                 DB.BuiltInCategory.OST_Floors
             )
 
+        new_floors = []
         with WrappedTransactionGroup(self.doc, "Create Floor"):
             with self.finishing_walls_ignored(selected_rooms):
                 for room in selected_rooms:
@@ -859,10 +881,12 @@ class FinishingTool(object):
                             self.app,
                             room_parameter=room_parameter,
                         )
+                    new_floors.append(new_floor)
 
                     if room.boundary_count > 1:
                         with WrappedTransaction(self.doc, "Create Opening(s)"):
                             room.make_openings(new_floor)
+            self.join_with_wall_finishing(new_floors)
 
     def create_walls(self):
         selected_rooms = self.get_rooms()
@@ -929,6 +953,7 @@ class FinishingTool(object):
                 room_parameter = self.pick_room_parameter_assignment(
                     DB.BuiltInCategory.OST_Ceilings
                 )
+            new_ceilings = []
             with WrappedTransactionGroup(self.doc, "Create Ceiling"):
                 with self.finishing_walls_ignored(selected_rooms):
                     for room in selected_rooms:
@@ -936,9 +961,11 @@ class FinishingTool(object):
                             new_ceiling = room.make_finishing_ceiling(
                                 ceiling_type, rswitches, room_parameter
                             )
+                        new_ceilings.append(new_ceiling)
                         if room.boundary_count > 1:
                             with WrappedTransaction(self.doc, "Create Opening(s)"):
                                 room.make_openings(new_ceiling)
+                self.join_with_wall_finishing(new_ceilings)
 
         elif int(self.app.VersionNumber) <= 2021:
             ceiling_type, rswitches = self.pick_finishing_type_id(
@@ -950,6 +977,7 @@ class FinishingTool(object):
                 room_parameter = self.pick_room_parameter_assignment(
                     DB.BuiltInCategory.OST_Floors
                 )
+            new_floors = []
             with WrappedTransactionGroup(self.doc, "Create Floor"):
                 with self.finishing_walls_ignored(selected_rooms):
                     for room in selected_rooms:
@@ -961,7 +989,9 @@ class FinishingTool(object):
                                 mode="ceiling",
                                 room_parameter=room_parameter,
                             )
+                        new_floors.append(new_floor)
 
                         if room.boundary_count > 1:
                             with WrappedTransaction(self.doc, "Create Opening(s)"):
                                 room.make_openings(new_floor)
+                self.join_with_wall_finishing(new_floors)
