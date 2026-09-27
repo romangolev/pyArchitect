@@ -11,7 +11,6 @@ captures the resulting solids as FreeFormElements in a new family document.
 """
 
 import os
-import traceback
 
 import Autodesk.Revit.DB as DB
 from Autodesk.Revit.UI.Selection import ISelectionFilter, ObjectType
@@ -21,20 +20,25 @@ from pyrevit import forms, script
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 app = __revit__.Application
-output = script.get_output()
+logger = script.get_logger()
 
 EPSILON = 0.0000001
+TEMPLATE_OPTION = 'template_path'
+GENERIC_TEMPLATE_NAMES = [
+    'Metric Generic Model.rft',
+    'Generic Model.rft',
+    'Allgemeines Modell.rft',
+]
 
 
 def log(message):
-    """Write a diagnostic line to pyRevit's output window."""
-    print('[Convert In-Place to Family] {}'.format(message))
+    """Trace a step; shown only when the command runs in debug mode."""
+    logger.debug(message)
 
 
 def log_exception(error):
     """Keep the dialog short but emit the complete failure details to output."""
-    log('ERROR: {}'.format(error))
-    print(traceback.format_exc())
+    logger.exception('Conversion failed: {}'.format(error))
 
 
 def element_name(element, fallback='<unnamed>'):
@@ -110,7 +114,7 @@ def selected_in_place_component():
         candidate = doc.GetElement(list(selected_ids)[0])
         if InPlaceFamilyFilter().AllowElement(candidate):
             log('Using selected in-place component: {} ({})'.format(
-                candidate.Name, candidate.Id))
+                element_name(candidate), candidate.Id))
             return candidate
 
     try:
@@ -120,7 +124,7 @@ def selected_in_place_component():
             'Select one model-in-place component to convert')
         candidate = doc.GetElement(reference.ElementId)
         log('Using picked in-place component: {} ({})'.format(
-            candidate.Name, candidate.Id))
+            element_name(candidate), candidate.Id))
         return candidate
     except Exception as error:
         log('Selection was cancelled or failed: {}'.format(error))
@@ -134,6 +138,53 @@ def family_name_exists(name):
     return name in names
 
 
+def saved_template():
+    path = script.get_config().get_option(TEMPLATE_OPTION, '')
+    if path and os.path.isfile(path):
+        return path
+    return None
+
+
+def find_generic_template():
+    root = app.FamilyTemplatePath
+    if not root or not os.path.isdir(root):
+        return None
+    found = {}
+    for folder, _, files in os.walk(root):
+        for file_name in files:
+            found.setdefault(file_name.lower(), os.path.join(folder, file_name))
+    for name in GENERIC_TEMPLATE_NAMES:
+        if name.lower() in found:
+            return found[name.lower()]
+    return None
+
+
+def default_template():
+    return saved_template() or find_generic_template()
+
+
+def pick_template():
+    init_dir = app.FamilyTemplatePath
+    if not init_dir or not os.path.isdir(init_dir):
+        init_dir = ''
+    return forms.pick_file(file_ext='rft', init_dir=init_dir)
+
+
+def configure_template():
+    current = default_template()
+    log('Current default family template: {}'.format(current or '<none>'))
+    template_path = pick_template()
+    if not template_path:
+        log('Default family template unchanged.')
+        return
+    config = script.get_config()
+    config.set_option(TEMPLATE_OPTION, template_path)
+    script.save_config()
+    log('Saved default family template: {}'.format(template_path))
+    forms.alert('Default family template set to:\n{}'.format(template_path),
+                title='Convert In-Place to Family')
+
+
 def safe_file_stem(name):
     """Make a family name safe as the initial Save As file name."""
     invalid = '<>:"/\\|?*'
@@ -141,22 +192,79 @@ def safe_file_stem(name):
 
 
 def get_anchor(component):
-    """Return an origin that gives the replacement the same world placement."""
-    try:
-        return component.GetTransform().Origin
-    except Exception:
-        pass
+    bounding_box = component.get_BoundingBox(None)
+    if bounding_box:
+        return DB.XYZ(
+            (bounding_box.Min.X + bounding_box.Max.X) * 0.5,
+            (bounding_box.Min.Y + bounding_box.Max.Y) * 0.5,
+            bounding_box.Min.Z)
 
     location = component.Location
     if isinstance(location, DB.LocationPoint):
         return location.Point
     if isinstance(location, DB.LocationCurve):
         return location.Curve.Evaluate(0.5, True)
-
-    bounding_box = component.get_BoundingBox(None)
-    if bounding_box:
-        return (bounding_box.Min + bounding_box.Max) * 0.5
     return DB.XYZ.Zero
+
+
+def placement_level(component, anchor):
+    level = doc.GetElement(component.LevelId)
+    if isinstance(level, DB.Level):
+        return level
+
+    levels = sorted(DB.FilteredElementCollector(doc).OfClass(DB.Level),
+                    key=lambda item: item.Elevation)
+    if not levels:
+        return None
+    below = [item for item in levels if item.Elevation <= anchor.Z + EPSILON]
+    return below[-1] if below else levels[0]
+
+
+COPIED_PARAMETERS = [
+    DB.BuiltInParameter.PHASE_CREATED,
+    DB.BuiltInParameter.PHASE_DEMOLISHED,
+    DB.BuiltInParameter.ELEM_PARTITION_PARAM,
+    DB.BuiltInParameter.ALL_MODEL_MARK,
+    DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS,
+]
+
+
+def copy_instance_data(source, target):
+    for parameter_id in COPIED_PARAMETERS:
+        source_parameter = source.get_Parameter(parameter_id)
+        target_parameter = target.get_Parameter(parameter_id)
+        if source_parameter is None or target_parameter is None:
+            continue
+        if target_parameter.IsReadOnly or not source_parameter.HasValue:
+            continue
+        try:
+            storage = source_parameter.StorageType
+            if storage == DB.StorageType.ElementId:
+                target_parameter.Set(source_parameter.AsElementId())
+            elif storage == DB.StorageType.Integer:
+                target_parameter.Set(source_parameter.AsInteger())
+            elif storage == DB.StorageType.Double:
+                target_parameter.Set(source_parameter.AsDouble())
+            elif storage == DB.StorageType.String:
+                target_parameter.Set(source_parameter.AsString() or '')
+        except Exception as error:
+            log('Could not copy {}: {}'.format(parameter_id, error))
+
+
+def related_element_count(component):
+    related = set()
+    lookups = [
+        lambda: DB.JoinGeometryUtils.GetJoinedElements(doc, component),
+        lambda: DB.InstanceVoidCutUtils.GetElementsBeingCut(component),
+        lambda: DB.SolidSolidCutUtils.GetSolidsBeingCut(component),
+    ]
+    for lookup in lookups:
+        try:
+            for element_id in lookup():
+                related.add(str(element_id))
+        except Exception:
+            pass
+    return len(related)
 
 
 def transformed_solid(solid, transform):
@@ -202,13 +310,13 @@ def source_solids(component):
 
 
 def set_matching_category(family_doc, source_category):
-    """Use the original category when the generic template permits it."""
+    """Use the original category when the family template permits it."""
     if source_category is None:
         return False
     try:
         target_category = DB.Category.GetCategory(family_doc, source_category.Id)
         if target_category is None:
-            log('Original category is unavailable in the chosen template.')
+            log('Original category is unavailable in the chosen family template.')
             return False
         family_doc.OwnerFamily.FamilyCategory = target_category
         log('Set output family category to "{}".'.format(target_category.Name))
@@ -237,7 +345,7 @@ def make_family(component, template_path, output_path, family_name, anchor):
     if not solids:
         raise ValueError('The selected component has no solid geometry to convert.')
 
-    log('Creating family "{}" from template: {}'.format(
+    log('Creating family "{}" from family template: {}'.format(
         family_name, template_path))
     family_doc = app.NewFamilyDocument(template_path)
     try:
@@ -309,8 +417,16 @@ def replace_component(source, symbol, anchor):
             doc.Regenerate()
             log('Activated symbol {}.'.format(symbol.Id))
 
-        replacement = doc.Create.NewFamilyInstance(
-            anchor, symbol, DB.Structure.StructuralType.NonStructural)
+        level = placement_level(source, anchor)
+        if level is None:
+            replacement = doc.Create.NewFamilyInstance(
+                anchor, symbol, DB.Structure.StructuralType.NonStructural)
+            log('No level found; placed replacement without a level.')
+        else:
+            replacement = doc.Create.NewFamilyInstance(
+                anchor, symbol, level, DB.Structure.StructuralType.NonStructural)
+            log('Placed replacement on level "{}".'.format(element_name(level)))
+        copy_instance_data(source, replacement)
         log('Placed replacement instance {}. Deleting source {}...'.format(
             replacement.Id, source.Id))
         doc.Delete(source.Id)
@@ -344,14 +460,26 @@ def main():
         source_name, element_name(source.Symbol),
         source.Category.Name if source.Category else '<none>'))
     default_stem = safe_file_stem('{} Loadable'.format(source_name))
-    template_path = forms.pick_file(file_ext='rft')
-    if not template_path:
-        log('Stopped: no family template selected.')
-        return
+    template_path = default_template()
+    if template_path:
+        log('Using family template: {}'.format(template_path))
+    else:
+        log('No default family template found; asking for one.')
+        template_path = pick_template()
+        if not template_path:
+            log('Stopped: no family template selected.')
+            return
 
     output_path = forms.save_file(file_ext='rfa', default_name=default_stem)
     if not output_path:
         log('Stopped: no destination RFA selected.')
+        return
+    if os.path.exists(output_path):
+        log('Stopped: RFA already exists: {}'.format(output_path))
+        forms.alert(
+            'The file "{}" already exists. Choose a new RFA file name and run '
+            'the command again.'.format(output_path),
+            title='Convert In-Place to Family', warn_icon=True)
         return
 
     requested_name = os.path.splitext(os.path.basename(output_path))[0]
@@ -375,6 +503,13 @@ def main():
         'cannot be converted. The original is deleted only after the new family '
         'loads and is placed successfully.'
     ).format(source_name)
+    related_count = related_element_count(source)
+    if related_count:
+        message += (
+            '\n\nThe component is joined with or cuts {} other element(s). '
+            'Those joins and cuts are removed with the original, and the new '
+            'family will not cut them.'
+        ).format(related_count)
     if not forms.alert(message, title='Convert In-Place to Family', yes=True, no=True):
         log('Stopped: conversion was not confirmed.')
         return
@@ -395,8 +530,8 @@ def main():
     category_note = ''
     if not same_category:
         category_note = (
-            '\n\nThe chosen template could not use the original category, so '
-            'the family remains in the template category.'
+            '\n\nThe chosen family template could not use the original category, '
+            'so the family remains in the template category.'
         )
     forms.alert(
         'Created and loaded "{}" with {} free-form solid(s).\n'
@@ -407,4 +542,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if __shiftclick__:
+        configure_template()
+    else:
+        main()
