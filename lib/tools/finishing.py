@@ -22,6 +22,7 @@ class FinishingRoom(object):
         self.doc = rvt_room_elem.Document
         self.new_walls = []
         self.new_walls_and_hosts = {}
+        self.new_walls_and_corner_hosts = {}
 
     @property
     def id(self):
@@ -246,6 +247,7 @@ class FinishingRoom(object):
         """Offset merged groups into the room and make neighbours meet at one point."""
         groups = self.get_merged_boundary_groups(boundaries, rswitches)
         curves = [self.offset_into_room(group["curve"], distance) for group in groups]
+        corner_hosts = [[] for _ in groups]
         count = len(groups)
         for index in range(count):
             following = (index + 1) % count
@@ -258,6 +260,8 @@ class FinishingRoom(object):
                 > 1e-6
             ):
                 continue
+            corner_hosts[index].append(groups[following]["hosts"][0])
+            corner_hosts[following].append(groups[index]["hosts"][-1])
             first, second = curves[index], curves[following]
             if not isinstance(first, DB.Line) or not isinstance(second, DB.Line):
                 continue
@@ -269,21 +273,74 @@ class FinishingRoom(object):
             if new_first is None or new_second is None:
                 continue
             curves[index], curves[following] = new_first, new_second
-        return [(curve, group["hosts"]) for curve, group in zip(curves, groups)]
+        return [
+            (curve, group["hosts"], neighbours)
+            for curve, group, neighbours in zip(curves, groups, corner_hosts)
+        ]
+
+    @staticmethod
+    def get_solids(element):
+        solids = []
+        geometry = element.get_Geometry(DB.Options())
+        if geometry is None:
+            return solids
+        for item in geometry:
+            items = (
+                item.GetInstanceGeometry()
+                if isinstance(item, DB.GeometryInstance)
+                else [item]
+            )
+            for sub_item in items:
+                if isinstance(sub_item, DB.Solid) and sub_item.Volume > 0:
+                    solids.append(sub_item)
+        return solids
+
+    def shares_face_with(self, element, other, tolerance=1e-4):
+        """A face contact puts at least three vertices of element on other."""
+        other_faces = [face for solid in self.get_solids(other) for face in solid.Faces]
+        vertices = {}
+        for solid in self.get_solids(element):
+            for edge in solid.Edges:
+                for point in edge.Tessellate():
+                    key = (round(point.X, 6), round(point.Y, 6), round(point.Z, 6))
+                    vertices[key] = point
+        touching = 0
+        for point in vertices.values():
+            for face in other_faces:
+                projection = face.Project(point)
+                if projection is not None and projection.Distance < tolerance:
+                    touching += 1
+                    break
+        return touching >= 3
+
+    def get_join_hosts(self, new_wall):
+        """Own hosts plus perpendicular hosts the wall end actually rests on."""
+        hosts = [host for host in self.new_walls_and_hosts[new_wall] if host is not None]
+        host_ids = set(host.Id for host in hosts)
+        for host in self.new_walls_and_corner_hosts.get(new_wall, []):
+            if (
+                host is not None
+                and host.Id not in host_ids
+                and self.shares_face_with(new_wall, host)
+            ):
+                hosts.append(host)
+                host_ids.add(host.Id)
+        return hosts
 
     def make_finishing_walls_outer(self, wall_type, rswitches, room_parameter=None):
-        for curve, hosts in self.get_finishing_curves(
+        for curve, hosts, neighbours in self.get_finishing_curves(
             self.outer_boundaries, rswitches, wall_type.Width / 2
         ):
             new_wall = self.make_finishing_wall_by_line(
                 curve, wall_type, rswitches, room_parameter
             )
             self.new_walls_and_hosts[new_wall] = hosts
+            self.new_walls_and_corner_hosts[new_wall] = neighbours
             self.new_walls.append(new_wall)
 
     def make_finishing_walls_inner(self, wall_type, rswitches, room_parameter=None):
         for boundary in self.inner_boundaries:
-            for curve, hosts in self.get_finishing_curves(
+            for curve, hosts, neighbours in self.get_finishing_curves(
                 boundary, rswitches, wall_type.Width / 2
             ):
                 try:
@@ -291,6 +348,7 @@ class FinishingRoom(object):
                         curve, wall_type, rswitches, room_parameter
                     )
                     self.new_walls_and_hosts[new_wall] = hosts
+                    self.new_walls_and_corner_hosts[new_wall] = neighbours
                     self.new_walls.append(new_wall)
                 except:
                     import traceback
@@ -731,8 +789,8 @@ class FinishingTool(object):
                     self.doc, "Join finishing Walls with hosts", warning_suppressor=True
                 ):
                     for room in selected_rooms:
-                        for new_wall, hosts in room.new_walls_and_hosts.items():
-                            for host in hosts:
+                        for new_wall in room.new_walls:
+                            for host in room.get_join_hosts(new_wall):
                                 try:
                                     if not DB.JoinGeometryUtils.AreElementsJoined(
                                         self.doc, new_wall, host
