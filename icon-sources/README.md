@@ -37,7 +37,7 @@ Regenerate the Convert In-Place to Family pair:
 
 ```
 python icon-sources/make_convert_icon.py \
-    pyArchitect.tab/Tools.panel/tools3.stack/ConvertInPlaceToFamily.pushbutton
+    pyArchitect.tab/Tools.panel/tools4.stack/ConvertInPlaceToFamily.pushbutton
 ```
 
 ## How the pair is composed
