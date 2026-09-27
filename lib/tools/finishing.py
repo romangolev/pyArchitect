@@ -223,28 +223,74 @@ class FinishingRoom(object):
         """Room boundary loops keep the room on their left side."""
         return curve.CreateOffset(distance, DB.XYZ.BasisZ.Negate())
 
+    @staticmethod
+    def intersect_unbound_lines(first, second):
+        p, r = first.GetEndPoint(0), first.Direction
+        q, s = second.GetEndPoint(0), second.Direction
+        denominator = r.X * s.Y - r.Y * s.X
+        if abs(denominator) < 1e-9:
+            return None
+        t = ((q.X - p.X) * s.Y - (q.Y - p.Y) * s.X) / denominator
+        return DB.XYZ(p.X + r.X * t, p.Y + r.Y * t, p.Z)
+
+    @staticmethod
+    def rebuild_line(line, start, end):
+        if start.DistanceTo(end) < 1e-6:
+            return None
+        rebuilt = DB.Line.CreateBound(start, end)
+        if rebuilt.Direction.DotProduct(line.Direction) <= 0:
+            return None
+        return rebuilt
+
+    def get_finishing_curves(self, boundaries, rswitches, distance):
+        """Offset merged groups into the room and make neighbours meet at one point."""
+        groups = self.get_merged_boundary_groups(boundaries, rswitches)
+        curves = [self.offset_into_room(group["curve"], distance) for group in groups]
+        count = len(groups)
+        for index in range(count):
+            following = (index + 1) % count
+            if following == index:
+                continue
+            if (
+                groups[index]["curve"].GetEndPoint(1).DistanceTo(
+                    groups[following]["curve"].GetEndPoint(0)
+                )
+                > 1e-6
+            ):
+                continue
+            first, second = curves[index], curves[following]
+            if not isinstance(first, DB.Line) or not isinstance(second, DB.Line):
+                continue
+            corner = self.intersect_unbound_lines(first, second)
+            if corner is None:
+                continue
+            new_first = self.rebuild_line(first, first.GetEndPoint(0), corner)
+            new_second = self.rebuild_line(second, corner, second.GetEndPoint(1))
+            if new_first is None or new_second is None:
+                continue
+            curves[index], curves[following] = new_first, new_second
+        return [(curve, group["hosts"]) for curve, group in zip(curves, groups)]
+
     def make_finishing_walls_outer(self, wall_type, rswitches, room_parameter=None):
-        for group in self.get_merged_boundary_groups(self.outer_boundaries, rswitches):
+        for curve, hosts in self.get_finishing_curves(
+            self.outer_boundaries, rswitches, wall_type.Width / 2
+        ):
             new_wall = self.make_finishing_wall_by_line(
-                self.offset_into_room(group["curve"], wall_type.Width / 2),
-                wall_type,
-                rswitches,
-                room_parameter,
+                curve, wall_type, rswitches, room_parameter
             )
-            self.new_walls_and_hosts[new_wall] = group["hosts"]
+            self.new_walls_and_hosts[new_wall] = hosts
             self.new_walls.append(new_wall)
 
     def make_finishing_walls_inner(self, wall_type, rswitches, room_parameter=None):
         for boundary in self.inner_boundaries:
-            for group in self.get_merged_boundary_groups(boundary, rswitches):
+            for curve, hosts in self.get_finishing_curves(
+                boundary, rswitches, wall_type.Width / 2
+            ):
                 try:
                     new_wall = self.make_finishing_wall_by_line(
-                        self.offset_into_room(group["curve"], wall_type.Width / 2),
-                        wall_type,
-                        rswitches,
-                        room_parameter,
+                        curve, wall_type, rswitches, room_parameter
                     )
-                    self.new_walls_and_hosts[new_wall] = group["hosts"]
+                    self.new_walls_and_hosts[new_wall] = hosts
                     self.new_walls.append(new_wall)
                 except:
                     import traceback
