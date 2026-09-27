@@ -715,15 +715,43 @@ class FinishingTool(object):
             sys.exit()
         return res[rops], rswitches
 
+    @staticmethod
+    def is_text_definition(definition):
+        try:
+            return definition.GetDataType() == DB.SpecTypeId.String.Text
+        except AttributeError:
+            return definition.ParameterType == DB.ParameterType.Text
+
+    def get_bound_text_parameter_names(self, build_in_category):
+        category = DB.Category.GetCategory(self.doc, build_in_category)
+        names = []
+        if category is None:
+            return names
+        iterator = self.doc.ParameterBindings.ForwardIterator()
+        while iterator.MoveNext():
+            binding = iterator.Current
+            if not isinstance(binding, DB.InstanceBinding):
+                continue
+            if not binding.Categories.Contains(category):
+                continue
+            if self.is_text_definition(iterator.Key):
+                names.append(iterator.Key.Name)
+        return names
+
     def get_writable_text_parameter_names(self, build_in_category):
         """Return text instance parameters available to the requested category."""
-        elements = (
+        parameter_names = [
+            DB.LabelUtils.GetLabelFor(DB.BuiltInParameter.ALL_MODEL_MARK),
+            DB.LabelUtils.GetLabelFor(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS),
+        ]
+        parameter_names.extend(self.get_bound_text_parameter_names(build_in_category))
+        element = (
             DB.FilteredElementCollector(self.doc)
             .OfCategory(build_in_category)
             .WhereElementIsNotElementType()
+            .FirstElement()
         )
-        for element in elements:
-            parameter_names = []
+        if element is not None:
             for parameter in element.Parameters:
                 if (
                     parameter.Definition is not None
@@ -731,26 +759,17 @@ class FinishingTool(object):
                     and parameter.StorageType == DB.StorageType.String
                 ):
                     parameter_names.append(parameter.Definition.Name)
-            if parameter_names:
-                return sorted(set(parameter_names))
-        return []
+        return sorted(set(parameter_names))
 
     def pick_room_parameter_assignment(self, build_in_category):
         parameter_names = self.get_writable_text_parameter_names(build_in_category)
-        if not parameter_names:
-            forms.alert(
-                "No writable instance text parameters were found for this category.",
-                title="Room parameter assignment",
-            )
-            return None
-
         parameter_name = forms.SelectFromList.show(
             parameter_names,
             title="Room parameter assignment",
             button_name="Use parameter",
         )
         if not parameter_name:
-            return None
+            sys.exit()
 
         value_source = forms.SelectFromList.show(
             ["Room Number", "Room Name"],
@@ -758,7 +777,7 @@ class FinishingTool(object):
             button_name="Write value",
         )
         if not value_source:
-            return None
+            sys.exit()
         return (parameter_name, value_source)
 
     def create_floors(self):
