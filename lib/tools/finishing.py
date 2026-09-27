@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-import uuid
 import Autodesk.Revit.DB as DB
 from pyrevit import forms
 from System.Collections.Generic import List, Dictionary
@@ -219,20 +218,31 @@ class FinishingRoom(object):
                 groups.append(current)
         return groups
 
-    def make_finishing_walls_outer(self, temp_type, rswitches, room_parameter=None):
+    @staticmethod
+    def offset_into_room(curve, distance):
+        """Room boundary loops keep the room on their left side."""
+        return curve.CreateOffset(distance, DB.XYZ.BasisZ.Negate())
+
+    def make_finishing_walls_outer(self, wall_type, rswitches, room_parameter=None):
         for group in self.get_merged_boundary_groups(self.outer_boundaries, rswitches):
             new_wall = self.make_finishing_wall_by_line(
-                group["curve"], temp_type, rswitches, room_parameter
+                self.offset_into_room(group["curve"], wall_type.Width / 2),
+                wall_type,
+                rswitches,
+                room_parameter,
             )
             self.new_walls_and_hosts[new_wall] = group["hosts"]
             self.new_walls.append(new_wall)
 
-    def make_finishing_walls_inner(self, temp_type, rswitches, room_parameter=None):
+    def make_finishing_walls_inner(self, wall_type, rswitches, room_parameter=None):
         for boundary in self.inner_boundaries:
             for group in self.get_merged_boundary_groups(boundary, rswitches):
                 try:
                     new_wall = self.make_finishing_wall_by_line(
-                        group["curve"], temp_type, rswitches, room_parameter
+                        self.offset_into_room(group["curve"], wall_type.Width / 2),
+                        wall_type,
+                        rswitches,
+                        room_parameter,
                     )
                     self.new_walls_and_hosts[new_wall] = group["hosts"]
                     self.new_walls.append(new_wall)
@@ -242,7 +252,7 @@ class FinishingRoom(object):
                     print(traceback.format_exc())
 
     def make_finishing_wall_by_line(
-        self, line, temp_type, rswitches, room_parameter=None
+        self, line, wall_type, rswitches, room_parameter=None
     ):
         room = self.rvt_room_elem
         room_height = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
@@ -252,7 +262,7 @@ class FinishingRoom(object):
             wall_height = 1500 / 304.8
 
         new_wall = DB.Wall.Create(
-            self.doc, line, temp_type.Id, self.level_id, wall_height, 0.0, False, False
+            self.doc, line, wall_type.Id, self.level_id, wall_height, 0.0, False, False
         )
         new_wall.get_Parameter(DB.BuiltInParameter.WALL_KEY_REF_PARAM).Set(2)
         new_wall.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(
@@ -564,19 +574,6 @@ class FinishingTool(object):
             sys.exit()
         return res[rops], rswitches
 
-    def duplicate_wall_type(self, type_of_wall):
-        """
-        Duplicating wall type creating the same layer set with double width
-        to deal with the offset API issue
-        """
-        duplicated_wall_type = type_of_wall.Duplicate(str(uuid.uuid4()))
-        cs1 = duplicated_wall_type.GetCompoundStructure()
-        layers1 = cs1.GetLayers()
-        for layer in layers1:
-            cs1.SetLayerWidth(layer.LayerId, 2 * cs1.GetLayerWidth(layer.LayerId))
-        duplicated_wall_type.SetCompoundStructure(cs1)
-        return duplicated_wall_type
-
     def get_writable_text_parameter_names(self, build_in_category):
         """Return text instance parameters available to the requested category."""
         elements = (
@@ -671,24 +668,17 @@ class FinishingTool(object):
             )
 
         with WrappedTransactionGroup(self.doc, "Make wall finishings"):
-            with WrappedTransaction(self.doc, "Create Temp Type"):
-                tmp = self.duplicate_wall_type(wall_type)
-
             with WrappedTransaction(
                 self.doc, "Create Finishing Walls", warning_suppressor=True
             ):
                 for room in selected_rooms:
-                    room.make_finishing_walls_outer(tmp, rswitches, room_parameter)
+                    room.make_finishing_walls_outer(
+                        wall_type, rswitches, room_parameter
+                    )
                     if rswitches["Inside loops finishing"] == True:
                         room.make_finishing_walls_inner(
-                            tmp, rswitches, room_parameter
+                            wall_type, rswitches, room_parameter
                         )
-
-            new_walls = [wall for room in selected_rooms for wall in room.new_walls]
-            if new_walls:
-                new_walls_ids = List[DB.ElementId]([wall.Id for wall in new_walls])
-                with WrappedTransaction(self.doc, "Change type back to original"):
-                    DB.Element.ChangeTypeId(self.doc, new_walls_ids, wall_type.Id)
 
             if rswitches["Join Geometry with Host Walls"]:
                 with WrappedTransaction(
@@ -706,9 +696,6 @@ class FinishingTool(object):
                                         )
                                 except Exception:
                                     pass
-
-            with WrappedTransaction(self.doc, "Delete Temp Type"):
-                self.doc.Delete(tmp.Id)
 
     def create_ceilings(self):
         selected_rooms = self.get_rooms()
