@@ -29,12 +29,16 @@ and pull-request details are added automatically to each GitHub release.
   instead of one per boundary fragment.
 - Floor finishing door notches use the larger of the door's Width and Rough
   Width, so the floor always covers the opening.
+- Wall finishing walls are no longer room-bounding, so room areas and
+  boundaries stay at the structural walls.
 
 ### Fixed
 
 - Wall finishing no longer raises "Can't keep elements joined", and its
   corners join cleanly with each other and with the perpendicular host walls
   instead of leaving one corner unjoined, overlapping, or notched.
+- Floor and ceiling finishing in rooms that already have wall finishing now
+  reach the structural walls and keep their door notches.
 
 ### Removed
 

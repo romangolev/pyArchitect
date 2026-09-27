@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 import Autodesk.Revit.DB as DB
 from pyrevit import forms
 from System.Collections.Generic import List, Dictionary
@@ -409,6 +410,7 @@ class FinishingRoom(object):
         new_wall.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(
             "Wall finishing"
         )
+        new_wall.get_Parameter(DB.BuiltInParameter.WALL_ATTR_ROOM_BOUNDING).Set(0)
         if rswitches["Allow Wall Joins at Ends"] == False:
             DB.WallUtils.DisallowWallJoinAtEnd(new_wall, 0)
             DB.WallUtils.DisallowWallJoinAtEnd(new_wall, 1)
@@ -780,6 +782,56 @@ class FinishingTool(object):
             sys.exit()
         return (parameter_name, value_source)
 
+    @staticmethod
+    def is_finishing_wall(element):
+        if not isinstance(element, DB.Wall):
+            return False
+        comments = element.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
+        return comments is not None and comments.AsString() == "Wall finishing"
+
+    @staticmethod
+    def set_room_bounding(walls, value):
+        for wall in walls:
+            parameter = wall.get_Parameter(DB.BuiltInParameter.WALL_ATTR_ROOM_BOUNDING)
+            if parameter is not None and not parameter.IsReadOnly:
+                parameter.Set(value)
+
+    def get_bounding_finishing_walls(self, rooms):
+        walls = {}
+        for room in rooms:
+            for loop in room.boundaries:
+                for segment in loop:
+                    element = self.doc.GetElement(segment.ElementId)
+                    if self.is_finishing_wall(element):
+                        walls[str(element.Id)] = element
+        return walls
+
+    def release_finishing_boundaries(self, rooms):
+        released = {}
+        while True:
+            walls = [
+                wall
+                for key, wall in self.get_bounding_finishing_walls(rooms).items()
+                if key not in released
+            ]
+            if not walls:
+                return list(released.values())
+            self.set_room_bounding(walls, 0)
+            self.doc.Regenerate()
+            for wall in walls:
+                released[str(wall.Id)] = wall
+
+    @contextmanager
+    def finishing_walls_ignored(self, rooms):
+        with WrappedTransaction(self.doc, "Ignore wall finishing boundaries"):
+            released = self.release_finishing_boundaries(rooms)
+        try:
+            yield
+        finally:
+            if released:
+                with WrappedTransaction(self.doc, "Restore wall finishing boundaries"):
+                    self.set_room_bounding(released, 1)
+
     def create_floors(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
@@ -798,15 +850,19 @@ class FinishingTool(object):
             )
 
         with WrappedTransactionGroup(self.doc, "Create Floor"):
-            for room in selected_rooms:
-                with WrappedTransaction(self.doc, "Create Floor"):
-                    new_floor = room.make_finishing_floor(
-                        floor_type, rswitches, self.app, room_parameter=room_parameter
-                    )
+            with self.finishing_walls_ignored(selected_rooms):
+                for room in selected_rooms:
+                    with WrappedTransaction(self.doc, "Create Floor"):
+                        new_floor = room.make_finishing_floor(
+                            floor_type,
+                            rswitches,
+                            self.app,
+                            room_parameter=room_parameter,
+                        )
 
-                if room.boundary_count > 1:
-                    with WrappedTransaction(self.doc, "Create Opening(s)"):
-                        room.make_openings(new_floor)
+                    if room.boundary_count > 1:
+                        with WrappedTransaction(self.doc, "Create Opening(s)"):
+                            room.make_openings(new_floor)
 
     def create_walls(self):
         selected_rooms = self.get_rooms()
@@ -874,14 +930,15 @@ class FinishingTool(object):
                     DB.BuiltInCategory.OST_Ceilings
                 )
             with WrappedTransactionGroup(self.doc, "Create Ceiling"):
-                for room in selected_rooms:
-                    with WrappedTransaction(self.doc, "Create Ceiling"):
-                        new_ceiling = room.make_finishing_ceiling(
-                            ceiling_type, rswitches, room_parameter
-                        )
-                    if room.boundary_count > 1:
-                        with WrappedTransaction(self.doc, "Create Opening(s)"):
-                            room.make_openings(new_ceiling)
+                with self.finishing_walls_ignored(selected_rooms):
+                    for room in selected_rooms:
+                        with WrappedTransaction(self.doc, "Create Ceiling"):
+                            new_ceiling = room.make_finishing_ceiling(
+                                ceiling_type, rswitches, room_parameter
+                            )
+                        if room.boundary_count > 1:
+                            with WrappedTransaction(self.doc, "Create Opening(s)"):
+                                room.make_openings(new_ceiling)
 
         elif int(self.app.VersionNumber) <= 2021:
             ceiling_type, rswitches = self.pick_finishing_type_id(
@@ -894,16 +951,17 @@ class FinishingTool(object):
                     DB.BuiltInCategory.OST_Floors
                 )
             with WrappedTransactionGroup(self.doc, "Create Floor"):
-                for room in selected_rooms:
-                    with WrappedTransaction(self.doc, "Create Floor"):
-                        new_floor = room.make_finishing_floor(
-                            ceiling_type,
-                            rswitches,
-                            self.app,
-                            mode="ceiling",
-                            room_parameter=room_parameter,
-                        )
+                with self.finishing_walls_ignored(selected_rooms):
+                    for room in selected_rooms:
+                        with WrappedTransaction(self.doc, "Create Floor"):
+                            new_floor = room.make_finishing_floor(
+                                ceiling_type,
+                                rswitches,
+                                self.app,
+                                mode="ceiling",
+                                room_parameter=room_parameter,
+                            )
 
-                    if room.boundary_count > 1:
-                        with WrappedTransaction(self.doc, "Create Opening(s)"):
-                            room.make_openings(new_floor)
+                        if room.boundary_count > 1:
+                            with WrappedTransaction(self.doc, "Create Opening(s)"):
+                                room.make_openings(new_floor)
