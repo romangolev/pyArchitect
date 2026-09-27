@@ -14,6 +14,7 @@ from core import config
 from tools.batch import widgets
 from tools.batch.form import BatchOptionsPresenter, show_batch_form
 from tools.batch.ifc import IFCBatchExporter, ExportSettings, ModelExportItem
+from tools.batch.strings import S
 
 
 OPTIONS_CONFIG_KEY = "batch_ifc_options"
@@ -22,69 +23,66 @@ OPTIONS_CONFIG_KEY = "batch_ifc_options"
 
 FLAG_GROUPS = [
     (
-        "Geometry & elements",
+        "ifc.group.geometry",
         [
-            ("SplitWallsAndColumns", "Split walls and columns by level"),
-            ("IncludeSteelElements", "Include steel elements"),
-            ("Export2DElements", "Export 2D elements"),
-            ("ExportPartsAsBuildingElements", "Export parts"),
-            ("ExportSolidModelRep", "Export solid model representation"),
-            ("VisibleElementsOfCurrentView", "Export visible elements only"),
-            ("ExportRoomsInView", "Export rooms/spaces"),
-            ("IncludeSiteElevation", "Include site elevation"),
+            "SplitWallsAndColumns",
+            "IncludeSteelElements",
+            "Export2DElements",
+            "ExportPartsAsBuildingElements",
+            "ExportSolidModelRep",
+            "VisibleElementsOfCurrentView",
+            "ExportRoomsInView",
+            "IncludeSiteElevation",
         ],
     ),
     (
-        "Property sets",
+        "ifc.group.psets",
         [
-            ("ExportInternalRevitPropertySets", "Export Revit property sets"),
-            ("ExportIFCCommonPropertySets", "Export IFC common property sets"),
-            ("ExportBaseQuantities", "Export base quantities"),
-            ("ExportSchedulesAsPsets", "Export schedules as property sets"),
-            ("ExportUserDefinedPsets", "Export user-defined property sets"),
+            "ExportInternalRevitPropertySets",
+            "ExportIFCCommonPropertySets",
+            "ExportBaseQuantities",
+            "ExportSchedulesAsPsets",
+            "ExportUserDefinedPsets",
         ],
     ),
     (
-        "Identity",
+        "ifc.group.identity",
         [
-            ("UseFamilyAndTypeNameForReference", "Use family/type reference"),
-            ("StoreIFCGUID", "Store IFC GUID in model"),
+            "UseFamilyAndTypeNameForReference",
+            "StoreIFCGUID",
         ],
     ),
 ]
 
 OPTION_GROUPS = [
     (
-        "Linked models",
+        "ifc.group.links",
         [
-            ("open_without_links", "Open without Revit links", False),
-            ("export_links_merged", "Export links in the same IFC", False),
-            ("export_links_separately", "Export linked models separately", False),
+            ("open_without_links", False),
+            ("export_links_merged", False),
+            ("export_links_separately", False),
         ],
     ),
     (
-        "After the run",
+        "ifc.group.after",
         [
-            ("save_after", "Save/synchronize after export", False),
-            ("open_folders", "Open export folders when complete", True),
+            ("save_after", False),
+            ("open_folders", True),
         ],
     ),
 ]
 
-FLAG_LABELS = [pair for _, pairs in FLAG_GROUPS for pair in pairs]
+FLAG_KEYS = [key for _, keys in FLAG_GROUPS for key in keys]
 
-CHECKBOX_LABELS = [entry for _, entries in OPTION_GROUPS for entry in entries]
+CHECKBOX_DEFAULTS = [entry for _, entries in OPTION_GROUPS for entry in entries]
 
 ROW_MARGIN = (0, 0, 0, 5)
 
 
 class IfcOptionsPresenter(BatchOptionsPresenter):
-    source_description = "Pick where the models come from, then load them."
-    selection_description = "Tick the models to export."
-    options_description = (
-        "These settings apply to every ticked model. Set the export folder, then "
-        "run the export."
-    )
+    source_description = S("form.source_description")
+    selection_description = S("ifc.selection_description")
+    options_description = S("ifc.options_description")
 
     def __init__(self, defaults=None):
         self.defaults = defaults or load_options()
@@ -108,9 +106,9 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         self.default_view = widgets.textbox(self.defaults.default_view_name)
         self.export_folder = widgets.FolderPicker(
             self.defaults.export_folder,
-            pick_tooltip="Pick the export folder",
+            pick_tooltip=S("ifc.tooltip.pick_folder"),
             on_default=self._default_export_folder,
-            default_tooltip="Use the folder the models came from",
+            default_tooltip=S("ifc.tooltip.default_folder"),
             on_change=self._export_folder_changed,
         )
 
@@ -118,56 +116,69 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             (
                 key,
                 widgets.checkbox(
-                    text, self.defaults.bool_flags[key], margin=ROW_MARGIN
+                    S("ifc.flag." + key),
+                    self.defaults.bool_flags[key],
+                    margin=ROW_MARGIN,
                 ),
             )
-            for key, text in FLAG_LABELS
+            for key in FLAG_KEYS
         )
         self.controls = dict(
-            (name, widgets.checkbox(text, checked, margin=ROW_MARGIN))
-            for name, text, checked in CHECKBOX_LABELS
+            (
+                name,
+                widgets.checkbox(
+                    S("ifc.option." + name), checked, margin=ROW_MARGIN
+                ),
+            )
+            for name, checked in CHECKBOX_DEFAULTS
         )
         self.controls["open_without_links"].Click += self._enforce_link_options
         self.controls["export_links_merged"].Click += self._enforce_link_options
         self.controls["export_links_separately"].Click += self._enforce_link_options
 
         flags = dict(
-            (title, [self.flag_controls[key] for key, _ in pairs])
-            for title, pairs in FLAG_GROUPS
+            (group_key, [self.flag_controls[key] for key in keys])
+            for group_key, keys in FLAG_GROUPS
         )
         options = dict(
-            (title, [self.controls[name] for name, _, _ in entries])
-            for title, entries in OPTION_GROUPS
+            (group_key, [self.controls[name] for name, _ in entries])
+            for group_key, entries in OPTION_GROUPS
         )
 
-        identity = widgets.group("Identity", *flags["Identity"])
+        identity = widgets.group(
+            S("ifc.group.identity"), *flags["ifc.group.identity"]
+        )
         identity.Margin = Thickness(0, 16, 0, 0)
 
         host.Children.Add(
             widgets.stack(
                 widgets.columns(
-                    widgets.stack(widgets.label("IFC version"), self.version),
                     widgets.stack(
-                        widgets.label("Default 3D view name"), self.default_view
+                        widgets.label(S("ifc.label.version")), self.version
+                    ),
+                    widgets.stack(
+                        widgets.label(S("ifc.label.default_view")), self.default_view
                     ),
                     gutter=14,
                 ),
-                widgets.label("Export folder"),
+                widgets.label(S("ifc.label.export_folder")),
                 self.export_folder.control,
                 widgets.separator((0, 16, 0, 14)),
                 widgets.columns(
                     widgets.group(
-                        "Geometry & elements", *flags["Geometry & elements"]
+                        S("ifc.group.geometry"), *flags["ifc.group.geometry"]
                     ),
                     widgets.stack(
-                        widgets.group("Property sets", *flags["Property sets"]),
+                        widgets.group(
+                            S("ifc.group.psets"), *flags["ifc.group.psets"]
+                        ),
                         identity,
                     ),
                 ),
                 widgets.separator((0, 16, 0, 14)),
                 widgets.columns(
-                    widgets.group("Linked models", *options["Linked models"]),
-                    widgets.group("After the run", *options["After the run"]),
+                    widgets.group(S("ifc.group.links"), *options["ifc.group.links"]),
+                    widgets.group(S("ifc.group.after"), *options["ifc.group.after"]),
                 ),
             )
         )
@@ -176,9 +187,8 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         default = self.form.default_export_folder() if self.form else ""
         if not default:
             forms.alert(
-                "No default export folder is available. Revit Server routes have no "
-                "local folder, so pick an export folder instead.",
-                title="Batch IFC Export",
+                S("ifc.alert.no_default_folder"),
+                title=S("ifc.title"),
             )
         return default
 
@@ -192,7 +202,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         items = self.form.loaded_items() if self.form else []
         if items and all(item.options.get("export_path") for item in items):
             return None
-        return "Set an export folder on the Options tab before running the batch."
+        return S("ifc.error.no_export_folder")
 
     def _enforce_link_options(self, sender, args):
         if sender == self.controls["open_without_links"] and sender.IsChecked:
@@ -232,7 +242,7 @@ def load_options():
     for key in settings.bool_flags:
         if key in values.get("bool_flags", {}):
             settings.bool_flags[key] = bool(values["bool_flags"][key])
-    for name, _, _ in CHECKBOX_LABELS:
+    for name, _ in CHECKBOX_DEFAULTS:
         if name in values:
             setattr(settings, name, bool(values[name]))
     if settings.open_without_links:
@@ -248,13 +258,13 @@ def save_options(settings):
         "export_folder": str(settings.export_folder),
         "bool_flags": settings.bool_flags,
     }
-    for name, _, _ in CHECKBOX_LABELS:
+    for name, _ in CHECKBOX_DEFAULTS:
         values[name] = getattr(settings, name)
     config.set_option(OPTIONS_CONFIG_KEY, json.dumps(values))
 
 
 def show_form():
-    result = show_batch_form("Batch IFC Export", IfcOptionsPresenter())
+    result = show_batch_form(S("ifc.title"), IfcOptionsPresenter())
     if not result:
         return None, None
     settings = result["options"]
@@ -264,8 +274,8 @@ def show_form():
         item.options.get("export_path") for item in models
     ):
         forms.alert(
-            "Specify an export folder for the selected models.",
-            title="Batch IFC Export",
+            S("ifc.alert.specify_folder"),
+            title=S("ifc.title"),
         )
         return None, None
 
@@ -287,20 +297,18 @@ def show_form():
             for target, first, second in collisions
         )
         forms.alert(
-            "Multiple selected models would overwrite the same IFC file:\n{}".format(
-                names
-            ),
-            title="Batch IFC Export",
+            S("ifc.alert.collisions", names),
+            title=S("ifc.title"),
         )
         return None, None
     return items, settings
 
 
 def show_options_form():
-    result = show_batch_form("Batch IFC Export settings", IfcOptionsPresenter(), True)
+    result = show_batch_form(S("ifc.settings_title"), IfcOptionsPresenter(), True)
     if result:
         save_options(result["options"])
         forms.alert(
-            "Export settings saved.", title="Batch IFC Export settings"
+            S("ifc.alert.options_saved"), title=S("ifc.settings_title")
         )
     return result
