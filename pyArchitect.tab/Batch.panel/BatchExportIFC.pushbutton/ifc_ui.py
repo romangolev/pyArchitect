@@ -87,6 +87,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
     def __init__(self, defaults=None):
         self.defaults = defaults or load_options()
         self.version = None
+        self.ifc_setup = None
         self.default_view = None
         self.export_folder = None
         self.flag_controls = {}
@@ -104,6 +105,12 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             ),
         )
         self.default_view = widgets.textbox(self.defaults.default_view_name)
+        self.ifc_setup = widgets.FilePicker(
+            self.defaults.ifc_setup,
+            file_ext="json",
+            pick_tooltip=S("ifc.tooltip.pick_setup"),
+            on_change=self._export_folder_changed,
+        )
         self.export_folder = widgets.FolderPicker(
             self.defaults.export_folder,
             pick_tooltip=S("ifc.tooltip.pick_folder"),
@@ -152,6 +159,9 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
 
         host.Children.Add(
             widgets.stack(
+                widgets.label(S("ifc.label.setup")),
+                self.ifc_setup.control,
+                widgets.text(S("ifc.hint.setup")),
                 widgets.columns(
                     widgets.stack(
                         widgets.label(S("ifc.label.version")), self.version
@@ -196,7 +206,17 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         if self.form:
             self.form.refresh_run_state()
 
+    def _setup_validation_error(self):
+        if self.ifc_setup is not None and self.ifc_setup.path:
+            path = self.ifc_setup.path
+            if not path.lower().endswith(".json") or not os.path.isfile(path):
+                return S("ifc.error.invalid_setup")
+        return None
+
     def validation_error(self):
+        setup_error = self._setup_validation_error()
+        if setup_error:
+            return setup_error
         if self.export_folder is None or self.export_folder.path:
             return None
         items = self.form.loaded_items() if self.form else []
@@ -214,6 +234,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
     def read_options(self):
         settings = ExportSettings()
         settings.ifc_version = getattr(DB.IFCVersion, str(self.version.SelectedItem))
+        settings.ifc_setup = self.ifc_setup.path
         settings.default_view_name = self.default_view.Text.strip()
         settings.export_folder = self.export_folder.path
         for key, control in self.flag_controls.items():
@@ -239,6 +260,7 @@ def load_options():
         "default_view_name", settings.default_view_name
     )
     settings.export_folder = values.get("export_folder", settings.export_folder)
+    settings.ifc_setup = values.get("ifc_setup", settings.ifc_setup)
     for key in settings.bool_flags:
         if key in values.get("bool_flags", {}):
             settings.bool_flags[key] = bool(values["bool_flags"][key])
@@ -254,8 +276,9 @@ def load_options():
 def save_options(settings):
     values = {
         "ifc_version": str(System.Enum.GetName(DB.IFCVersion, settings.ifc_version)),
-        "default_view_name": str(settings.default_view_name),
-        "export_folder": str(settings.export_folder),
+        "default_view_name": settings.default_view_name,
+        "export_folder": settings.export_folder,
+        "ifc_setup": settings.ifc_setup,
         "bool_flags": settings.bool_flags,
     }
     for name, _ in CHECKBOX_DEFAULTS:
@@ -287,6 +310,7 @@ def show_form():
             item.options.get("mapping_file", ""),
             item.options.get("new_name", ""),
             item.options.get("views", []),
+            item.options.get("ifc_setup", ""),
         )
         for item in models
     ]
@@ -305,8 +329,13 @@ def show_form():
 
 
 def show_options_form():
-    result = show_batch_form(S("ifc.settings_title"), IfcOptionsPresenter(), True)
+    presenter = IfcOptionsPresenter()
+    result = show_batch_form(S("ifc.settings_title"), presenter, True)
     if result:
+        setup_error = presenter._setup_validation_error()
+        if setup_error:
+            forms.alert(setup_error, title=S("ifc.settings_title"))
+            return None
         save_options(result["options"])
         forms.alert(
             S("ifc.alert.options_saved"), title=S("ifc.settings_title")

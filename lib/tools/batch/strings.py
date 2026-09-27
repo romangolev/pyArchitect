@@ -87,6 +87,11 @@ S = StringTable({
         "ru": u"Использовать папку по умолчанию",
         "es_es": u"Usar la carpeta predeterminada",
     },
+    "widgets.file.pick": {
+        "en_us": u"Pick a file",
+        "ru": u"Выберите файл",
+        "es_es": u"Elige un archivo",
+    },
 
     "processor.requires_upgrade": {
         "en_us": u"Model requires upgrade",
@@ -272,6 +277,16 @@ S = StringTable({
         "ru": u"Версия IFC",
         "es_es": u"Versión de IFC",
     },
+    "ifc.label.setup": {
+        "en_us": u"IFC export setup (.json)",
+        "ru": u"Настройка экспорта IFC (.json)",
+        "es_es": u"Configuración de exportación IFC (.json)",
+    },
+    "ifc.hint.setup": {
+        "en_us": u"When set, the IFC version and export checkboxes on this page are ignored.",
+        "ru": u"Если указан файл, версия IFC и флажки экспорта на этой странице не применяются.",
+        "es_es": u"Si se indica un archivo, se ignoran la versión IFC y las casillas de exportación de esta página.",
+    },
     "ifc.label.default_view": {
         "en_us": u"Default 3D view name",
         "ru": u"Имя 3D-вида по умолчанию",
@@ -286,6 +301,11 @@ S = StringTable({
         "en_us": u"Pick the export folder",
         "ru": u"Выберите папку экспорта",
         "es_es": u"Elige la carpeta de exportación",
+    },
+    "ifc.tooltip.pick_setup": {
+        "en_us": u"Pick a Revit IFC export setup file",
+        "ru": u"Выберите файл настроек экспорта IFC из Revit",
+        "es_es": u"Elige un archivo de configuración IFC de Revit",
     },
     "ifc.tooltip.default_folder": {
         "en_us": u"Use the folder the models came from",
@@ -307,6 +327,11 @@ S = StringTable({
               u"перед запуском пакета.",
         "es_es": u"Indica una carpeta de exportación en la pestaña "
                  u"«3. Opciones» antes de lanzar el lote.",
+    },
+    "ifc.error.invalid_setup": {
+        "en_us": u"Choose an existing IFC export setup .json file.",
+        "ru": u"Выберите существующий файл настроек экспорта IFC с расширением .json.",
+        "es_es": u"Elige un archivo .json de configuración IFC que exista.",
     },
     "ifc.alert.specify_folder": {
         "en_us": u"Specify an export folder for the selected models.",
@@ -377,6 +402,11 @@ S = StringTable({
         "en_us": u"Export failed: {}",
         "ru": u"Ошибка экспорта: {}",
         "es_es": u"Error de exportación: {}",
+    },
+    "ifc.result.setup_failed": {
+        "en_us": u"Cannot load IFC export setup: {}",
+        "ru": u"Не удалось загрузить настройки экспорта IFC: {}",
+        "es_es": u"No se puede cargar la configuración de exportación IFC: {}",
     },
     "ifc.result.links_conflict": {
         "en_us": u"Cannot export links when opening without Revit links",

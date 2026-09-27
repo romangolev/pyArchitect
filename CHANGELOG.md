@@ -5,6 +5,11 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+### Added
+
+- Batch IFC Export accepts a Revit IFC setup file globally or per model; a
+  per-model property set file overrides the one in the setup.
+
 ## [1.4.3]
 
 ### Fixed
