@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="ProfileEditorTitle">Perfiles de NavisView</sys:String>
+    <sys:String x:Key="ProfileLabel">Perfil</sys:String>
+    <sys:String x:Key="AddPreset">Añadir perfil</sys:String>
+    <sys:String x:Key="DeletePreset">Eliminar perfil</sys:String>
+    <sys:String x:Key="PresetNameLabel">Nombre del perfil</sys:String>
+    <sys:String x:Key="NameMarkersLabel">Marcadores del nombre</sys:String>
+    <sys:String x:Key="NameMarkersTooltip">Valores separados por comas que eligen este perfil en modo por lotes</sys:String>
+    <sys:String x:Key="CategoriesHint">Las categorías marcadas se ocultan en este perfil. Los perfiles nuevos heredan las reglas de la vista UNIVERSAL; añade solo las categorías propias de tu disciplina.</sys:String>
+    <sys:String x:Key="Cancel">Cancelar</sys:String>
+    <sys:String x:Key="Save">Guardar</sys:String>
+</ResourceDictionary>
