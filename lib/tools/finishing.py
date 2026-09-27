@@ -694,8 +694,15 @@ class FinishingTool(object):
         Using pyRevit ui to promt user to select finishing type and initial switches
         """
         finishing_type = UPC.collect_build_in_types(self.doc, build_in_category)
+        type_class = {
+            DB.BuiltInCategory.OST_Walls: DB.WallType,
+            DB.BuiltInCategory.OST_Floors: DB.FloorType,
+            DB.BuiltInCategory.OST_Ceilings: getattr(DB, "CeilingType", None),
+        }.get(build_in_category)
+        if type_class is not None:
+            finishing_type = [i for i in finishing_type if isinstance(i, type_class)]
         if build_in_category == DB.BuiltInCategory.OST_Walls:
-            finishing_type = [i for i in finishing_type if i.Kind.ToString() == "Basic"]
+            finishing_type = [i for i in finishing_type if i.Kind == DB.WallKind.Basic]
         finishing_type_options = [
             i.get_Parameter(DB.BuiltInParameter.ALL_MODEL_TYPE_NAME).AsString()
             for i in finishing_type

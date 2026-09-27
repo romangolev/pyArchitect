@@ -5,6 +5,14 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+## [1.4.3]
+
+### Fixed
+
+- Wall, floor, and ceiling finishing no longer fail with "'FamilySymbol'
+  object has no attribute 'Kind'" in projects that contain in-place or
+  loadable families of those categories.
+
 ## [1.4.2]
 
 ### Added
