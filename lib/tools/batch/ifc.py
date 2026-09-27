@@ -104,10 +104,10 @@ class IFCBatchExporter(object):
         return options
 
     @staticmethod
-    def setup_options(configuration, view):
+    def setup_options(configuration, view, document):
         options = DB.IFCExportOptions()
         view_id = view.Id if view is not None else DB.ElementId.InvalidElementId
-        apply_setup(configuration, options, view_id)
+        apply_setup(configuration, options, view_id, document)
         return options
 
     @staticmethod
@@ -162,7 +162,7 @@ class IFCBatchExporter(object):
                 continue
             try:
                 options = (
-                    self.setup_options(configuration, None)
+                    self.setup_options(configuration, None, link_document)
                     if configuration is not None
                     else self.build_options(settings, "", None)
                 )
@@ -246,7 +246,7 @@ class IFCBatchExporter(object):
                             exported = document.Export(
                                 item.export_path,
                                 file_name,
-                                self.setup_options(configuration, view)
+                                self.setup_options(configuration, view, document)
                                 if configuration is not None
                                 else self.build_options(
                                     settings, item.mapping_file, view

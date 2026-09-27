@@ -13,10 +13,12 @@ import System
 
 from System import Activator, AppDomain, Array
 from System.IO import File
+from System.Reflection import BindingFlags
 
 
 CONFIGURATION_NAME = "BIM.IFC.Export.UI.IFCExportConfiguration"
 CONVERTER_NAME = "BIM.IFC.Export.UI.IFCExportConfigurationConverter"
+COMMAND_APPLICATION_NAME = "BIM.IFC.Export.UI.IFCCommandOverrideApplication"
 
 
 class IfcSetupError(Exception):
@@ -141,8 +143,26 @@ def load_setup(path, version_number):
     except IfcSetupError:
         raise
     except Exception as ex:
-        raise IfcSetupError("Cannot load IFC setup '{}': {}".format(path, ex))
+        raise IfcSetupError("'{}': {}".format(path, ex))
 
 
-def apply_setup(configuration, options, view_id):
-    configuration.UpdateOptions(options, view_id)
+def apply_setup(configuration, options, view_id, document):
+    application_type = configuration.GetType().Assembly.GetType(
+        COMMAND_APPLICATION_NAME, False
+    )
+    document_property = None
+    if application_type is not None:
+        document_property = application_type.GetProperty(
+            "TheDocument", BindingFlags.Public | BindingFlags.Static
+        )
+    if document_property is None:
+        configuration.UpdateOptions(options, view_id)
+        return
+
+    previous_document = document_property.GetValue(None, None)
+    try:
+        # The exporter reads the document from the export dialog's static state.
+        document_property.SetValue(None, document, None)
+        configuration.UpdateOptions(options, view_id)
+    finally:
+        document_property.SetValue(None, previous_document, None)
