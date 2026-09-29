@@ -1,0 +1,30 @@
+title:
+  es_es: |-
+    Cambiar
+    de nivel
+  en_us: |-
+    Swap
+    Level
+  ru: |-
+    Сменить
+    уровень
+tooltip: 
+  es_es: >-
+    Mueve los elementos seleccionados a otro nivel y compensa su desplazamiento,
+    por lo que su altura dentro del modelo no cambia en absoluto.
+    Los elementos cuyo nivel o desplazamiento no se puede ajustar, como las
+    habitaciones, los grupos de modelo y sus miembros, se omiten y se listan al final.
+  en_us: >-
+    Moves the selected elements to another level and compensates their offset,
+    so their height in the model does not change at all.
+    Elements whose level or height above it cannot be adjusted, such as rooms,
+    model groups and their members, are skipped and listed at the end.
+  ru: >-
+    Переносит выбранные элементы на другой уровень и компенсирует их смещение,
+    поэтому их высотное положение в модели вообще не меняется.
+    Элементы, у которых нельзя изменить уровень или высоту над ним — помещения,
+    модели-группы и их элементы, — пропускаются и перечисляются в конце.
+
+author: Roman Golev
+engine:
+  persistent: true

@@ -13,6 +13,7 @@ extended to new buttons later.
 | `navisworks-n.png` | The Navisworks **N** taken from `CreateNavisView.pushbutton/icon.png` with its export-cube sub-badge cleared from the bottom-right, kept at the native 96px so it stays aligned. |
 | `make_batch_icon.py` | Generator. Requires Pillow (CPython — this is a build-time script, not something pyRevit runs). |
 | `make_convert_icon.py` | Draws the Convert In-Place to Family pair from scratch: an outlined cube with a knocked-out arrow badge. Requires Pillow. |
+| `make_level_icon.py` | Draws the Swap Level pair from scratch: a solid block between two level lines. Three marks, laid out on a vertical budget so the gaps between them survive a 16px ribbon downscale. Requires Pillow. |
 
 ## Usage
 
@@ -38,6 +39,13 @@ Regenerate the Convert In-Place to Family pair:
 ```
 python icon-sources/make_convert_icon.py \
     pyArchitect.tab/Tools.panel/tools4.stack/ConvertInPlaceToFamily.pushbutton
+```
+
+Regenerate the Swap Level pair:
+
+```
+python icon-sources/make_level_icon.py \
+    pyArchitect.tab/Tools.panel/tools4.stack/SwapLevel.pushbutton
 ```
 
 ## How the pair is composed
