@@ -5,6 +5,17 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+## [1.4.4]
+
+### Added
+
+- Swap Level: moves the selected elements to another level and adjusts their
+  offset so they stay at exactly the same height. Works on walls, floors,
+  ceilings, roofs, columns, stairs, and family instances, including doors and
+  windows hosted in a wall. Rooms, model groups and their members, and
+  anything whose level or offset cannot be changed are left alone and listed
+  at the end, and any element Revit would still have moved is put back.
+
 ## [1.4.3]
 
 ### Fixed
