@@ -3,7 +3,7 @@
 # by Roman Golev 
 
 from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
-from Autodesk.Revit.DB import CategoryType
+from Autodesk.Revit.DB import CategoryType, ElementType
 import sys
 
 ID_MODEL_ELEMENTS = [-2000270, -2001017, -2008155, -2000095, -2009639, -2005009,
@@ -99,19 +99,55 @@ class CustomISelectionFilterByNameInclude(ISelectionFilter):
         return True
     
 
+def id_value(element_id):
+    """Return an ElementId as an int across Revit versions.
+
+    ``Value`` is the 2024+ spelling and the only one left on 2026, where
+    ``IntegerValue`` was removed; ``IntegerValue`` covers 2023 and earlier.
+
+    Args:
+        element_id (DB.ElementId): the id to read.
+
+    Returns:
+        (int): the numeric value, or -1 when it cannot be read.
+    """
+    for member in ("Value", "IntegerValue"):
+        try:
+            return int(getattr(element_id, member))
+        except Exception:
+            continue
+    return -1
+
+
 class CustomISelectionFilterModelCats(ISelectionFilter):
+    """Allows only placed model elements.
+
+    The category has to belong to the model category type, but that alone also
+    lets through materials, project information and every element type, which
+    Revit files under model categories too.  So element types are refused, and
+    so is anything without model extents, which is what materials and project
+    information have in common.
+
+    The category set is resolved once, on construction, so AllowElement stays
+    a cheap integer comparison instead of walking the settings on every pick.
+    """
+
     def __init__(self, doc):
-        self.doc = doc
-        self.allcategories = self.doc.Settings.Categories
+        self.model_categories = set(
+            id_value(category.Id)
+            for category in doc.Settings.Categories
+            if category.CategoryType == CategoryType.Model
+        )
 
     def AllowElement(self, e):
-        if e.CategoryType == CategoryType.Model in self.allcategories:
-            return True
-        else:
+        if isinstance(e, ElementType) or e.Category is None:
             return False
-        
+        if id_value(e.Category.Id) not in self.model_categories:
+            return False
+        return e.get_BoundingBox(None) is not None
+
     def AllowReference(self, ref, point):
-        return True
+        return False
 
 # Get unput: selected by user elements
 def get_selection_basic(uidoc, filter):
