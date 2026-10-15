@@ -413,6 +413,11 @@ S = StringTable({
         "ru": u"Нельзя выгружать связи при открытии без связей Revit",
         "es_es": u"No se pueden exportar vínculos al abrir sin vínculos de Revit",
     },
+    "ifc.result.setup_links_conflict": {
+        "en_us": u"Disable separate linked model export when the IFC setup already exports links",
+        "ru": u"Отключите отдельную выгрузку связанных моделей: настройки IFC уже выгружают связи",
+        "es_es": u"Desactive la exportación separada de modelos vinculados si la configuración IFC ya exporta vínculos",
+    },
     "ifc.result.folder_failed": {
         "en_us": u"Cannot create export folder: {}",
         "ru": u"Не удалось создать папку экспорта: {}",

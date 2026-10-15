@@ -220,10 +220,10 @@ class IFCBatchExporter(object):
         if (
             settings.open_without_links
             and (settings.export_links_separately or export_links)
-        ) or (
-            configuration is not None and export_links and settings.export_links_separately
         ):
             return [(item.name, "-", S("ifc.result.links_conflict"))]
+        if configuration is not None and export_links and settings.export_links_separately:
+            return [(item.name, "-", S("ifc.result.setup_links_conflict"))]
         try:
             with OpenedBatchDocument(
                 self.document_opener, item.source_path, settings.open_without_links
