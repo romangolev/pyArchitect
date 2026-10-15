@@ -13,6 +13,7 @@ import System
 
 from System import Activator, AppDomain, Array
 from System.IO import File
+from System.Diagnostics import Process
 from System.Reflection import BindingFlags
 
 
@@ -26,15 +27,19 @@ class IfcSetupError(Exception):
 
 
 def _loaded_type(type_name):
+    fallback = None
     for assembly in AppDomain.CurrentDomain.GetAssemblies():
         try:
-            if not assembly.IsDynamic:
-                found = assembly.GetType(type_name, False)
-                if found is not None:
+            if assembly.IsDynamic:
+                continue
+            found = assembly.GetType(type_name, False)
+            if found is not None:
+                if assembly.GetName().Name == "IFCExporterUIOverride":
                     return found
+                fallback = found
         except Exception:
             continue
-    return None
+    return fallback
 
 
 def find_configuration_type(version_number):
@@ -43,22 +48,23 @@ def find_configuration_type(version_number):
         return configuration_type
 
     version = str(version_number)
-    candidates = [
-        os.path.join(
-            r"C:\ProgramData\Autodesk\ApplicationPlugins",
-            "IFC {}.bundle".format(version),
-            "Contents",
-            version,
-            "IFCExporterUIOverride.dll",
-        ),
-        os.path.join(
-            r"C:\Program Files\Autodesk",
-            "Revit {}".format(version),
-            "AddIns",
-            "IFCExporterUI",
-            "Autodesk.IFC.Export.UI.dll",
-        ),
-    ]
+    candidates = []
+    for variable in ("PROGRAMDATA", "APPDATA"):
+        root = os.environ.get(variable)
+        if root:
+            candidates.append(os.path.join(
+                root, "Autodesk", "ApplicationPlugins",
+                "IFC {}.bundle".format(version), "Contents", version,
+                "IFCExporterUIOverride.dll",
+            ))
+    process = Process.GetCurrentProcess()
+    try:
+        install_folder = os.path.dirname(process.MainModule.FileName)
+    finally:
+        process.Dispose()
+    candidates.append(os.path.join(
+        install_folder, "AddIns", "IFCExporterUI", "Autodesk.IFC.Export.UI.dll"
+    ))
     load_errors = []
     for path in candidates:
         if not File.Exists(path):
@@ -71,7 +77,10 @@ def find_configuration_type(version_number):
         configuration_type = assembly.GetType(CONFIGURATION_NAME, False)
         if configuration_type is not None:
             return configuration_type
-        raise IfcSetupError("Autodesk IFC UI assembly has no IFCExportConfiguration: {}".format(path))
+        load_errors.append(
+            "Autodesk IFC UI assembly has no IFCExportConfiguration: {}".format(path)
+        )
+        continue
 
     if load_errors:
         raise IfcSetupError(
@@ -155,14 +164,18 @@ def apply_setup(configuration, options, view_id, document):
         document_property = application_type.GetProperty(
             "TheDocument", BindingFlags.Public | BindingFlags.Static
         )
-    if document_property is None:
-        configuration.UpdateOptions(options, view_id)
-        return
+    getter = document_property.GetGetMethod() if document_property is not None else None
+    setter = document_property.GetSetMethod() if document_property is not None else None
+    if getter is None or setter is None or not getter.IsStatic or not setter.IsStatic:
+        raise IfcSetupError(
+            "Autodesk IFC UI requires a public static read/write TheDocument property"
+        )
 
     previous_document = document_property.GetValue(None, None)
+    # Set before entering try: a failed setter must not be retried in finally.
+    document_property.SetValue(None, document, None)
     try:
         # The exporter reads the document from the export dialog's static state.
-        document_property.SetValue(None, document, None)
         configuration.UpdateOptions(options, view_id)
     finally:
         document_property.SetValue(None, previous_document, None)

@@ -109,7 +109,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             self.defaults.ifc_setup,
             file_ext="json",
             pick_tooltip=S("ifc.tooltip.pick_setup"),
-            on_change=self._export_folder_changed,
+            on_change=self._setup_changed,
         )
         self.export_folder = widgets.FolderPicker(
             self.defaults.export_folder,
@@ -192,6 +192,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
                 ),
             )
         )
+        self._setup_changed(None, None)
 
     def _default_export_folder(self):
         default = self.form.default_export_folder() if self.form else ""
@@ -203,6 +204,16 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         return default
 
     def _export_folder_changed(self, sender, args):
+        if self.form:
+            self.form.refresh_run_state()
+
+    def _setup_changed(self, sender, args):
+        enabled = not self.ifc_setup.path
+        self.version.IsEnabled = enabled
+        for control in self.flag_controls.values():
+            control.IsEnabled = enabled
+        if "export_links_merged" in self.controls:
+            self.controls["export_links_merged"].IsEnabled = enabled
         if self.form:
             self.form.refresh_run_state()
 
@@ -330,12 +341,10 @@ def show_form():
 
 def show_options_form():
     presenter = IfcOptionsPresenter()
-    result = show_batch_form(S("ifc.settings_title"), presenter, True)
+    result = show_batch_form(
+        S("ifc.settings_title"), presenter, True, presenter._setup_validation_error
+    )
     if result:
-        setup_error = presenter._setup_validation_error()
-        if setup_error:
-            forms.alert(setup_error, title=S("ifc.settings_title"))
-            return None
         save_options(result["options"])
         forms.alert(
             S("ifc.alert.options_saved"), title=S("ifc.settings_title")

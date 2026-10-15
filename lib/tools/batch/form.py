@@ -66,12 +66,15 @@ class BatchOptionsPresenter(object):
 class BatchSelectionForm(forms.WPFWindow):
     resolve_theme = True
 
-    def __init__(self, title, options_presenter, options_only=False):
+    def __init__(
+        self, title, options_presenter, options_only=False, options_validator=None
+    ):
         xaml_path = os.path.join(os.path.dirname(__file__), "batch_form.xaml")
         forms.WPFWindow.__init__(self, xaml_path)
         self.Title = title
         self.options_presenter = options_presenter
         self.options_only = options_only
+        self.options_validator = options_validator
         self.input_factory = BatchInputFactory()
         self.input_csv = BatchInputCsv()
         self.batch_input = BatchInput()
@@ -124,11 +127,11 @@ class BatchSelectionForm(forms.WPFWindow):
     def refresh_run_state(self):
         """Enable Run only while the form and the presenter are both satisfied.
 
-        Skipped when the form only edits options: saving settings is not a run,
-        so an option left blank must still be storable.
+        Options-only forms may supply validation for settings that cannot be saved.
+        Other presenters keep allowing blank run-only options.
         """
         if self.options_only:
-            error = None
+            error = self.options_validator() if self.options_validator else None
         else:
             error = self._model_error() or self.options_presenter.validation_error()
         self.btnRun.IsEnabled = not error
@@ -317,6 +320,10 @@ class BatchSelectionForm(forms.WPFWindow):
 
     def _run(self, sender, args):
         if self.options_only:
+            error = self.options_validator() if self.options_validator else None
+            if error:
+                self.refresh_run_state()
+                return
             self.result = {"options": self.options_presenter.read_options()}
             self.Close()
             return
@@ -344,7 +351,7 @@ class BatchSelectionForm(forms.WPFWindow):
         self.Close()
 
 
-def show_batch_form(title, options_presenter, options_only=False):
-    form = BatchSelectionForm(title, options_presenter, options_only)
+def show_batch_form(title, options_presenter, options_only=False, options_validator=None):
+    form = BatchSelectionForm(title, options_presenter, options_only, options_validator)
     form.ShowDialog()
     return form.result

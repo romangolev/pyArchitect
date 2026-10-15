@@ -4,6 +4,7 @@
 import os
 
 import Autodesk.Revit.DB as DB
+from System import Convert
 
 from core.transaction import WrappedTransaction
 from tools.batch.documents import OpenedBatchDocument, RevitDocumentOpener
@@ -108,6 +109,8 @@ class IFCBatchExporter(object):
         options = DB.IFCExportOptions()
         view_id = view.Id if view is not None else DB.ElementId.InvalidElementId
         apply_setup(configuration, options, view_id, document)
+        if view is not None:
+            options.FilterViewId = view.Id
         return options
 
     @staticmethod
@@ -161,11 +164,16 @@ class IFCBatchExporter(object):
                 )
                 continue
             try:
-                options = (
-                    self.setup_options(configuration, None, link_document)
-                    if configuration is not None
-                    else self.build_options(settings, "", None)
-                )
+                if configuration is not None:
+                    link_configuration = configuration.Clone()
+                    link_configuration.ActivePhaseId = -1
+                    link_configuration.ActiveViewId = DB.ElementId.InvalidElementId
+                    link_configuration.VisibleElementsOfCurrentView = False
+                    options = self.setup_options(
+                        link_configuration, None, link_document
+                    )
+                else:
+                    options = self.build_options(settings, "", None)
                 with WrappedTransaction(
                     link_document, "Export linked IFC", warning_suppressor=True
                 ):
@@ -193,26 +201,29 @@ class IFCBatchExporter(object):
     def export_item(self, item, settings):
         results = []
         setup_path = item.ifc_setup or settings.ifc_setup
-        if settings.open_without_links and (
-            settings.export_links_separately
-            or (not setup_path and settings.export_links_merged)
-        ):
-            return [
-                (
-                    item.name,
-                    "-",
-                    S("ifc.result.links_conflict"),
-                )
-            ]
         configuration = None
+        link_configuration = None
         if setup_path:
             try:
                 configuration = load_setup(setup_path, self.application.VersionNumber)
+                # Preserve the saved setup before applying host-only overrides.
+                link_configuration = configuration.Clone()
                 if item.mapping_file:
                     configuration.ExportUserDefinedPsets = True
                     configuration.ExportUserDefinedPsetsFileName = item.mapping_file
             except Exception as ex:
                 return [(item.name, "-", S("ifc.result.setup_failed", ex))]
+        export_links = (
+            Convert.ToInt32(configuration.ExportLinkedFiles) != 0
+            if configuration is not None else settings.export_links_merged
+        )
+        if (
+            settings.open_without_links
+            and (settings.export_links_separately or export_links)
+        ) or (
+            configuration is not None and export_links and settings.export_links_separately
+        ):
+            return [(item.name, "-", S("ifc.result.links_conflict"))]
         try:
             with OpenedBatchDocument(
                 self.document_opener, item.source_path, settings.open_without_links
@@ -272,7 +283,7 @@ class IFCBatchExporter(object):
 
                 if settings.export_links_separately:
                     self._export_linked_documents(
-                        document, item.export_path, settings, results, configuration
+                        document, item.export_path, settings, results, link_configuration
                     )
                 if settings.save_after:
                     self._save_or_sync(document)
