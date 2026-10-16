@@ -30,6 +30,7 @@ from System.Windows.Controls import (
 
 
 COLUMN_GUTTER = 28
+FIELD_HEIGHT = 26
 
 FOLDER_GLYPH = u"\uED25"
 DEFAULT_FOLDER_GLYPH = u"\uE80F"
@@ -87,6 +88,7 @@ def textbox(text="", width=None):
     """
     control = TextBox()
     control.Text = text
+    control.Height = FIELD_HEIGHT
     control.VerticalContentAlignment = VerticalAlignment.Center
     control.Padding = Thickness(4, 0, 4, 0)
     if width:
@@ -96,6 +98,8 @@ def textbox(text="", width=None):
 
 def combobox(items, selected_index=None, width=None):
     control = ComboBox()
+    control.Height = FIELD_HEIGHT
+    control.VerticalContentAlignment = VerticalAlignment.Center
     for item in items:
         control.Items.Add(item)
     if selected_index is not None:
@@ -117,8 +121,8 @@ def button(content, width=None, margin=None):
 
 def icon_button(glyph, tooltip=None, margin=(4, 0, 0, 0)):
     """Square glyph button matching pyRevit's own small toolbar buttons."""
-    control = button(glyph, width=26, margin=margin)
-    control.Height = 26
+    control = button(glyph, width=FIELD_HEIGHT, margin=margin)
+    control.Height = FIELD_HEIGHT
     control.Padding = Thickness(0)
     control.FontFamily = FontFamily("Segoe MDL2 Assets")
     control.FontSize = 13
