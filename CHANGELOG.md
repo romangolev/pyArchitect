@@ -11,8 +11,20 @@ and pull-request details are added automatically to each GitHub release.
 
 - Batch IFC Export accepts a Revit IFC setup file globally or per model; a
   per-model property set file overrides the one in the setup.
+- The batch IFC options show the IFC version and export settings read from
+  the selected setup file, and restore your own settings when it is cleared.
+
+### Changed
+
+- Batch IFC Export no longer skips a model whose default export view is
+  missing: it exports with another 3D view in the model, or with a temporary
+  3D view that is deleted afterwards when the model has none.
 
 ### Fixed
+
+- IFC setup files load on Revit 2027.
+- Text boxes and drop-downs in the batch export options are the same height
+  as the folder and file pickers next to them.
 
 - Batch IFC Export validates saved setup paths before closing settings, keeps
   per-view exports filtered, and rejects conflicting linked-model options.
