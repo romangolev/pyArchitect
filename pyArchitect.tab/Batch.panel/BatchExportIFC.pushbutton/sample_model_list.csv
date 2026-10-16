@@ -1,3 +1,4 @@
 SourcePath,Options
 C:\ExampleProject\Models\Architecture.rvt,"{""export_path"": ""C:\\ExampleProject\\Exports\\IFC"", ""profile"": ""AR""}"
 C:\ExampleProject\Models\Structure.rvt,"{""export_path"": ""C:\\ExampleProject\\Exports\\IFC"", ""mapping_file"": ""C:\\ExampleProject\\Config\\ifc-property-sets.txt"", ""new_name"": ""Structure_IFC"", ""views"": [""Navisworks""], ""profile"": ""KR""}"
+C:\ExampleProject\Models\MEP.rvt,"{""export_path"": ""C:\\ExampleProject\\Exports\\IFC"", ""ifc_setup"": ""C:\\ExampleProject\\Config\\ifc-setup.json"", ""mapping_file"": ""C:\\ExampleProject\\Config\\ifc-property-sets.txt""}"

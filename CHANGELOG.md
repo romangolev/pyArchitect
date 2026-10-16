@@ -5,6 +5,25 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+## [1.4.5]
+
+### Added
+
+- Batch IFC Export accepts a Revit IFC setup file globally or per model; a
+  per-model property set file overrides the one in the setup.
+
+### Fixed
+
+- Batch IFC Export validates saved setup paths before closing settings, keeps
+  per-view exports filtered, and rejects conflicting linked-model options.
+- Conflicting linked-model export options report whether links are unloaded
+  or already exported by the saved IFC setup.
+- Linked IFC exports no longer inherit host-only property set overrides or
+  document IDs from the saved setup.
+- IFC setup loading searches user-installed exporters and custom Revit install
+  folders, prefers a loaded bundle override, and reports unsupported exporter
+  document context instead of silently omitting property sets.
+
 ## [1.4.4]
 
 ### Added

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import codecs
 import json
 import os
 import System
@@ -87,10 +88,12 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
     def __init__(self, defaults=None):
         self.defaults = defaults or load_options()
         self.version = None
+        self.ifc_setup = None
         self.default_view = None
         self.export_folder = None
         self.flag_controls = {}
         self.controls = {}
+        self.manual_state = None
 
     def build(self, host):
         version_names = list(System.Enum.GetNames(DB.IFCVersion))
@@ -104,6 +107,12 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
             ),
         )
         self.default_view = widgets.textbox(self.defaults.default_view_name)
+        self.ifc_setup = widgets.FilePicker(
+            self.defaults.ifc_setup,
+            file_ext="json",
+            pick_tooltip=S("ifc.tooltip.pick_setup"),
+            on_change=self._setup_changed,
+        )
         self.export_folder = widgets.FolderPicker(
             self.defaults.export_folder,
             pick_tooltip=S("ifc.tooltip.pick_folder"),
@@ -152,6 +161,9 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
 
         host.Children.Add(
             widgets.stack(
+                widgets.label(S("ifc.label.setup")),
+                self.ifc_setup.control,
+                widgets.text(S("ifc.hint.setup")),
                 widgets.columns(
                     widgets.stack(
                         widgets.label(S("ifc.label.version")), self.version
@@ -182,6 +194,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
                 ),
             )
         )
+        self._setup_changed(None, None)
 
     def _default_export_folder(self):
         default = self.form.default_export_folder() if self.form else ""
@@ -196,7 +209,83 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         if self.form:
             self.form.refresh_run_state()
 
+    def _capture_manual_state(self):
+        return (
+            self.version.SelectedIndex,
+            dict((key, control.IsChecked) for key, control in self.flag_controls.items()),
+            self.controls["export_links_merged"].IsChecked,
+        )
+
+    def _restore_manual_state(self, state):
+        version_index, flags, links_merged = state
+        self.version.SelectedIndex = version_index
+        for key, checked in flags.items():
+            self.flag_controls[key].IsChecked = checked
+        self.controls["export_links_merged"].IsChecked = links_merged
+
+    @staticmethod
+    def _read_setup_values(path):
+        if not path.lower().endswith(".json") or not os.path.isfile(path):
+            return None
+        try:
+            with codecs.open(path, "r", "utf-8-sig") as setup_file:
+                values = json.load(setup_file)
+        except Exception:
+            return None
+        return values if isinstance(values, dict) else None
+
+    def _show_setup_values(self, values):
+        for key, control in self.flag_controls.items():
+            if key in values:
+                control.IsChecked = bool(values[key])
+        if "ExportLinkedFiles" in values:
+            self.controls["export_links_merged"].IsChecked = bool(
+                values["ExportLinkedFiles"]
+            )
+        try:
+            version_name = System.Enum.GetName(
+                DB.IFCVersion,
+                System.Enum.ToObject(DB.IFCVersion, int(values["IFCVersion"])),
+            )
+        except Exception:
+            version_name = None
+        items = list(self.version.Items)
+        if version_name in items:
+            self.version.SelectedIndex = items.index(version_name)
+
+    def _setup_changed(self, sender, args):
+        enabled = not self.ifc_setup.path
+        if enabled:
+            if self.manual_state is not None:
+                self._restore_manual_state(self.manual_state)
+                self.manual_state = None
+        else:
+            if self.manual_state is None:
+                self.manual_state = self._capture_manual_state()
+            values = self._read_setup_values(self.ifc_setup.path)
+            if values is not None:
+                self._show_setup_values(values)
+            else:
+                self._restore_manual_state(self.manual_state)
+        self.version.IsEnabled = enabled
+        for control in self.flag_controls.values():
+            control.IsEnabled = enabled
+        if "export_links_merged" in self.controls:
+            self.controls["export_links_merged"].IsEnabled = enabled
+        if self.form:
+            self.form.refresh_run_state()
+
+    def _setup_validation_error(self):
+        if self.ifc_setup is not None and self.ifc_setup.path:
+            path = self.ifc_setup.path
+            if not path.lower().endswith(".json") or not os.path.isfile(path):
+                return S("ifc.error.invalid_setup")
+        return None
+
     def validation_error(self):
+        setup_error = self._setup_validation_error()
+        if setup_error:
+            return setup_error
         if self.export_folder is None or self.export_folder.path:
             return None
         items = self.form.loaded_items() if self.form else []
@@ -213,13 +302,23 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
 
     def read_options(self):
         settings = ExportSettings()
-        settings.ifc_version = getattr(DB.IFCVersion, str(self.version.SelectedItem))
+        settings.ifc_setup = self.ifc_setup.path
         settings.default_view_name = self.default_view.Text.strip()
         settings.export_folder = self.export_folder.path
-        for key, control in self.flag_controls.items():
-            settings.bool_flags[key] = bool(control.IsChecked)
         for name, control in self.controls.items():
             setattr(settings, name, bool(control.IsChecked))
+        if self.manual_state is not None:
+            version_index, flags, links_merged = self.manual_state
+            version = self.version.Items[version_index]
+            settings.export_links_merged = bool(links_merged)
+        else:
+            version = self.version.SelectedItem
+            flags = dict(
+                (key, control.IsChecked) for key, control in self.flag_controls.items()
+            )
+        settings.ifc_version = getattr(DB.IFCVersion, str(version))
+        for key, checked in flags.items():
+            settings.bool_flags[key] = bool(checked)
         return settings
 
 
@@ -239,6 +338,7 @@ def load_options():
         "default_view_name", settings.default_view_name
     )
     settings.export_folder = values.get("export_folder", settings.export_folder)
+    settings.ifc_setup = values.get("ifc_setup", settings.ifc_setup)
     for key in settings.bool_flags:
         if key in values.get("bool_flags", {}):
             settings.bool_flags[key] = bool(values["bool_flags"][key])
@@ -254,8 +354,9 @@ def load_options():
 def save_options(settings):
     values = {
         "ifc_version": str(System.Enum.GetName(DB.IFCVersion, settings.ifc_version)),
-        "default_view_name": str(settings.default_view_name),
-        "export_folder": str(settings.export_folder),
+        "default_view_name": settings.default_view_name,
+        "export_folder": settings.export_folder,
+        "ifc_setup": settings.ifc_setup,
         "bool_flags": settings.bool_flags,
     }
     for name, _ in CHECKBOX_DEFAULTS:
@@ -287,6 +388,7 @@ def show_form():
             item.options.get("mapping_file", ""),
             item.options.get("new_name", ""),
             item.options.get("views", []),
+            item.options.get("ifc_setup", ""),
         )
         for item in models
     ]
@@ -305,7 +407,10 @@ def show_form():
 
 
 def show_options_form():
-    result = show_batch_form(S("ifc.settings_title"), IfcOptionsPresenter(), True)
+    presenter = IfcOptionsPresenter()
+    result = show_batch_form(
+        S("ifc.settings_title"), presenter, True, presenter._setup_validation_error
+    )
     if result:
         save_options(result["options"])
         forms.alert(

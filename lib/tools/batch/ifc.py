@@ -4,16 +4,25 @@
 import os
 
 import Autodesk.Revit.DB as DB
+from System import Convert
 
 from core.transaction import WrappedTransaction
 from tools.batch.documents import OpenedBatchDocument, RevitDocumentOpener
+from tools.batch.ifc_setup import apply_setup, load_setup
 from tools.batch.strings import S
 from tools.export.persistence import save_sync_and_relinquish
 
 
 class ModelExportItem(object):
     def __init__(
-        self, name, source_path, export_path, mapping_file="", new_name="", views=None
+        self,
+        name,
+        source_path,
+        export_path,
+        mapping_file="",
+        new_name="",
+        views=None,
+        ifc_setup="",
     ):
         self.name = name
         self.source_path = source_path
@@ -21,6 +30,7 @@ class ModelExportItem(object):
         self.mapping_file = mapping_file
         self.new_name = new_name
         self.views = views or []
+        self.ifc_setup = ifc_setup
         self.exists = os.path.isfile(source_path)
 
     @property
@@ -31,6 +41,7 @@ class ModelExportItem(object):
 class ExportSettings(object):
     def __init__(self):
         self.ifc_version = DB.IFCVersion.IFC2x3CV2
+        self.ifc_setup = ""
         self.site_placement = 0
         self.default_view_name = "Navisworks"
         self.export_folder = ""
@@ -94,6 +105,15 @@ class IFCBatchExporter(object):
         return options
 
     @staticmethod
+    def setup_options(configuration, view, document):
+        options = DB.IFCExportOptions()
+        view_id = view.Id if view is not None else DB.ElementId.InvalidElementId
+        apply_setup(configuration, options, view_id, document)
+        if view is not None:
+            options.FilterViewId = view.Id
+        return options
+
+    @staticmethod
     def export_file_names(item, settings):
         """Return every primary IFC file name this item is expected to create."""
         view_names = item.views or (
@@ -132,7 +152,9 @@ class IFCBatchExporter(object):
                     S("ifc.result.save_sync_failed", document.Title, ex)
                 )
 
-    def _export_linked_documents(self, document, export_path, settings, results):
+    def _export_linked_documents(
+        self, document, export_path, settings, results, configuration=None
+    ):
         links = DB.FilteredElementCollector(document).OfClass(DB.RevitLinkInstance)
         for link_instance in links.WhereElementIsNotElementType().ToElements():
             link_document = link_instance.GetLinkDocument()
@@ -142,7 +164,16 @@ class IFCBatchExporter(object):
                 )
                 continue
             try:
-                options = self.build_options(settings, "", None)
+                if configuration is not None:
+                    link_configuration = configuration.Clone()
+                    link_configuration.ActivePhaseId = -1
+                    link_configuration.ActiveViewId = DB.ElementId.InvalidElementId
+                    link_configuration.VisibleElementsOfCurrentView = False
+                    options = self.setup_options(
+                        link_configuration, None, link_document
+                    )
+                else:
+                    options = self.build_options(settings, "", None)
                 with WrappedTransaction(
                     link_document, "Export linked IFC", warning_suppressor=True
                 ):
@@ -169,16 +200,30 @@ class IFCBatchExporter(object):
 
     def export_item(self, item, settings):
         results = []
-        if settings.open_without_links and (
-            settings.export_links_merged or settings.export_links_separately
+        setup_path = item.ifc_setup or settings.ifc_setup
+        configuration = None
+        link_configuration = None
+        if setup_path:
+            try:
+                configuration = load_setup(setup_path, self.application.VersionNumber)
+                # Preserve the saved setup before applying host-only overrides.
+                link_configuration = configuration.Clone()
+                if item.mapping_file:
+                    configuration.ExportUserDefinedPsets = True
+                    configuration.ExportUserDefinedPsetsFileName = item.mapping_file
+            except Exception as ex:
+                return [(item.name, "-", S("ifc.result.setup_failed", ex))]
+        export_links = (
+            Convert.ToInt32(configuration.ExportLinkedFiles) != 0
+            if configuration is not None else settings.export_links_merged
+        )
+        if (
+            settings.open_without_links
+            and (settings.export_links_separately or export_links)
         ):
-            return [
-                (
-                    item.name,
-                    "-",
-                    S("ifc.result.links_conflict"),
-                )
-            ]
+            return [(item.name, "-", S("ifc.result.links_conflict"))]
+        if configuration is not None and export_links and settings.export_links_separately:
+            return [(item.name, "-", S("ifc.result.setup_links_conflict"))]
         try:
             with OpenedBatchDocument(
                 self.document_opener, item.source_path, settings.open_without_links
@@ -212,7 +257,11 @@ class IFCBatchExporter(object):
                             exported = document.Export(
                                 item.export_path,
                                 file_name,
-                                self.build_options(settings, item.mapping_file, view),
+                                self.setup_options(configuration, view, document)
+                                if configuration is not None
+                                else self.build_options(
+                                    settings, item.mapping_file, view
+                                ),
                             )
                         results.append(
                             (
@@ -234,7 +283,7 @@ class IFCBatchExporter(object):
 
                 if settings.export_links_separately:
                     self._export_linked_documents(
-                        document, item.export_path, settings, results
+                        document, item.export_path, settings, results, link_configuration
                     )
                 if settings.save_after:
                     self._save_or_sync(document)
