@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import codecs
 import json
 import os
 import System
@@ -92,6 +93,7 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         self.export_folder = None
         self.flag_controls = {}
         self.controls = {}
+        self.manual_state = None
 
     def build(self, host):
         version_names = list(System.Enum.GetNames(DB.IFCVersion))
@@ -207,8 +209,64 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
         if self.form:
             self.form.refresh_run_state()
 
+    def _capture_manual_state(self):
+        return (
+            self.version.SelectedIndex,
+            dict((key, control.IsChecked) for key, control in self.flag_controls.items()),
+            self.controls["export_links_merged"].IsChecked,
+        )
+
+    def _restore_manual_state(self, state):
+        version_index, flags, links_merged = state
+        self.version.SelectedIndex = version_index
+        for key, checked in flags.items():
+            self.flag_controls[key].IsChecked = checked
+        self.controls["export_links_merged"].IsChecked = links_merged
+
+    @staticmethod
+    def _read_setup_values(path):
+        if not path.lower().endswith(".json") or not os.path.isfile(path):
+            return None
+        try:
+            with codecs.open(path, "r", "utf-8-sig") as setup_file:
+                values = json.load(setup_file)
+        except Exception:
+            return None
+        return values if isinstance(values, dict) else None
+
+    def _show_setup_values(self, values):
+        for key, control in self.flag_controls.items():
+            if key in values:
+                control.IsChecked = bool(values[key])
+        if "ExportLinkedFiles" in values:
+            self.controls["export_links_merged"].IsChecked = bool(
+                values["ExportLinkedFiles"]
+            )
+        try:
+            version_name = System.Enum.GetName(
+                DB.IFCVersion,
+                System.Enum.ToObject(DB.IFCVersion, int(values["IFCVersion"])),
+            )
+        except Exception:
+            version_name = None
+        items = list(self.version.Items)
+        if version_name in items:
+            self.version.SelectedIndex = items.index(version_name)
+
     def _setup_changed(self, sender, args):
         enabled = not self.ifc_setup.path
+        if enabled:
+            if self.manual_state is not None:
+                self._restore_manual_state(self.manual_state)
+                self.manual_state = None
+        else:
+            if self.manual_state is None:
+                self.manual_state = self._capture_manual_state()
+            values = self._read_setup_values(self.ifc_setup.path)
+            if values is not None:
+                self._show_setup_values(values)
+            else:
+                self._restore_manual_state(self.manual_state)
         self.version.IsEnabled = enabled
         for control in self.flag_controls.values():
             control.IsEnabled = enabled
@@ -244,14 +302,23 @@ class IfcOptionsPresenter(BatchOptionsPresenter):
 
     def read_options(self):
         settings = ExportSettings()
-        settings.ifc_version = getattr(DB.IFCVersion, str(self.version.SelectedItem))
         settings.ifc_setup = self.ifc_setup.path
         settings.default_view_name = self.default_view.Text.strip()
         settings.export_folder = self.export_folder.path
-        for key, control in self.flag_controls.items():
-            settings.bool_flags[key] = bool(control.IsChecked)
         for name, control in self.controls.items():
             setattr(settings, name, bool(control.IsChecked))
+        if self.manual_state is not None:
+            version_index, flags, links_merged = self.manual_state
+            version = self.version.Items[version_index]
+            settings.export_links_merged = bool(links_merged)
+        else:
+            version = self.version.SelectedItem
+            flags = dict(
+                (key, control.IsChecked) for key, control in self.flag_controls.items()
+            )
+        settings.ifc_version = getattr(DB.IFCVersion, str(version))
+        for key, checked in flags.items():
+            settings.bool_flags[key] = bool(checked)
         return settings
 
 

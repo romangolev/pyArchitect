@@ -14,12 +14,15 @@ import System
 from System import Activator, AppDomain, Array
 from System.IO import File
 from System.Diagnostics import Process
-from System.Reflection import BindingFlags
+from System.Reflection import Assembly, BindingFlags
 
 
-CONFIGURATION_NAME = "BIM.IFC.Export.UI.IFCExportConfiguration"
-CONVERTER_NAME = "BIM.IFC.Export.UI.IFCExportConfigurationConverter"
+CONFIGURATION_NAMES = (
+    "BIM.IFC.Export.UI.IFCExportConfiguration",
+    "Revit.IFC.Export.Utility.IFCExportConfiguration",
+)
 COMMAND_APPLICATION_NAME = "BIM.IFC.Export.UI.IFCCommandOverrideApplication"
+OPTIONS_UTIL_NAME = "Revit.IFC.Common.Utility.OptionsUtil"
 
 
 class IfcSetupError(Exception):
@@ -42,10 +45,19 @@ def _loaded_type(type_name):
     return fallback
 
 
+def _configuration_type_in(assembly):
+    for name in CONFIGURATION_NAMES:
+        found = assembly.GetType(name, False)
+        if found is not None:
+            return found
+    return None
+
+
 def find_configuration_type(version_number):
-    configuration_type = _loaded_type(CONFIGURATION_NAME)
-    if configuration_type is not None:
-        return configuration_type
+    for name in CONFIGURATION_NAMES:
+        configuration_type = _loaded_type(name)
+        if configuration_type is not None:
+            return configuration_type
 
     version = str(version_number)
     candidates = []
@@ -65,20 +77,21 @@ def find_configuration_type(version_number):
     candidates.append(os.path.join(
         install_folder, "AddIns", "IFCExporterUI", "Autodesk.IFC.Export.UI.dll"
     ))
+    candidates.append(os.path.join(install_folder, "Revit.IFC.Export.dll"))
     load_errors = []
     for path in candidates:
         if not File.Exists(path):
             continue
         try:
-            assembly = clr.AddReferenceToFileAndPath(path)
+            assembly = Assembly.LoadFrom(path)
         except Exception as ex:
             load_errors.append("{}: {}".format(path, ex))
             continue
-        configuration_type = assembly.GetType(CONFIGURATION_NAME, False)
+        configuration_type = _configuration_type_in(assembly)
         if configuration_type is not None:
             return configuration_type
         load_errors.append(
-            "Autodesk IFC UI assembly has no IFCExportConfiguration: {}".format(path)
+            "Autodesk IFC assembly has no IFCExportConfiguration: {}".format(path)
         )
         continue
 
@@ -97,7 +110,9 @@ def load_setup(path, version_number):
     try:
         text = File.ReadAllText(path)
         configuration_type = find_configuration_type(version_number)
-        converter_type = configuration_type.Assembly.GetType(CONVERTER_NAME, False)
+        converter_type = configuration_type.Assembly.GetType(
+            configuration_type.FullName + "Converter", False
+        )
         if converter_type is None:
             raise IfcSetupError("Autodesk IFC configuration converter is unavailable")
         converter = Activator.CreateInstance(converter_type)
@@ -155,7 +170,34 @@ def load_setup(path, version_number):
         raise IfcSetupError("'{}': {}".format(path, ex))
 
 
+def _new_parameter_mapping_enabled():
+    options_util = _loaded_type(OPTIONS_UTIL_NAME)
+    if options_util is None:
+        options_util = Assembly.Load("Revit.IFC.Common").GetType(
+            OPTIONS_UTIL_NAME, False
+        )
+    method = None
+    if options_util is not None:
+        method = options_util.GetMethod("UseLegacyParameterMapping")
+    if method is None:
+        raise IfcSetupError("Autodesk IFC OptionsUtil.UseLegacyParameterMapping is unavailable")
+    return not method.Invoke(None, None)
+
+
+def _takes_document(configuration):
+    for method in configuration.GetType().GetMethods():
+        if method.Name == "UpdateOptions" and len(method.GetParameters()) == 4:
+            return True
+    return False
+
+
 def apply_setup(configuration, options, view_id, document):
+    if _takes_document(configuration):
+        configuration.UpdateOptions(
+            document, options, view_id, _new_parameter_mapping_enabled()
+        )
+        return
+
     application_type = configuration.GetType().Assembly.GetType(
         COMMAND_APPLICATION_NAME, False
     )
