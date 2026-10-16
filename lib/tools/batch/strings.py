@@ -433,6 +433,16 @@ S = StringTable({
         "ru": u"(вид по умолчанию)",
         "es_es": u"(vista predeterminada)",
     },
+    "ifc.result.view_fallback": {
+        "en_us": u"{} not found, used {}",
+        "ru": u"{} не найден, использован {}",
+        "es_es": u"{} no encontrada, se usó {}",
+    },
+    "ifc.result.view_temporary": {
+        "en_us": u"{} not found, used a temporary 3D view",
+        "ru": u"{} не найден, использован временный 3D-вид",
+        "es_es": u"{} no encontrada, se usó una vista 3D temporal",
+    },
     "ifc.result.open_failed": {
         "en_us": u"Failed to prepare/open: {}",
         "ru": u"Не удалось подготовить или открыть: {}",

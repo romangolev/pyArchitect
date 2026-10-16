@@ -87,6 +87,27 @@ class IFCBatchExporter(object):
         return [(name, views_by_name.get(name)) for name in view_names]
 
     @staticmethod
+    def fallback_view(document):
+        collector = DB.FilteredElementCollector(document).OfClass(DB.View3D)
+        views = [
+            view
+            for view in collector.WhereElementIsNotElementType().ToElements()
+            if not view.IsTemplate
+        ]
+        for view in views:
+            if not view.IsPerspective:
+                return view
+        return views[0] if views else None
+
+    @staticmethod
+    def create_temporary_view(document):
+        collector = DB.FilteredElementCollector(document).OfClass(DB.ViewFamilyType)
+        for view_type in collector.ToElements():
+            if view_type.ViewFamily == DB.ViewFamily.ThreeDimensional:
+                return DB.View3D.CreateIsometric(document, view_type.Id)
+        raise Exception("No 3D view family type in the model")
+
+    @staticmethod
     def build_options(settings, mapping_file, view):
         options = DB.IFCExportOptions()
         options.FileVersion = settings.ifc_version
@@ -142,6 +163,30 @@ class IFCBatchExporter(object):
                 else:
                     targets[target] = item.source_path
         return collisions
+
+    def _export(self, document, item, file_name, settings, configuration, view):
+        with WrappedTransaction(document, "Export IFC", warning_suppressor=True):
+            return document.Export(
+                item.export_path,
+                file_name,
+                self.setup_options(configuration, view, document)
+                if configuration is not None
+                else self.build_options(settings, item.mapping_file, view),
+            )
+
+    def _export_with_temporary_view(
+        self, document, item, file_name, settings, configuration
+    ):
+        with WrappedTransaction(document, "Create temporary 3D view"):
+            view_id = self.create_temporary_view(document).Id
+        try:
+            return self._export(
+                document, item, file_name, settings, configuration,
+                document.GetElement(view_id),
+            )
+        finally:
+            with WrappedTransaction(document, "Delete temporary 3D view"):
+                document.Delete(view_id)
 
     def _save_or_sync(self, document):
         try:
@@ -244,24 +289,26 @@ class IFCBatchExporter(object):
                 for index, (label, view) in enumerate(
                     self.resolve_views(document, view_names)
                 ):
-                    if view_names and view is None:
+                    if item.views and view is None:
                         results.append(
                             (item.name, label, S("ifc.result.view_not_found"))
                         )
                         continue
                     file_name = file_names[index]
                     try:
-                        with WrappedTransaction(
-                            document, "Export IFC", warning_suppressor=True
-                        ):
-                            exported = document.Export(
-                                item.export_path,
-                                file_name,
-                                self.setup_options(configuration, view, document)
-                                if configuration is not None
-                                else self.build_options(
-                                    settings, item.mapping_file, view
-                                ),
+                        if view_names and view is None:
+                            view = self.fallback_view(document)
+                            if view is not None:
+                                label = S("ifc.result.view_fallback", label, view.Name)
+                        if view_names and view is None:
+                            label = S("ifc.result.view_temporary", label)
+                            exported = self._export_with_temporary_view(
+                                document, item, file_name, settings, configuration
+                            )
+                        else:
+                            exported = self._export(
+                                document, item, file_name, settings,
+                                configuration, view,
                             )
                         results.append(
                             (
