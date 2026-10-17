@@ -388,6 +388,11 @@ S = StringTable({
         "ru": u"Не удалось сохранить или синхронизировать «{}»: {}",
         "es_es": u"No se pudo guardar ni sincronizar «{}»: {}",
     },
+    "ifc.result.save_skipped_copy": {
+        "en_us": u"Not saved: the model was opened as a copy without links",
+        "ru": u"Не сохранено: модель открыта как копия без связей",
+        "es_es": u"No guardado: el modelo se abrió como copia sin vínculos",
+    },
     "ifc.result.link_not_loaded": {
         "en_us": u"Not loaded - skipped",
         "ru": u"Не загружено — пропущено",

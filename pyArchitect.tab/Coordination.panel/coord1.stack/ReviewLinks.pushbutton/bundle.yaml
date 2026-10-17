@@ -7,16 +7,24 @@ title:
   ru: |-
     Проверка
     связей
-tooltip: 
+tooltip:
   es_es: >-
-    Comprueba si los enlaces están anclados y si ese enlace está en un conjunto de trabajo separado (iniciado desde ##Link_).
-    Resuelva estos problemas
+    Doctor de vínculos: revisa los vínculos de Revit y sus subproyectos.
+    Fija los vínculos sin fijar, mueve cada vínculo a su propio subproyecto
+    (##_RVT_<ARCHIVO>), renombra o crea el subproyecto cuando el archivo
+    vinculado cambió de nombre y elimina los subproyectos de vínculos vacíos
+    que dejan los vínculos antiguos. Mayús+clic: elija qué correcciones aplicar.
   en_us: >-
-    Checks if links are pinned and that link located on separated workset (started from ##Link_). 
-    Fix these issues
+    Link Doctor: checks Revit links and their worksets. Pins unpinned links,
+    moves each link to a workset of its own (##_RVT_<FILE>), renames or
+    creates that workset when the linked file was renamed, and deletes empty
+    link worksets left behind by old links. Shift+click: pick which fixes to apply.
   ru: >-
-    Проверяет закреплены ли связи и находится ли связь на отдельном рабочем наборе (начинающемся с ##Link_)
-    Исправляет эти ошибки 
+    Доктор связей: проверяет связи Revit и их рабочие наборы. Закрепляет
+    связи, переносит каждую связь на собственный рабочий набор
+    (##_RVT_<ФАЙЛ>), переименовывает или создаёт его при смене имени файла
+    связи и удаляет пустые рабочие наборы старых связей. Shift+клик: выбрать,
+    какие исправления применить.
 
 author: Roman Golev
 engine:

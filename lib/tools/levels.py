@@ -602,8 +602,6 @@ def change_level(doc, element, target_level):
     # up whatever the level change took away.
     new_offset = (level_elevation(current_level) + current_offset) \
         - level_elevation(target_level)
-    if abs(new_offset - current_offset) < TOLERANCE:
-        return REASON_SAME_LEVEL
 
     base_before = element_base_z(element)
     if _write(level_param, offset_param, target_level.Id, new_offset) is None:

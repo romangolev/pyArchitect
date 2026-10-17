@@ -110,9 +110,14 @@ class OpenedBatchDocument(object):
             self.temporary_copy = TemporaryLinklessCopy(self.source_path)
             path_to_open = self.temporary_copy.prepare()
 
-        self.document = self.opener.open(
-            path_to_open, detach_from_central=self.temporary_copy is not None
-        )
+        try:
+            self.document = self.opener.open(
+                path_to_open, detach_from_central=self.temporary_copy is not None
+            )
+        except Exception:
+            if self.temporary_copy:
+                self.temporary_copy.dispose()
+            raise
         return self.document
 
     def __exit__(self, ex_type, ex_value, ex_traceback):

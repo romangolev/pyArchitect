@@ -64,7 +64,7 @@ Every tool has an embedded description. To see the description and hint, hover m
 | Coordination | Worksets 3D Views | Creates a 3D view per workset |
 | Coordination | Links 3D Views | Creates a 3D view per linked model |
 | Coordination | Link more | Creates many RVT, DWG or IFC links at once |
-| Coordination | Review Links | Checks that links are pinned and sit on their own `##Link_` workset, and fixes what is not |
+| Coordination | Review Links | Link doctor: pins links, moves each one to its own `##_RVT_<FILE>` workset, renames or creates that workset when the linked file was renamed, and deletes empty worksets left by old links |
 | Finishing | Ceiling Finishing | Creates ceiling finishing for the selected rooms, optionally offset by its own thickness |
 | Finishing | Floor Finishing | Creates floor finishing for the selected rooms, optionally offset by its own thickness |
 | Finishing | Wall Finishing | Creates a second layer of walls inside the selected rooms — useful for interior works specifications |
