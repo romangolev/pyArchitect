@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import math
 import sys
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -18,6 +19,7 @@ from core.selectionhelpers import (
 )
 from core.collectror import UniversalProjectCollector as UPC
 
+TIP_BRIDGE_LENGTH = 500 / 304.8
 
 class FinishingRoom(object):
     def __init__(self, rvt_room_elem):
@@ -26,6 +28,7 @@ class FinishingRoom(object):
         self.new_walls = []
         self.new_walls_and_hosts = {}
         self.new_walls_and_corner_hosts = {}
+        self.corner_pairs = []
 
     @property
     def id(self):
@@ -193,16 +196,34 @@ class FinishingRoom(object):
             and first_curve.Direction.DotProduct(second_curve.Direction) > 0
         )
 
+    @staticmethod
+    def is_bridgeable(bound):
+        """A short boundary piece no element owns, like the flat Revit cuts at a
+        sharp wall tip, is skipped so the walls on either side meet past it."""
+        return (
+            id_value(bound.ElementId) == -1
+            and bound.GetCurve().Length <= TIP_BRIDGE_LENGTH
+        )
+
     def get_merged_boundary_groups(self, boundaries, rswitches):
-        """Combine adjacent fragments only when their host category and type match."""
+        """Combine adjacent fragments only when their host category and type match.
+
+        A group is marked ``bridged`` when only bridgeable pieces separate it
+        from the group before it, so the two still meet at a corner.
+        """
         groups = []
         current = None
+        bridge = True
+        leading_bridge = True
         for bound in boundaries:
             curve = bound.GetCurve()
             if (
                 curve.Length <= 10 / 304.8
                 or not self.do_we_need_to_make_wall(bound, rswitches)
             ):
+                bridge = bridge and self.is_bridgeable(bound)
+                if not groups:
+                    leading_bridge = bridge
                 current = None
                 continue
 
@@ -218,8 +239,12 @@ class FinishingRoom(object):
                 )
                 current["hosts"].append(host)
             else:
-                current = {"curve": curve, "host_key": host_key, "hosts": [host]}
+                current = {"curve": curve, "host_key": host_key, "hosts": [host],
+                           "bridged": bridge and current is None and bool(groups)}
                 groups.append(current)
+            bridge = True
+        if groups:
+            groups[0]["bridged"] = leading_bridge and bridge
         return groups
 
     @staticmethod
@@ -246,24 +271,61 @@ class FinishingRoom(object):
             return None
         return rebuilt
 
+    @staticmethod
+    def turn_angle(first, second):
+        """Signed turn from first to second; positive turns towards the room."""
+        return math.atan2(
+            first.Direction.CrossProduct(second.Direction).Z,
+            first.Direction.DotProduct(second.Direction),
+        )
+
+    @classmethod
+    def butt_corner(cls, first, second, distance):
+        """Return where the first wall ends and the second starts at a butt corner.
+
+        Both are distances along each wall from the point where their centre
+        lines meet, so they stay close to the corner at any angle, nearly
+        straight ones included.  The square ends close the corner without a gap
+        or anything sticking into the room; the overlap they leave is cleaned
+        up by joining the two walls.
+
+        Returns None at a reflex corner sharper than a right angle, where no
+        pair of square ends can close the corner, so those ends are mitred.
+        """
+        turn = cls.turn_angle(first, second)
+        if turn < -math.pi / 2:
+            return None
+        half_turn = math.tan(abs(turn) / 2)
+        if turn > math.pi / 2:
+            return distance * half_turn, distance / half_turn
+        return distance * half_turn, -distance * half_turn
+
     def get_finishing_curves(self, boundaries, rswitches, distance):
         """Offset merged groups into the room and make neighbours meet at corners.
 
         With wall joins at ends allowed, neighbours share an end point and Revit
         joins them. Otherwise the first wall runs through the corner and the
-        second one butts into it.
+        second one butts into it; where that cannot work, the two ends meet at
+        a point and are left free for Revit to mitre.
+
+        Returns:
+            (list[tuple]): per wall its curve, hosts, corner hosts, whether it
+            butts into the next wall, and the ends to leave joinable.
         """
         groups = self.get_merged_boundary_groups(boundaries, rswitches)
         curves = [self.offset_into_room(group["curve"], distance) for group in groups]
         corner_hosts = [[] for _ in groups]
-        joins_next = [False for _ in groups]
+        butts_next = [False for _ in groups]
+        open_ends = [set() for _ in groups]
+        joins_allowed = rswitches["Allow Wall Joins at Ends"] == True
         count = len(groups)
         for index in range(count):
             following = (index + 1) % count
             if following == index:
                 continue
             if (
-                groups[index]["curve"].GetEndPoint(1).DistanceTo(
+                not groups[following]["bridged"]
+                and groups[index]["curve"].GetEndPoint(1).DistanceTo(
                     groups[following]["curve"].GetEndPoint(0)
                 )
                 > 1e-6
@@ -271,42 +333,40 @@ class FinishingRoom(object):
                 continue
             corner_hosts[index].append(groups[following]["hosts"][0])
             corner_hosts[following].append(groups[index]["hosts"][-1])
-            joins_next[index] = True
             first, second = curves[index], curves[following]
             if not isinstance(first, DB.Line) or not isinstance(second, DB.Line):
                 continue
             corner = self.intersect_unbound_lines(first, second)
             if corner is None:
                 continue
+            butt = None if joins_allowed else self.butt_corner(first, second, distance)
             first_end = second_start = corner
-            if rswitches["Allow Wall Joins at Ends"] == False:
-                first_end = corner + first.Direction.Multiply(distance)
-                second_start = corner + second.Direction.Multiply(distance)
+            if butt is not None:
+                first_end = corner + first.Direction.Multiply(butt[0])
+                second_start = corner + second.Direction.Multiply(butt[1])
             new_first = self.rebuild_line(first, first.GetEndPoint(0), first_end)
             new_second = self.rebuild_line(second, second_start, second.GetEndPoint(1))
             if new_first is None or new_second is None:
                 continue
             curves[index], curves[following] = new_first, new_second
-        return [
-            (curve, group["hosts"], neighbours, joined)
-            for curve, group, neighbours, joined in zip(
-                curves, groups, corner_hosts, joins_next
-            )
-        ]
+            if butt is not None:
+                butts_next[index] = True
+            elif not joins_allowed:
+                open_ends[index].add(1)
+                open_ends[following].add(0)
+        return list(zip(curves, [group["hosts"] for group in groups], corner_hosts,
+                        butts_next, open_ends))
 
-    def link_corner_walls(self, walls, joins_next, rswitches):
-        """Butted corners are not wall-joined, so let the join step clean them up."""
-        if rswitches["Allow Wall Joins at Ends"] == True:
-            return
+    def link_corner_walls(self, walls, butts_next):
+        """Record butted corners as (through wall, butting wall) for the join step."""
         count = len(walls)
         for index in range(count):
             following = walls[(index + 1) % count]
-            if not joins_next[index] or walls[index] is None or following is None:
+            if not butts_next[index] or walls[index] is None or following is None:
                 continue
             if walls[index].Id == following.Id:
                 continue
-            self.new_walls_and_corner_hosts[walls[index]].append(following)
-            self.new_walls_and_corner_hosts[following].append(walls[index])
+            self.corner_pairs.append((walls[index], following))
 
     @staticmethod
     def get_solids(element):
@@ -358,30 +418,30 @@ class FinishingRoom(object):
         return hosts
 
     def make_finishing_walls_outer(self, wall_type, rswitches, room_parameter=None):
-        walls, joins_next = [], []
-        for curve, hosts, neighbours, joined in self.get_finishing_curves(
+        walls, butts_next = [], []
+        for curve, hosts, neighbours, butts, open_ends in self.get_finishing_curves(
             self.outer_boundaries, rswitches, wall_type.Width / 2
         ):
             new_wall = self.make_finishing_wall_by_line(
-                curve, wall_type, rswitches, room_parameter
+                curve, wall_type, rswitches, room_parameter, open_ends
             )
             self.new_walls_and_hosts[new_wall] = hosts
             self.new_walls_and_corner_hosts[new_wall] = list(neighbours)
             self.new_walls.append(new_wall)
             walls.append(new_wall)
-            joins_next.append(joined)
-        self.link_corner_walls(walls, joins_next, rswitches)
+            butts_next.append(butts)
+        self.link_corner_walls(walls, butts_next)
 
     def make_finishing_walls_inner(self, wall_type, rswitches, room_parameter=None):
         for boundary in self.inner_boundaries:
-            walls, joins_next = [], []
-            for curve, hosts, neighbours, joined in self.get_finishing_curves(
+            walls, butts_next = [], []
+            for curve, hosts, neighbours, butts, open_ends in self.get_finishing_curves(
                 boundary, rswitches, wall_type.Width / 2
             ):
                 new_wall = None
                 try:
                     new_wall = self.make_finishing_wall_by_line(
-                        curve, wall_type, rswitches, room_parameter
+                        curve, wall_type, rswitches, room_parameter, open_ends
                     )
                     self.new_walls_and_hosts[new_wall] = hosts
                     self.new_walls_and_corner_hosts[new_wall] = list(neighbours)
@@ -391,11 +451,11 @@ class FinishingRoom(object):
 
                     print(traceback.format_exc())
                 walls.append(new_wall)
-                joins_next.append(joined)
-            self.link_corner_walls(walls, joins_next, rswitches)
+                butts_next.append(butts)
+            self.link_corner_walls(walls, butts_next)
 
     def make_finishing_wall_by_line(
-        self, line, wall_type, rswitches, room_parameter=None
+        self, line, wall_type, rswitches, room_parameter=None, open_ends=()
     ):
         room = self.rvt_room_elem
         room_height = room.get_Parameter(DB.BuiltInParameter.ROOM_HEIGHT).AsDouble()
@@ -413,8 +473,9 @@ class FinishingRoom(object):
         )
         new_wall.get_Parameter(DB.BuiltInParameter.WALL_ATTR_ROOM_BOUNDING).Set(0)
         if rswitches["Allow Wall Joins at Ends"] == False:
-            DB.WallUtils.DisallowWallJoinAtEnd(new_wall, 0)
-            DB.WallUtils.DisallowWallJoinAtEnd(new_wall, 1)
+            for end in (0, 1):
+                if end not in open_ends:
+                    DB.WallUtils.DisallowWallJoinAtEnd(new_wall, end)
         self.set_room_parameter(new_wall, room_parameter)
         return new_wall
 
@@ -851,6 +912,8 @@ class FinishingTool(object):
             self.doc, "Join with wall finishing", warning_suppressor=True
         ):
             for element in elements:
+                if element is None or not element.IsValidObject:
+                    continue
                 walls = (
                     DB.FilteredElementCollector(self.doc)
                     .OfClass(DB.Wall)
@@ -897,7 +960,7 @@ class FinishingTool(object):
                         )
                     new_floors.append(new_floor)
 
-                    if room.boundary_count > 1:
+                    if room.boundary_count > 1 and new_floor.IsValidObject:
                         with WrappedTransaction(self.doc, "Create Opening(s)"):
                             room.make_openings(new_floor)
             self.join_with_wall_finishing(new_floors)
@@ -943,15 +1006,24 @@ class FinishingTool(object):
                     for room in selected_rooms:
                         for new_wall in room.new_walls:
                             for host in room.get_join_hosts(new_wall):
-                                try:
-                                    if not DB.JoinGeometryUtils.AreElementsJoined(
-                                        self.doc, new_wall, host
-                                    ):
-                                        DB.JoinGeometryUtils.JoinGeometry(
-                                            self.doc, new_wall, host
-                                        )
-                                except Exception:
-                                    pass
+                                self.join_cutting(host, new_wall)
+
+            with WrappedTransaction(
+                self.doc, "Join finishing wall corners", warning_suppressor=True
+            ):
+                for room in selected_rooms:
+                    for through_wall, butting_wall in room.corner_pairs:
+                        self.join_cutting(through_wall, butting_wall)
+
+    def join_cutting(self, cutting, cut):
+        """Join two elements so that `cutting` cuts `cut`."""
+        try:
+            if not DB.JoinGeometryUtils.AreElementsJoined(self.doc, cutting, cut):
+                DB.JoinGeometryUtils.JoinGeometry(self.doc, cutting, cut)
+            if not DB.JoinGeometryUtils.IsCuttingElementInJoin(self.doc, cutting, cut):
+                DB.JoinGeometryUtils.SwitchJoinOrder(self.doc, cutting, cut)
+        except Exception:
+            pass
 
     def create_ceilings(self):
         selected_rooms = self.get_rooms()
@@ -976,7 +1048,7 @@ class FinishingTool(object):
                                 ceiling_type, rswitches, room_parameter
                             )
                         new_ceilings.append(new_ceiling)
-                        if room.boundary_count > 1:
+                        if room.boundary_count > 1 and new_ceiling.IsValidObject:
                             with WrappedTransaction(self.doc, "Create Opening(s)"):
                                 room.make_openings(new_ceiling)
                 self.join_with_wall_finishing(new_ceilings)
@@ -1005,7 +1077,7 @@ class FinishingTool(object):
                             )
                         new_floors.append(new_floor)
 
-                        if room.boundary_count > 1:
+                        if room.boundary_count > 1 and new_floor.IsValidObject:
                             with WrappedTransaction(self.doc, "Create Opening(s)"):
                                 room.make_openings(new_floor)
                 self.join_with_wall_finishing(new_floors)
