@@ -37,6 +37,7 @@ import os
 import re
 
 import Autodesk.Revit.DB as DB
+import Autodesk.Revit.Exceptions as RevitExceptions
 
 from core.localization import StringTable
 from core.selectionhelpers import id_value
@@ -159,6 +160,16 @@ S = StringTable({
         "en_us": u"its workset cannot be changed",
         "ru": u"рабочий набор нельзя изменить",
         "es_es": u"su subproyecto no se puede cambiar",
+    },
+    "skip.borrowed": {
+        "en_us": u"another user is editing it",
+        "ru": u"его редактирует другой пользователь",
+        "es_es": u"otro usuario lo está editando",
+    },
+    "skip.revit_error": {
+        "en_us": u"Revit refused the change: {}",
+        "ru": u"Revit отклонил изменение: {}",
+        "es_es": u"Revit rechazó el cambio: {}",
     },
 })
 
@@ -406,9 +417,10 @@ def _diagnose_worksets(doc, links):
             fixes.append(Fix(KIND_MOVE,
                              S(label_key, link.file_name, source_text, link.target),
                              link=link, name=link.target))
+            moved_ids = set(id_value(e.Id) for e in to_move)
             for key in set(e.WorksetId.IntegerValue for e in to_move):
                 moved_away.setdefault(key, set()).update(
-                    contents.get(key, set()) & own_ids)
+                    contents.get(key, set()) & moved_ids)
 
         claimed_names.add(link.target)
         for key, name in names.items():
@@ -458,12 +470,35 @@ def apply_fixes(doc, fixes):
                 continue
             with WrappedTransaction(doc, S(tx_name)):
                 for fix in by_kind[kind]:
-                    reason = handler(doc, fix)
+                    reason = _apply_one(doc, fix, handler)
                     if reason is None:
                         result.applied.append(fix.label)
                     else:
                         result.skipped.append((fix.label, reason))
     return result
+
+
+def _apply_one(doc, fix, handler):
+    """Run one fix in a sub-transaction that is rolled back if it is skipped."""
+    sub = DB.SubTransaction(doc)
+    sub.Start()
+    try:
+        reason = handler(doc, fix)
+    except RevitExceptions.ApplicationException as error:
+        reason = S("skip.revit_error", error.Message)
+    if reason is None:
+        sub.Commit()
+    else:
+        sub.RollBack()
+    return reason
+
+
+def _owned_by_others(doc, elements):
+    """True when another user has borrowed one of `elements`."""
+    if not doc.IsWorkshared:
+        return False
+    return any(DB.WorksharingUtils.GetCheckoutStatus(doc, e.Id)
+               == DB.CheckoutStatus.OwnedByOtherUser for e in elements)
 
 
 def _find_workset(doc, name):
@@ -483,22 +518,28 @@ def _rename(doc, fix):
 
 def _move(doc, fix):
     target = _find_workset(doc, fix.name)
+    to_move = [e for e in fix.link.elements()
+               if target is None
+               or e.WorksetId.IntegerValue != target.Id.IntegerValue]
+    if _owned_by_others(doc, to_move):
+        return S("skip.borrowed")
+    params = [e.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
+              for e in to_move]
+    if any(p is None or p.IsReadOnly for p in params):
+        return S("skip.read_only")
     if target is None:
         target = DB.Workset.Create(doc, fix.name)
-    for element in fix.link.elements():
-        if element.WorksetId.IntegerValue == target.Id.IntegerValue:
-            continue
-        param = element.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
-        if param is None or param.IsReadOnly:
-            return S("skip.read_only")
+    for param in params:
         param.Set(target.Id.IntegerValue)
     return None
 
 
 def _pin(doc, fix):
-    for instance in fix.link.instances:
-        if not instance.Pinned:
-            instance.Pinned = True
+    unpinned = [i for i in fix.link.instances if not i.Pinned]
+    if _owned_by_others(doc, unpinned):
+        return S("skip.borrowed")
+    for instance in unpinned:
+        instance.Pinned = True
     return None
 
 
