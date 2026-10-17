@@ -5,6 +5,8 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+## [1.4.6]
+
 ### Changed
 
 - Review Links is now a link doctor. Besides pinning links and moving them to
