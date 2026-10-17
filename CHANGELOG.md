@@ -5,6 +5,16 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+### Changed
+
+- Review Links is now a link doctor. Besides pinning links and moving them to
+  their own `##_` workset, it renames a link's workset when the linked file
+  was renamed, and creates one when the old workset is shared with other
+  links. It also deletes empty link worksets left behind by old links (Revit
+  2022 and newer). A click applies every fix and lists what it did;
+  Shift+click shows the fixes first so you can untick the ones you don't
+  want. A single undo reverts the whole run.
+
 ## [1.4.5]
 
 ### Added
