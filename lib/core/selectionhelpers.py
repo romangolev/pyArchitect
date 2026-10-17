@@ -62,7 +62,8 @@ class CustomISelectionFilterByIdInclude(ISelectionFilter):
     def AllowElement(self, element):
         if self.allowed_categories is None:
             return True
-        elif element.Category.Id.IntegerValue in self.allowed_categories:
+        elif (element.Category is not None
+              and id_value(element.Category.Id) in self.allowed_categories):
             return True
         else:
             return False
@@ -76,7 +77,8 @@ class CustomISelectionFilterByIdExclude(ISelectionFilter):
         self.allowed_elements = element_ids if element_ids else None
 
     def AllowElement(self, element):
-        if self.allowed_categories != None and element.Category.Id.IntegerValue in self.allowed_categories:
+        if (self.allowed_categories != None and element.Category is not None
+                and id_value(element.Category.Id) in self.allowed_categories):
             return False
         elif self.allowed_elements != None and element.Id.ToString() in self.allowed_elements:
             return False
@@ -155,7 +157,7 @@ def get_selection_basic(uidoc, filter):
     if selobject.Count == 0:
         try:
             selection = uidoc.Selection.PickObjects(ObjectType.Element, filter, "Selection Objects")
-        except:
+        except Exception:
             sys.exit()
     elif selobject.Count != 0:
         selection = selobject

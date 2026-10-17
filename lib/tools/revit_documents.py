@@ -15,12 +15,18 @@ def is_server_path(file_path):
     return file_path.strip().upper().startswith("RSN://")
 
 
+def _path_key(file_path):
+    return file_path.replace("\\", "/").upper()
+
+
 def normalize_path(file_path):
     try:
         model_path = ModelPathUtils.ConvertUserVisiblePathToModelPath(file_path)
-        return ModelPathUtils.ConvertModelPathToUserVisiblePath(model_path).upper()
+        return _path_key(
+            ModelPathUtils.ConvertModelPathToUserVisiblePath(model_path)
+        )
     except Exception:
-        return file_path.replace("\\", "/").upper()
+        return _path_key(file_path)
 
 
 def build_open_options(detach_from_central=False, open_all_worksets=False):
@@ -68,7 +74,7 @@ class RevitDocumentRepository(object):
     def find_open(self, file_path):
         target = normalize_path(file_path)
         for document in self.application.Documents:
-            if self._document_key(document) == target:
+            if target in self._document_keys(document):
                 return document
         return None
 
@@ -104,13 +110,19 @@ class RevitDocumentRepository(object):
         return get_file_flag(file_path, "IsCentral")
 
     @staticmethod
-    def _document_key(document):
+    def _document_keys(document):
+        keys = set()
+        if document.PathName:
+            keys.add(normalize_path(document.PathName))
         try:
-            central_path = document.GetWorksharingCentralModelPath()
-            if central_path:
-                return ModelPathUtils.ConvertModelPathToUserVisiblePath(
-                    central_path
-                ).upper()
-            return document.PathName.replace("\\", "/").upper()
+            if document.IsWorkshared:
+                central_path = document.GetWorksharingCentralModelPath()
+                if central_path:
+                    keys.add(_path_key(
+                        ModelPathUtils.ConvertModelPathToUserVisiblePath(
+                            central_path
+                        )
+                    ))
         except Exception:
-            return None
+            pass
+        return keys

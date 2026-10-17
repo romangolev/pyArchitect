@@ -4,10 +4,11 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import Autodesk.Revit.DB as DB
 from pyrevit import forms
-from System.Collections.Generic import List, Dictionary
+from System.Collections.Generic import List
 from core.transaction import WrappedTransaction, WrappedTransactionGroup
 from core.selectionhelpers import (
     get_selection_basic,
+    id_value,
     CustomISelectionFilterByIdInclude,
     ID_ROOMS,
     ID_WALLS,
@@ -72,7 +73,7 @@ class FinishingRoom(object):
             DB.BuiltInParameter.ROOM_LOWER_OFFSET
         ).AsDouble()
         room_offset2 = room.get_Parameter(
-            DB.BuiltInParameter.ROOM_UPPER_OFFSET
+            DB.BuiltInParameter.ROOM_HEIGHT
         ).AsDouble()
         level = self.doc.GetElement(self.level_id)
 
@@ -143,7 +144,7 @@ class FinishingRoom(object):
                 and self.doc.GetElement(bound.ElementId).WallType.Kind.ToString()
                 == "Basic"
             )
-        except:
+        except Exception:
             condition1 = False
         try:
             condition2 = self.doc.GetElement(
@@ -151,7 +152,7 @@ class FinishingRoom(object):
             ).Category.Id.ToString() == str(ID_COLUMNS[0]) or self.doc.GetElement(
                 bound.ElementId
             ).Category.Id.ToString() == str(ID_STRUCTURAL_COLUMNS[0])
-        except:
+        except Exception:
             condition2 = False
         try:
             condition3 = rswitches[
@@ -159,7 +160,7 @@ class FinishingRoom(object):
             ] == True and self.doc.GetElement(
                 bound.ElementId
             ).Category.Id.ToString() == str(ID_SEPARATION_LINES[0])
-        except:
+        except Exception:
             condition3 = False
 
         return any([condition1, condition2, condition3])
@@ -170,10 +171,10 @@ class FinishingRoom(object):
         if host is None or host.Category is None:
             return None
         try:
-            type_id = host.GetTypeId().IntegerValue
-        except:
-            type_id = host.Id.IntegerValue
-        return (host.Category.Id.IntegerValue, type_id)
+            type_id = id_value(host.GetTypeId())
+        except Exception:
+            type_id = id_value(host.Id)
+        return (id_value(host.Category.Id), type_id)
 
     @staticmethod
     def curves_can_be_merged(first_curve, second_curve):
@@ -385,7 +386,7 @@ class FinishingRoom(object):
                     self.new_walls_and_hosts[new_wall] = hosts
                     self.new_walls_and_corner_hosts[new_wall] = list(neighbours)
                     self.new_walls.append(new_wall)
-                except:
+                except Exception:
                     import traceback
 
                     print(traceback.format_exc())
@@ -473,7 +474,7 @@ class FinishingRoom(object):
         for boundary in self.inner_boundaries:
             for bounds in boundary:
                 co_curves.Append(bounds.GetCurve())
-        opening = self.doc.Create.NewOpening(nf, co_curves, False)
+        self.doc.Create.NewOpening(nf, co_curves, False)
 
     def order_doors_by_proximity(self, main_line, doors):
         return sorted(
@@ -524,9 +525,7 @@ class FinishingRoom(object):
         rotationTransform = DB.Transform.CreateRotationAtPoint(
             DB.XYZ.BasisZ, door.Location.Rotation, door.Location.Point
         )
-        line1 = DB.Line.CreateBound(point1, point2).CreateTransformed(rotationTransform)
         line2 = DB.Line.CreateBound(point2, point3).CreateTransformed(rotationTransform)
-        line3 = DB.Line.CreateBound(point3, point4).CreateTransformed(rotationTransform)
         line4 = DB.Line.CreateBound(point4, point1).CreateTransformed(rotationTransform)
         main_line_start_point = line_to_modify.GetEndPoint(0)
         main_line_end_point = line_to_modify.GetEndPoint(1)
@@ -566,7 +565,7 @@ class FinishingRoom(object):
                     width = element.get_Parameter(parameter_id).AsDouble()
                     if width > 0.0:
                         widths.append(width)
-                except:
+                except Exception:
                     pass
 
         # The floor must span the opening: choose the larger of Width and
@@ -581,7 +580,7 @@ class FinishingRoom(object):
                     width = element.get_Parameter(parameter_id).AsDouble()
                     if width > 0.0:
                         widths.append(width)
-                except:
+                except Exception:
                     pass
 
         if not widths:
@@ -591,22 +590,31 @@ class FinishingRoom(object):
 
         return max(widths)
 
+    def room_phase(self):
+        """Return the phase of the room, or the last project phase."""
+        phase_param = self.rvt_room_elem.get_Parameter(DB.BuiltInParameter.ROOM_PHASE)
+        if phase_param is not None:
+            phase = self.doc.GetElement(phase_param.AsElementId())
+            if isinstance(phase, DB.Phase):
+                return phase
+        return list(self.doc.Phases)[-1]
+
     def generate_floor_outline(self):
         """
         Makes a floor outline with door notches
         """
         main_array = DB.CurveArray()
-        phase = list(self.doc.Phases)[-1]
+        phase = self.room_phase()
         for room_boundary in self.outer_boundaries:
             main_line = room_boundary.GetCurve()
             try:
                 boundary_elem = self.doc.GetElement(room_boundary.ElementId)
-                cat = boundary_elem.Category.Id.IntegerValue
-            except:
+                cat = id_value(boundary_elem.Category.Id)
+            except Exception:
                 cat = None
             try:
                 host_type = self.doc.GetElement(boundary_elem.GetTypeId())
-            except:
+            except Exception:
                 host_type = None
             try:
                 if cat in ID_WALLS and host_type != None:
@@ -645,8 +653,6 @@ class FinishingRoom(object):
                                     == DB.SetComparisonResult.Overlap
                                 ):
                                     ca = ca2
-                                else:
-                                    ca = ca
                             elif (
                                 door.ToRoom[phase] != None
                                 and door.ToRoom[phase].Id == self.rvt_room_elem.Id
@@ -658,7 +664,7 @@ class FinishingRoom(object):
                         main_array.Append(room_boundary.GetCurve())
                 else:
                     main_array.Append(room_boundary.GetCurve())
-            except:
+            except Exception:
                 main_array.Append(room_boundary.GetCurve())
         return main_array
 
@@ -682,7 +688,8 @@ class FinishingTool(object):
         selected_rooms = [
             self.doc.GetElement(sel)
             for sel in selobject
-            if (self.doc.GetElement(sel).Category.Id.IntegerValue in ID_ROOMS)
+            if (self.doc.GetElement(sel).Category is not None
+                and id_value(self.doc.GetElement(sel).Category.Id) in ID_ROOMS)
         ]
         if not selected_rooms:
             forms.alert("Please select room", "Create floor finishing")

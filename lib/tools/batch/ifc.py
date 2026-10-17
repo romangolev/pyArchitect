@@ -11,6 +11,7 @@ from tools.batch.documents import OpenedBatchDocument, RevitDocumentOpener
 from tools.batch.ifc_setup import apply_setup, load_setup
 from tools.batch.strings import S
 from tools.export.persistence import save_sync_and_relinquish
+from tools.revit_documents import get_file_flag
 
 
 class ModelExportItem(object):
@@ -200,12 +201,38 @@ class IFCBatchExporter(object):
     def _export_linked_documents(
         self, document, export_path, settings, results, configuration=None
     ):
-        links = DB.FilteredElementCollector(document).OfClass(DB.RevitLinkInstance)
-        for link_instance in links.WhereElementIsNotElementType().ToElements():
-            link_document = link_instance.GetLinkDocument()
-            if link_document is None:
+        links = DB.FilteredElementCollector(document).OfClass(DB.RevitLinkType)
+        seen = set()
+        for link_type in links.ToElements():
+            if link_type.IsNestedLink:
+                continue
+            link_name = link_type.get_Parameter(
+                DB.BuiltInParameter.ALL_MODEL_TYPE_NAME
+            ).AsString() or u"link"
+            if not DB.RevitLinkType.IsLoaded(document, link_type.Id):
+                results.append((link_name, "link", S("ifc.result.link_not_loaded")))
+                continue
+            try:
+                link_path = DB.ModelPathUtils.ConvertModelPathToUserVisiblePath(
+                    link_type.GetExternalFileReference().GetAbsolutePath()
+                )
+            except Exception as ex:
                 results.append(
-                    (link_instance.Name, "link", S("ifc.result.link_not_loaded"))
+                    (link_name, "link", S("ifc.result.export_failed", ex))
+                )
+                continue
+            if link_path.upper() in seen:
+                continue
+            seen.add(link_path.upper())
+            file_name = os.path.splitext(os.path.basename(link_path))[0]
+            try:
+                link_document = self.document_opener.open(
+                    link_path,
+                    detach_from_central=get_file_flag(link_path, "IsWorkshared"),
+                )
+            except Exception as ex:
+                results.append(
+                    (file_name, "link", S("ifc.result.open_failed", ex))
                 )
                 continue
             try:
@@ -223,11 +250,11 @@ class IFCBatchExporter(object):
                     link_document, "Export linked IFC", warning_suppressor=True
                 ):
                     exported = link_document.Export(
-                        export_path, link_document.Title, options
+                        export_path, file_name, options
                     )
                 results.append(
                     (
-                        link_document.Title,
+                        file_name,
                         "link",
                         "OK"
                         if exported
@@ -236,12 +263,13 @@ class IFCBatchExporter(object):
                 )
             except Exception as ex:
                 results.append(
-                    (
-                        link_document.Title,
-                        "link",
-                        S("ifc.result.export_failed", ex),
-                    )
+                    (file_name, "link", S("ifc.result.export_failed", ex))
                 )
+            finally:
+                try:
+                    link_document.Close(False)
+                except Exception:
+                    pass
 
     def export_item(self, item, settings):
         results = []
@@ -332,7 +360,11 @@ class IFCBatchExporter(object):
                     self._export_linked_documents(
                         document, item.export_path, settings, results, link_configuration
                     )
-                if settings.save_after:
+                if settings.save_after and settings.open_without_links:
+                    results.append(
+                        (item.name, "-", S("ifc.result.save_skipped_copy"))
+                    )
+                elif settings.save_after:
                     self._save_or_sync(document)
         except Exception as ex:
             results.append((item.name, "-", S("ifc.result.open_failed", ex)))

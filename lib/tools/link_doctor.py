@@ -37,7 +37,6 @@ import os
 import re
 
 import Autodesk.Revit.DB as DB
-import Autodesk.Revit.Exceptions as RevitExceptions
 
 from core.localization import StringTable
 from core.selectionhelpers import id_value
@@ -247,7 +246,8 @@ class Fix(object):
             ``KIND_DELETE``.
         label (str): the line shown in the list.
         link (Link): the link it is about, or None for a delete.
-        workset_id (DB.WorksetId): the workset renamed or deleted.
+        workset_id (DB.WorksetId): the workset renamed or deleted; for a move,
+            the workset its rename would take over, if one was planned.
         name (str): the new name, the move target, or the workset deleted.
     """
 
@@ -414,9 +414,10 @@ def _diagnose_worksets(doc, links):
                 and link.target not in existing_names \
                 and link.target not in claimed_names
             label_key = "fix.move_new" if is_new else "fix.move"
+            leftover = worksets[rename_from].Id if rename_from is not None else None
             fixes.append(Fix(KIND_MOVE,
                              S(label_key, link.file_name, source_text, link.target),
-                             link=link, name=link.target))
+                             link=link, workset_id=leftover, name=link.target))
             moved_ids = set(id_value(e.Id) for e in to_move)
             for key in set(e.WorksetId.IntegerValue for e in to_move):
                 moved_away.setdefault(key, set()).update(
@@ -464,32 +465,66 @@ def apply_fixes(doc, fixes):
         (KIND_DELETE, "tx.delete", _delete),
     )
 
+    applied = []
     with WrappedTransactionGroup(doc, S("title")):
         for kind, tx_name, handler in steps:
+            if kind == KIND_DELETE:
+                by_kind[kind].extend(_leftover_deletes(doc, applied, by_kind[kind]))
             if not by_kind[kind]:
                 continue
             with WrappedTransaction(doc, S(tx_name)):
                 for fix in by_kind[kind]:
                     reason = _apply_one(doc, fix, handler)
                     if reason is None:
+                        applied.append(fix)
                         result.applied.append(fix.label)
                     else:
                         result.skipped.append((fix.label, reason))
     return result
 
 
+def _leftover_deletes(doc, applied, deletes):
+    """Plan deletes for stale worksets a move emptied while the rename was off.
+
+    A move fix carries the workset its rename would have taken over.  When that
+    rename was unticked or skipped, the move leaves the workset behind empty.
+    """
+    if not can_delete_worksets():
+        return []
+    renamed = set(f.workset_id.IntegerValue for f in applied
+                  if f.kind == KIND_RENAME)
+    planned = set(f.workset_id.IntegerValue for f in deletes)
+    table = doc.GetWorksetTable()
+    extra = []
+    for fix in applied:
+        if fix.kind != KIND_MOVE or fix.workset_id is None:
+            continue
+        key = fix.workset_id.IntegerValue
+        if key in renamed or key in planned:
+            continue
+        planned.add(key)
+        if workset_contents(doc, fix.workset_id):
+            continue
+        name = table.GetWorkset(fix.workset_id).Name
+        extra.append(Fix(KIND_DELETE, S("fix.delete_emptied", name),
+                         workset_id=fix.workset_id, name=name))
+    return extra
+
+
 def _apply_one(doc, fix, handler):
     """Run one fix in a sub-transaction that is rolled back if it is skipped."""
     sub = DB.SubTransaction(doc)
     sub.Start()
+    reason = S("skip.revit_error", u"")
     try:
         reason = handler(doc, fix)
-    except RevitExceptions.ApplicationException as error:
-        reason = S("skip.revit_error", error.Message)
-    if reason is None:
-        sub.Commit()
-    else:
-        sub.RollBack()
+    except Exception as error:
+        reason = S("skip.revit_error", getattr(error, "Message", None) or error)
+    finally:
+        if reason is None:
+            sub.Commit()
+        else:
+            sub.RollBack()
     return reason
 
 
