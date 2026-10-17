@@ -13,7 +13,27 @@ and pull-request details are added automatically to each GitHub release.
   links. It also deletes empty link worksets left behind by old links (Revit
   2022 and newer). A click applies every fix and lists what it did;
   Shift+click shows the fixes first so you can untick the ones you don't
-  want. A single undo reverts the whole run.
+  want. A single undo reverts the whole run. A fix that cannot be applied,
+  for example on a link another user is editing, is skipped and listed
+  without undoing the others.
+
+### Fixed
+
+- Wall finishing closes its corners at any angle, not only at right angles,
+  with no gaps and nothing sticking into the room. Sharp outside corners and
+  the tips of thin walls are wrapped with a mitred corner.
+- Host walls now cut the wall finishing joined to them, instead of the
+  finishing cutting into the wall at corners.
+- Floor, ceiling and wall finishing work on Revit 2026.
+- Floor finishing door notches use the room's own phase.
+- Ceiling finishing on Revit 2021 is placed at the room height.
+- Floor and ceiling finishing no longer stop with an error when Revit
+  removes one of the new elements.
+- Swap Level moves elements between two levels at the same elevation.
+- Batch export reuses a model that is already open instead of opening it
+  again, and removes its temporary copy when a model fails to open.
+- Batch IFC Export exports each linked model once, and no longer saves
+  models opened without their links, since only a temporary copy is open.
 
 ## [1.4.5]
 
