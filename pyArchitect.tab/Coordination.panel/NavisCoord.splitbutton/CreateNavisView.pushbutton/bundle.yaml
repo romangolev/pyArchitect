@@ -1,32 +1,26 @@
 title:
-  es_es: |-
-    Vista
-    Navis
-  en_us: |-
-    Navis
-    View
-  ru: |-
-    Вид
-    Navis
-tooltip: 
+  es_es: Vista Navis
+  en_us: Navis View
+  ru: Вид Navis
+tooltip:
   es_es: >-
-    Crea un nuevo 3D Vista para exportar a Navisworks.
+    Crea o actualiza la vista 3D de Navisworks.
     _________________________________________________________________
-    Crea un nuevo 3D Vista para exportar a Navisworks (Oculta todas las anotaciones, importaciones, etc.) 
-    Busca vistas 3D existentes, da la opción de eliminar la vista existente y
-    crear una nueva o preservar la existente.
+    Crea o actualiza la vista 3D de Navisworks según el perfil de
+    pyArchitect seleccionado. Mayús+clic define el perfil por defecto
+    y edita los preajustes.
   en_us: >-
-    Creates Navis 3D view
+    Creates or updates the Navisworks 3D view.
     _________________________________________________________________
-
-    Creates or updates the configured Navisworks 3D view using the selected
-    pyArchitect profile. Shift+Click to set the default profile and edit presets.
+    Creates or updates the Navisworks 3D view from the selected
+    pyArchitect profile. Shift+Click sets the default profile and edits
+    presets.
   ru: >-
-    Создаёт 3D вид Navis.
+    Создаёт или обновляет 3D вид Navisworks.
     _________________________________________________________________
-    Создаёт новый 3D вид Navisworks (скрывает аннотации, импорт DWG и т.д)
-    Производит поиск существующих 3D видов и в случае наличия существуюего вида
-    даёт возможность удалить и создать новый или оставить текущий.
+    Создаёт или обновляет 3D вид Navisworks по выбранному профилю
+    pyArchitect. Shift+клик задаёт профиль по умолчанию и редактирует
+    пресеты.
 
 author: Roman Golev
 engine:

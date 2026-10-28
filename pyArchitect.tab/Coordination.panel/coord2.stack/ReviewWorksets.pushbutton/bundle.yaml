@@ -1,0 +1,36 @@
+title:
+  es_es: Revisar
+    Subproyectos
+  en_us: Review
+    Worksets
+  ru: Проверка
+    Наборов
+tooltip:
+  es_es: >-
+    Doctor de subproyectos: revisa los subproyectos del proyecto.
+    _________________________________________________________________
+    Da a cada archivo vinculado su propio subproyecto
+    (`##_RVT_<ARCHIVO>`), deja un solo vínculo por subproyecto, borra
+    los subproyectos vacíos y devuelve al subproyecto por defecto el
+    nombre que Revit le da, ya que Revit no permite eliminarlo.
+    Mayús+clic: elija qué correcciones aplicar.
+  en_us: >-
+    Workset doctor: reviews the worksets of the project.
+    _________________________________________________________________
+    Gives every linked file a workset of its own
+    (`##_RVT_<FILE>`), keeps only one link per workset, deletes empty
+    worksets and gives the default workset back the name Revit gave it,
+    since Revit does not allow deleting it. Shift+click: pick which
+    fixes to apply.
+  ru: >-
+    Доктор рабочих наборов: проверяет рабочие наборы проекта.
+    _________________________________________________________________
+    Даёт каждому связанному файлу собственный рабочий набор
+    (`##_RVT_<ФАЙЛ>`), оставляет в каждом наборе только одну связь,
+    удаляет пустые рабочие наборы и возвращает рабочему набору по
+    умолчанию имя, которое даёт Revit, так как Revit не разрешает его
+    удалять. Shift+клик: выбрать, какие исправления применить.
+
+author: Roman Golev
+engine:
+  persistent: true

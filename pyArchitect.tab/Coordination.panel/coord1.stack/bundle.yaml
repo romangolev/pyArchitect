@@ -1,4 +1,3 @@
 layout:
+  - Create3DViewsBasedOnWorkset
   - Create3DViewsBasedOnLinks
-  - LinkMore
-  - ReviewLinks

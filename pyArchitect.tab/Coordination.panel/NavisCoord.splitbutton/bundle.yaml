@@ -1,0 +1,30 @@
+layout:
+  - CreateNavisView
+  - CreateCoordPlan
+title:
+  es_es: Vista Navis
+  en_us: Navis View
+  ru: Вид Navis
+tooltip:
+  es_es: >-
+    Vista Navis y Plan de Coordinación.
+    _________________________________________________________________
+    El botón ejecuta la vista Navis; la flecha abre el Plan de
+    Coordinación. La vista Navis se crea o se actualiza según el perfil de
+    pyArchitect seleccionado.
+  en_us: >-
+    Navis View and Coordination Plan.
+    _________________________________________________________________
+    The button runs the Navis view; the arrow opens the Coordination
+    Plan. The Navis view is created or updated from the selected
+    pyArchitect profile.
+  ru: >-
+    Вид Navis и Координационный план.
+    _________________________________________________________________
+    Кнопка запускает вид Navis, стрелка открывает Координационный план.
+    Вид Navis создаётся или обновляется по выбранному профилю
+    pyArchitect.
+
+author: Roman Golev
+engine:
+  persistent: true

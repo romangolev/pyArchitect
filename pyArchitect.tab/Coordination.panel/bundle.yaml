@@ -1,5 +1,4 @@
 layout:
-  - CreateCoordPlan
-  - CreateNavisView
-  - Create3DViewsBasedOnWorkset
+  - NavisCoord
   - coord1
+  - coord2
