@@ -10,9 +10,10 @@ extended to new buttons later.
 | --- | --- |
 | `batch-overlay.png` | The batch glyph used as the corner overlay (icons8, Windows 11 outline), cropped to its ink, pure black on transparent. |
 | `ifc-logo.png` | buildingSMART / IFC knot, 512px. The original download was a "png-clipart" with a *painted* checkerboard instead of real transparency; this copy has the background keyed out and the trailing ® removed. |
-| `navisworks-n.png` | The Navisworks **N** taken from `CreateNavisView.pushbutton/icon.png` with its export-cube sub-badge cleared from the bottom-right, kept at the native 96px so it stays aligned. |
+| `navisworks-n.png` | The Navisworks **N** taken from `NavisCoord.splitpushbutton/CreateNavisView.pushbutton/icon.png` with its export-cube sub-badge cleared from the bottom-right, kept at the native 96px so it stays aligned. |
 | `make_batch_icon.py` | Generator. Requires Pillow (CPython — this is a build-time script, not something pyRevit runs). |
 | `make_convert_icon.py` | Draws the Convert In-Place to Family pair from scratch: an outlined cube with a knocked-out arrow badge. Requires Pillow. |
+| `make_workset_icon.py` | Draws the Review Worksets pair from scratch: three workset rows with a bold check mark beside them. Two mark groups only, so the glyph still reads at 16px. Requires Pillow. |
 | `make_level_icon.py` | Draws the Swap Level pair from scratch: a solid block between two level lines. Three marks, laid out on a vertical budget so the gaps between them survive a 16px ribbon downscale. Requires Pillow. |
 
 ## Usage
@@ -46,6 +47,12 @@ Regenerate the Swap Level pair:
 ```
 python icon-sources/make_level_icon.py \
     pyArchitect.tab/Tools.panel/tools4.stack/SwapLevel.pushbutton
+```
+
+Regenerate the Review Worksets pair:
+
+```
+python icon-sources/make_workset_icon.py     pyArchitect.tab/Coordination.panel/coord2.stack/ReviewWorksets.pushbutton
 ```
 
 ## How the pair is composed

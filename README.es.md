@@ -65,6 +65,7 @@ Cada herramienta lleva su propia descripción. Para verla, pasa el ratón por en
 | Coordination | 3D Vistas Vínculos | Crea vistas 3D basadas en vínculos |
 | Coordination | Vincular más | Crea muchos vínculos RVT, DWG o IFC a la vez |
 | Coordination | Revisar vínculos | Doctor de vínculos: ancla los vínculos, mueve cada uno a su propio subproyecto `##_RVT_<ARCHIVO>`, lo renombra o crea cuando el archivo vinculado cambió de nombre y elimina los subproyectos vacíos de vínculos antiguos |
+| Coordination | Revisar subproyectos | Doctor de subproyectos: da a cada archivo vinculado su propio subproyecto `##_RVT_<ARCHIVO>`, renombrando el que solo contiene ese vínculo, saca los vínculos de cualquier otro subproyecto y elimina los subproyectos de vínculos vacíos. Los subproyectos predeterminados de Revit se dejan como están. Shift+Clic elige las correcciones |
 | Finishing | Acabado de techo | Crea el acabado de techo de las habitaciones seleccionadas, con desplazamiento opcional por su espesor |
 | Finishing | Acabado de suelo | Crea el acabado de suelo de las habitaciones seleccionadas, con desplazamiento opcional por su espesor |
 | Finishing | Acabado de muros | Crea una segunda capa de muros dentro de las habitaciones seleccionadas — útil para las mediciones de trabajos de interior |

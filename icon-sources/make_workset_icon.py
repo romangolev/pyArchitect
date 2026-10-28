@@ -18,16 +18,12 @@ from PIL import Image, ImageDraw, ImageFilter
 SIZE = 96
 SCALE = 8
 
-# The workset rows: three bars of the same length, one per row of a list.
 ROWS = (
     (6, 18, 42, 28),
     (6, 43, 42, 53),
     (6, 68, 42, 78),
 )
 
-# The check mark, drawn as a polyline with a round joint.  It is big on
-# purpose: at 16px a small check turns into a blob, so it takes the space
-# the rows leave and reads as a check on its own.
 CHECK = ((50, 48), (62, 63), (89, 24))
 CHECK_WIDTH = 12
 
@@ -50,7 +46,6 @@ def build_mask():
         radius = CHECK_WIDTH * SCALE / 2.0
         draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=255)
 
-    # Just enough blur to take the staircase off the downscaled edge.
     mask = mask.filter(ImageFilter.GaussianBlur(SCALE * 0.25))
     return mask.resize((SIZE, SIZE), Image.LANCZOS)
 

@@ -5,6 +5,25 @@ and pull-request details are added automatically to each GitHub release.
 
 ## [Unreleased]
 
+### Added
+
+- Review Worksets gives every linked file a workset of its own, named like
+  the ones Review Links uses. A workset that holds only that link is renamed
+  rather than replaced, so it keeps its visibility settings. Links are taken
+  off every other workset, and empty link worksets are deleted (Revit 2023
+  and newer). Revit's default worksets are never deleted or renamed. A click
+  applies every fix; Shift+click lets you pick them.
+
+### Changed
+
+- Navis View and Coordination Plan share one split button on the
+  Coordination panel. The button always runs Navis View; the arrow opens
+  Coordination Plan.
+
+### Fixed
+
+- Review Links works on Revit 2026.
+
 ## [1.4.6]
 
 ### Changed
@@ -13,7 +32,7 @@ and pull-request details are added automatically to each GitHub release.
   their own `##_` workset, it renames a link's workset when the linked file
   was renamed, and creates one when the old workset is shared with other
   links. It also deletes empty link worksets left behind by old links (Revit
-  2022 and newer). A click applies every fix and lists what it did;
+  2023 and newer). A click applies every fix and lists what it did;
   Shift+click shows the fixes first so you can untick the ones you don't
   want. A single undo reverts the whole run. A fix that cannot be applied,
   for example on a link another user is editing, is skipped and listed

@@ -10,26 +10,25 @@ tooltip:
     Doctor de subproyectos: revisa los subproyectos del proyecto.
     _________________________________________________________________
     Da a cada archivo vinculado su propio subproyecto
-    (`##_RVT_<ARCHIVO>`), deja un solo vínculo por subproyecto, borra
-    los subproyectos vacíos y devuelve al subproyecto por defecto el
-    nombre que Revit le da, ya que Revit no permite eliminarlo.
+    (`##_RVT_<ARCHIVO>`), saca los vínculos de cualquier otro
+    subproyecto y borra los subproyectos de vínculos (`##`) vacíos. Los
+    subproyectos predeterminados de Revit se dejan como están.
     Mayús+clic: elija qué correcciones aplicar.
   en_us: >-
     Workset doctor: reviews the worksets of the project.
     _________________________________________________________________
     Gives every linked file a workset of its own
-    (`##_RVT_<FILE>`), keeps only one link per workset, deletes empty
-    worksets and gives the default workset back the name Revit gave it,
-    since Revit does not allow deleting it. Shift+click: pick which
-    fixes to apply.
+    (`##_RVT_<FILE>`), takes the links off every other workset and
+    deletes empty link worksets (`##`). Revit's default worksets are
+    left as they are. Shift+click: pick which fixes to apply.
   ru: >-
     Доктор рабочих наборов: проверяет рабочие наборы проекта.
     _________________________________________________________________
     Даёт каждому связанному файлу собственный рабочий набор
-    (`##_RVT_<ФАЙЛ>`), оставляет в каждом наборе только одну связь,
-    удаляет пустые рабочие наборы и возвращает рабочему набору по
-    умолчанию имя, которое даёт Revit, так как Revit не разрешает его
-    удалять. Shift+клик: выбрать, какие исправления применить.
+    (`##_RVT_<ФАЙЛ>`), убирает связи со всех других наборов и
+    удаляет пустые наборы связей (`##`). Рабочие наборы Revit по
+    умолчанию остаются как есть. Shift+клик: выбрать, какие
+    исправления применить.
 
 author: Roman Golev
 engine:

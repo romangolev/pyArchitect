@@ -6,33 +6,38 @@
 
 The Review Links command (:mod:`tools.link_doctor`) looks at the links and at
 the worksets they sit on.  This module looks at the worksets themselves: it
-gives every linked file a workset of its own, keeps only one link per workset
-and deletes the worksets that are left empty.
+gives every linked file a workset of its own, takes the links off every other
+workset and deletes the link worksets that are left empty.
 
-The default workset -- the one Revit calls ``Workset1`` -- is the odd one out.
-Autodesk's documentation on deleting a workset states that it cannot be
-deleted, only renamed, and the API follows: ``WorksetTable`` offers no way to
-remove it.  So the script cleans it up instead of deleting it: the links
-sitting on it are moved onto worksets of their own, and the workset is given
-its proper name back.
+The default worksets Revit creates are left as they are.  Autodesk's
+documentation on deleting a workset states that the default one cannot be
+deleted, only renamed, and its name follows the language Revit runs in.  So the
+links sitting on one of them are moved onto worksets of their own, and the
+workset itself is neither deleted nor renamed.
 
 This tool is the strict one.  It puts every link on the workset named after
 its file, even when the team keeps its links on a shared workset of an older
 convention, which the link doctor tolerates.  Both tools name a link's workset
-the same way, so they agree on the result and neither undoes the other.
+with :func:`tools.link_doctor.file2ws_name`, and two links whose files map to
+the same name share that workset, so neither tool undoes the other.
 
-:func:`diagnose` turns everything it finds into a list of :class:`Fix` objects
-without touching the model.  :func:`apply_fixes` runs the chosen fixes in one
+Only worksets named like a link workset (``##``) are ever deleted, the same
+rule the link doctor follows, so worksets a template prepares for later use
+survive while they are still empty.
+
+:func:`diagnose` turns everything it finds into a :class:`Diagnosis` without
+touching the model.  :func:`apply_fixes` runs the chosen fixes in one
 transaction group, so a single undo reverts the whole run, and a fix that
 cannot be carried out is skipped and listed without undoing the others.
 """
 
-import Autodesk.Revit.DB as DB
-
 from core.localization import StringTable
 from core.selectionhelpers import id_value
 from core.transaction import WrappedTransaction, WrappedTransactionGroup
-from tools.link_doctor import collect_links, file2ws_name
+from tools.link_doctor import collect_links
+from tools.worksets import (Fix, Result, apply_one, can_delete_worksets,
+                            delete, is_link_workset, move, rename,
+                            user_worksets, workset_contents)
 
 
 S = StringTable({
@@ -57,11 +62,6 @@ S = StringTable({
         "ru": u"Переименовать рабочий набор «{}» в «{}» для «{}»",
         "es_es": u"Renombrar el subproyecto '{}' a '{}' para '{}'",
     },
-    "fix.rename_default": {
-        "en_us": u"Rename the default workset '{}' to '{}'",
-        "ru": u"Переименовать рабочий набор по умолчанию «{}» в «{}»",
-        "es_es": u"Renombrar el subproyecto predeterminado '{}' a '{}'",
-    },
     "fix.delete_empty": {
         "en_us": u"Delete empty workset '{}'",
         "ru": u"Удалить пустой рабочий набор «{}»",
@@ -85,38 +85,32 @@ S = StringTable({
     },
 
     "done.healthy": {
-        "en_us": u"Every link has a workset of its own and no empty workset is "
-                 u"left over. Nothing to fix.",
-        "ru": u"У каждой связи есть свой рабочий набор, и пустых наборов не "
-               u"осталось. Исправлять нечего.",
+        "en_us": u"Every link has a workset of its own and no empty link "
+                 u"workset is left over. Nothing to fix.",
+        "ru": u"У каждой связи есть свой рабочий набор, и пустых наборов "
+               u"связей не осталось. Исправлять нечего.",
         "es_es": u"Cada vínculo tiene su propio subproyecto y no queda ningún "
-                 u"subproyecto vacío. No hay nada que corregir.",
-    },
-    "done.applied": {
-        "en_us": u"Applied {} fix(es).",
-        "ru": u"Применено исправлений: {}.",
-        "es_es": u"Se aplicaron {} corrección(es).",
-    },
-    "done.skipped": {
-        "en_us": u"Skipped {} fix(es):",
-        "ru": u"Пропущено исправлений ({}):",
-        "es_es": u"Se omitieron {} corrección(es):",
+                 u"subproyecto de vínculos vacío. No hay nada que corregir.",
     },
     "done.no_delete_api": {
-        "en_us": u"Empty worksets were found, but this Revit version cannot "
-                 u"delete worksets: {}",
-        "ru": u"Найдены пустые рабочие наборы, но эта версия Revit не умеет "
-               u"удалять рабочие наборы: {}",
-        "es_es": u"Se encontraron subproyectos vacíos, pero esta versión de "
-                 u"Revit no puede eliminarlos: {}",
+        "en_us": u"Empty link worksets were found, but Revit only allows "
+                 u"deleting worksets from version 2023: {}",
+        "ru": u"Найдены пустые наборы связей, но удалять рабочие наборы Revit "
+               u"позволяет только с версии 2023: {}",
+        "es_es": u"Se encontraron subproyectos de vínculos vacíos, pero Revit "
+                 u"solo permite eliminarlos desde la versión 2023: {}",
     },
-    "done.default_kept": {
-        "en_us": u"'{}' is the default workset. Revit does not allow deleting "
-                 u"it, so it was cleaned up instead.",
-        "ru": u"«{}» — рабочий набор по умолчанию. Revit не разрешает его "
-               u"удалять, поэтому он был очищен.",
-        "es_es": u"'{}' es el subproyecto predeterminado. Revit no permite "
-                 u"eliminarlo, por lo que se ha limpiado.",
+    "done.default_named_as_link": {
+        "en_us": u"'{}' is one of Revit's default worksets, which cannot be "
+                 u"deleted, so it was left as it is. Rename it in Manage "
+                 u"Worksets to free its name for the link.",
+        "ru": u"«{}» — один из рабочих наборов Revit по умолчанию, его нельзя "
+               u"удалить, поэтому он оставлен как есть. Переименуйте его в "
+               u"диалоге «Рабочие наборы», чтобы освободить имя для связи.",
+        "es_es": u"'{}' es uno de los subproyectos predeterminados de Revit, "
+                 u"que no se pueden eliminar, por lo que se ha dejado como "
+                 u"está. Cámbiele el nombre en Gestionar subproyectos para "
+                 u"liberar el nombre para el vínculo.",
     },
     "done.failed": {
         "en_us": u"Workset Doctor could not finish:\n{}",
@@ -130,261 +124,92 @@ S = StringTable({
         "es_es": u"El archivo no es compartido, por lo que no tiene subproyectos "
                  u"que revisar.",
     },
-
-    "skip.name_taken": {
-        "en_us": u"the name is already taken",
-        "ru": u"имя уже занято",
-        "es_es": u"el nombre ya está en uso",
-    },
-    "skip.not_empty": {
-        "en_us": u"it still holds {} element(s)",
-        "ru": u"в нём ещё есть элементы ({})",
-        "es_es": u"todavía contiene {} elemento(s)",
-    },
-    "skip.cannot_delete": {
-        "en_us": u"Revit does not allow deleting it (active or not editable)",
-        "ru": u"Revit не разрешает его удалить (активный или занят)",
-        "es_es": u"Revit no permite eliminarlo (activo o no editable)",
-    },
-    "skip.read_only": {
-        "en_us": u"its workset cannot be changed",
-        "ru": u"рабочий набор нельзя изменить",
-        "es_es": u"su subproyecto no se puede cambiar",
-    },
-    "skip.borrowed": {
-        "en_us": u"another user is editing it",
-        "ru": u"его редактирует другой пользователь",
-        "es_es": u"otro usuario lo está editando",
-    },
-    "skip.no_target": {
-        "en_us": u"the workset '{}' could not be created",
-        "ru": u"не удалось создать рабочий набор «{}»",
-        "es_es": u"no se pudo crear el subproyecto '{}'",
-    },
-    "skip.revit_error": {
-        "en_us": u"Revit refused the change: {}",
-        "ru": u"Revit отклонил изменение: {}",
-        "es_es": u"Revit rechazó el cambio: {}",
-    },
 })
 
-
-DEFAULT_WORKSET_NAME = u"Workset1"
 
 KIND_RENAME = "rename"
 KIND_MOVE = "move"
 KIND_DELETE = "delete"
 
-# The renames run first: they give a workset the name a link is after and free
-# the name it had.  The moves run after them, so a link moves onto a workset
-# that already carries its name, and the deletions run last, so a workset that
-# a move empties is only deleted once the move is done.
-APPLY_ORDER = (KIND_RENAME, KIND_MOVE, KIND_DELETE)
 
-
-class Fix(object):
-    """One repair the user can tick on or off.
+class Diagnosis(object):
+    """What :func:`diagnose` found.
 
     Attributes:
-        kind (str): one of ``KIND_RENAME``, ``KIND_MOVE`` or ``KIND_DELETE``.
-        label (str): the line shown in the list.
-        name (str): the workset name the fix works towards.
-        workset_id (DB.WorksetId): the workset renamed or deleted.
-        link (Link): the link the fix is about.
+        workshared (bool): False when the document has no worksets at all.
+        fixes (list[Fix]): the fixes, renames first, then moves, then deletes.
+        undeletable (list[str]): empty link worksets this Revit cannot delete.
+        defaults_named_as_link (list[str]): default worksets of Revit that
+            carry a link workset name, which only the user can rename.
     """
 
-    def __init__(self, kind, label, name=None, workset_id=None, link=None):
-        self.kind = kind
-        self.label = label
-        self.name = name
-        self.workset_id = workset_id
-        self.link = link
+    def __init__(self, workshared=True, fixes=(), undeletable=(),
+                 defaults_named_as_link=()):
+        self.workshared = workshared
+        self.fixes = list(fixes)
+        self.undeletable = list(undeletable)
+        self.defaults_named_as_link = list(defaults_named_as_link)
 
 
-class Result(object):
-    """What :func:`apply_fixes` did.
-
-    Attributes:
-        applied (list[str]): labels of the fixes carried out.
-        skipped (list): ``(label, reason)`` pairs for fixes left alone.
-    """
-
-    def __init__(self):
-        self.applied = []
-        self.skipped = []
+def default_workset_keys(worksets):
+    """Return the ids of the default worksets, the ones Revit created."""
+    return set(key for key, ws in worksets.items() if ws.IsDefaultWorkset)
 
 
-def user_worksets(doc):
-    """Return ``{workset id int: workset}`` for the user worksets."""
-    worksets = DB.FilteredWorksetCollector(doc) \
-        .OfKind(DB.WorksetKind.UserWorkset).ToWorksets()
-    return dict((id_value(ws.Id), ws) for ws in worksets)
+def plan_homes(links, names, contents, protected):
+    """Work out the workset every link ends up on.
 
-
-def workset_contents(doc, workset_id):
-    """Return the ids of every element on a workset as ints."""
-    return set(id_value(element_id) for element_id in
-               DB.FilteredElementCollector(doc)
-               .WherePasses(DB.ElementWorksetFilter(workset_id, False))
-               .ToElementIds())
-
-
-def can_delete_worksets():
-    """True when this Revit version can delete worksets.
-
-    The API that deletes a workset arrived in Revit 2023, together with the
-    settings that go with it.
-    """
-    return (hasattr(DB.WorksetTable, "DeleteWorkset")
-            and hasattr(DB, "DeleteWorksetSettings")
-            and hasattr(DB, "DeleteWorksetOption"))
-
-
-def holds_levels_or_grids(doc, workset):
-    """True when the workset carries the levels or the grids.
-
-    Revit creates two default user worksets: the one with the model elements
-    and the one with the levels and grids.  Only the first of them is the one
-    that cannot be deleted, and the second is told apart by what it holds,
-    since its name follows the language Revit runs in.
-
-    Args:
-        doc (DB.Document): the active document.
-        workset (DB.Workset): the workset to look at.
-
-    Returns:
-        (bool): True when the workset holds levels or grids.
-    """
-    categories = (DB.BuiltInCategory.OST_Levels, DB.BuiltInCategory.OST_Grids)
-    for category in categories:
-        elements = DB.FilteredElementCollector(doc) \
-            .OfCategory(category) \
-            .WherePasses(DB.ElementWorksetFilter(workset.Id, False)) \
-            .ToElements()
-        if elements.Count:
-            return True
-    return False
-
-
-def default_workset(doc, worksets):
-    """Return the default workset, the one Revit will not let us delete.
-
-    Revit's own documentation states that the workset it creates first cannot
-    be deleted, only renamed, so the script has to recognise it by what it is
-    rather than by its name, which the user is free to change.
-
-    Args:
-        doc (DB.Document): the active document.
-        worksets (dict): the user worksets, keyed by their id.
-
-    Returns:
-        (DB.Workset): the default workset, or None when there is none.
-    """
-    flagged = [ws for ws in worksets.values()
-               if getattr(ws, "IsDefaultWorkset", False)]
-    for workset in flagged:
-        if not holds_levels_or_grids(doc, workset):
-            return workset
-    for workset in worksets.values():
-        if workset.Name == DEFAULT_WORKSET_NAME \
-                and not holds_levels_or_grids(doc, workset):
-            return workset
-    return flagged[0] if flagged else None
-
-
-def _find_workset(doc, name):
-    """Return the user workset called `name`, or None."""
-    for workset in user_worksets(doc).values():
-        if workset.Name == name:
-            return workset
-    return None
-
-
-def _owned_by_others(doc, elements):
-    """True when another user has borrowed one of `elements`."""
-    if not doc.IsWorkshared:
-        return False
-    return any(DB.WorksharingUtils.GetCheckoutStatus(doc, e.Id)
-               == DB.CheckoutStatus.OwnedByOtherUser for e in elements)
-
-
-def _canonical_names(links):
-    """Return the workset name each link is heading for.
-
-    Every link gets a workset of its own, named after the linked file, the way
-    the link doctor names them.  Two links to files of the same name cannot
-    share one workset, so the second one is numbered.
+    A link belongs on the workset named after the file it comes from.  When no
+    workset carries that name yet and a workset holds nothing but this link, it
+    is renamed into place, which keeps its ownership and its visibility
+    settings.  It is only renamed when the name it gives up belongs to no other
+    link.  Links whose files map to the same name share one workset.
 
     Args:
         links (list[Link]): the links of the project.
-
-    Returns:
-        (list): ``(link, workset name)`` pairs, in the order of the links.
-    """
-    pairs = []
-    used = set()
-    for link in links:
-        name = file2ws_name(link.file_name)
-        if name in used:
-            index = 2
-            while u"{}_{}".format(name, index) in used:
-                index += 1
-            name = u"{}_{}".format(name, index)
-        used.add(name)
-        pairs.append((link, name))
-    return pairs
-
-
-def _plan_homes(pairs, names, contents, own, default_key):
-    """Work out the workset every link ends up on.
-
-    A link belongs on the workset named after the file it comes from.  When a
-    workset holds nothing but that link, it is renamed into place, which keeps
-    its ownership and its visibility settings instead of moving the link to a
-    brand new workset.  A workset is only renamed when the name it takes is
-    free and the name it gives up belongs to no other link, so two links never
-    end up fighting over the same workset.
-
-    Args:
-        pairs (list): ``(link, workset name)`` pairs.
         names (dict): the current workset names, keyed by workset id.
-        contents (dict): the element ids on every workset.
-        own (dict): the element ids of every link.
-        default_key (int): the id of the default workset.
+        contents (dict): the element ids on the worksets that may be renamed.
+        protected (set): the ids of the worksets that are never renamed or
+            used as a link's home.
 
     Returns:
-        (tuple): ``{link id: destination id or None}`` and the ids of the
-        worksets that are renamed into place.
+        (tuple): ``{link: destination id or None}``, where None means a new
+        workset, and ``{link: workset id}`` for the worksets renamed into place.
     """
-    reserved = set(name for _, name in pairs)
-    free = set(names.values())
-
+    reserved = set(link.target for link in links)
+    planned = dict(names)
     homes = {}
     renames = {}
-    claimed = set()
-    for link, name in pairs:
-        home = None
-        for key, workset_name in names.items():
-            if workset_name == name and key != default_key:
-                home = key
-                break
+    for link in links:
+        home = _named(planned, link.target, protected)
         if home is None:
-            # A workset that holds nothing but this link can be renamed into
-            # place, which keeps its ownership and its visibility settings.
-            for key, held in contents.items():
-                if key == default_key or key in claimed:
-                    continue
-                if not held or not held <= own[id(link)]:
-                    continue
-                if names[key] in reserved or name not in free:
-                    continue
-                renames[id(link)] = key
-                claimed.add(key)
-                free.discard(names[key])
-                home = key
-                break
-        homes[id(link)] = home
+            home = _rename_candidate(link, planned, contents, reserved,
+                                     renames.values())
+            if home is not None:
+                renames[link] = home
+                planned[home] = link.target
+        homes[link] = home
     return homes, renames
+
+
+def _named(names, name, protected):
+    for key, workset_name in names.items():
+        if workset_name == name and key not in protected:
+            return key
+    return None
+
+
+def _rename_candidate(link, names, contents, reserved, renamed):
+    own = link.element_ids()
+    current = sorted(set(id_value(e.WorksetId) for e in link.elements()))
+    for key in current:
+        held = contents.get(key)
+        if not held or not held <= own:
+            continue
+        if key in renamed or names[key] in reserved:
+            continue
+        return key
+    return None
 
 
 def diagnose(doc):
@@ -394,89 +219,82 @@ def diagnose(doc):
         doc (DB.Document): the active document.
 
     Returns:
-        (tuple): the list of :class:`Fix` objects in apply order, the names of
-        empty worksets this Revit version cannot delete, and the name of the
-        default workset, which Revit will not let be deleted.
+        (Diagnosis): the fixes and what the user has to know about.
     """
     if not doc.IsWorkshared:
-        return [], [], None
+        return Diagnosis(workshared=False)
 
     worksets = user_worksets(doc)
     names = dict((key, ws.Name) for key, ws in worksets.items())
+    protected = default_workset_keys(worksets)
+    blocked = sorted(names[key] for key in protected
+                     if is_link_workset(names[key]))
+    links = [link for link in collect_links(doc) if link.target not in blocked]
+
+    hosts = set(id_value(e.WorksetId) for link in links
+                for e in link.elements())
     contents = dict((key, workset_contents(doc, ws.Id))
-                    for key, ws in worksets.items())
-    default = default_workset(doc, worksets)
-    default_key = id_value(default.Id) if default is not None else None
+                    for key, ws in worksets.items()
+                    if key not in protected
+                    and (key in hosts or is_link_workset(ws.Name)))
+    homes, renames = plan_homes(links, names, contents, protected)
 
-    pairs = _canonical_names(collect_links(doc))
-    own = dict((id(link), link.element_ids()) for link, _ in pairs)
-    homes, renames = _plan_homes(pairs, names, contents, own, default_key)
-
-    rename_fixes = []
-    move_fixes = []
-    delete_fixes = []
-    undeletable = []
+    fixes = []
     departures = {}
     arrivals = {}
-
-    # The default workset keeps its proper name.  It cannot be deleted, so it
-    # is cleaned up instead: the moves below take the links off it.  It goes
-    # first, so its old name is free for a link that is after it.
-    if default is not None and default.Name != DEFAULT_WORKSET_NAME:
-        rename_fixes.append(Fix(KIND_RENAME,
-                                S("fix.rename_default", default.Name,
-                                  DEFAULT_WORKSET_NAME),
-                                name=DEFAULT_WORKSET_NAME,
-                                workset_id=default.Id))
-
-    for link, name in pairs:
-        home = homes[id(link)]
-        if id(link) in renames:
-            rename_fixes.append(Fix(KIND_RENAME,
-                                    S("fix.rename", names[home], name,
-                                      link.file_name),
-                                    name=name, workset_id=home, link=link))
-
-        to_move = []
-        sources = set()
-        for element in link.elements():
-            current = id_value(element.WorksetId)
-            if home is not None and current == home:
-                continue
-            to_move.append(element)
-            sources.add(names.get(current, u"?"))
-            departures.setdefault(current, set()).add(id_value(element.Id))
-        if to_move:
-            source_text = u", ".join(u"'{}'".format(s) for s in sorted(sources))
-            move_fixes.append(Fix(KIND_MOVE,
-                                  S("fix.move", link.file_name, source_text,
-                                    name),
-                                  name=name, link=link))
-            if home is not None:
-                arrivals.setdefault(home, set()).update(
-                    id_value(element.Id) for element in to_move)
-
-    # Whatever is left empty once the links have moved goes away.
-    for key, workset in worksets.items():
-        if key == default_key:
+    for link in links:
+        if link not in renames:
             continue
-        remaining = contents[key] - departures.get(key, set())
-        remaining |= arrivals.get(key, set())
+        home = renames[link]
+        fixes.append(Fix(KIND_RENAME,
+                         S("fix.rename", names[home], link.target,
+                           link.file_name),
+                         link=link, workset_id=worksets[home].Id,
+                         name=link.target))
+
+    for link in links:
+        home = homes[link]
+        to_move = [e for e in link.elements()
+                   if home is None or id_value(e.WorksetId) != home]
+        if not to_move:
+            continue
+        sources = sorted(set(names.get(id_value(e.WorksetId), u"?")
+                             for e in to_move))
+        source_text = u", ".join(u"'{}'".format(s) for s in sources)
+        fixes.append(Fix(KIND_MOVE,
+                         S("fix.move", link.file_name, source_text, link.target),
+                         link=link, name=link.target))
+        moved = set(id_value(e.Id) for e in to_move)
+        for element in to_move:
+            departures.setdefault(id_value(element.WorksetId), set()) \
+                .update(moved)
+        if home is not None:
+            arrivals.setdefault(home, set()).update(moved)
+
+    homes_used = set(homes.values())
+    undeletable = []
+    for key in sorted(contents, key=lambda k: names[k].lower()):
+        if key in homes_used or not is_link_workset(names[key]):
+            continue
+        remaining = (contents[key] - departures.get(key, set())) \
+            | arrivals.get(key, set())
         if remaining:
             continue
         if not can_delete_worksets():
-            undeletable.append(workset.Name)
+            undeletable.append(names[key])
             continue
-        delete_fixes.append(Fix(KIND_DELETE,
-                                 S("fix.delete_empty", workset.Name),
-                                 name=workset.Name, workset_id=workset.Id))
+        fixes.append(Fix(KIND_DELETE, S("fix.delete_empty", names[key]),
+                         workset_id=worksets[key].Id, name=names[key]))
 
-    fixes = rename_fixes + move_fixes + delete_fixes
-    return fixes, undeletable, (default.Name if default is not None else None)
+    return Diagnosis(fixes=fixes, undeletable=undeletable,
+                     defaults_named_as_link=blocked)
 
 
 def apply_fixes(doc, fixes):
     """Carry out the chosen fixes as one undoable step.
+
+    The renames run first, so a link moves onto a workset that already carries
+    its name, and the deletions run last, once the moves have emptied them.
 
     Args:
         doc (DB.Document): the active document.
@@ -486,117 +304,41 @@ def apply_fixes(doc, fixes):
         (Result): what was applied and what was skipped, with the reason.
     """
     result = Result()
-    by_kind = dict((kind, [f for f in fixes if f.kind == kind])
-                   for kind in APPLY_ORDER)
     steps = (
-        (KIND_RENAME, "tx.rename", _rename),
-        (KIND_MOVE, "tx.move", _move),
-        (KIND_DELETE, "tx.delete", _delete),
+        (KIND_RENAME, "tx.rename", rename),
+        (KIND_MOVE, "tx.move", move),
+        (KIND_DELETE, "tx.delete", delete),
     )
 
     with WrappedTransactionGroup(doc, S("title")):
         for kind, tx_name, handler in steps:
-            if not by_kind[kind]:
+            chosen = [fix for fix in fixes if fix.kind == kind]
+            if not chosen:
                 continue
             with WrappedTransaction(doc, S(tx_name)):
-                for fix in by_kind[kind]:
-                    reason = _apply_one(doc, fix, handler)
-                    if reason is None:
-                        result.applied.append(fix.label)
-                    else:
-                        result.skipped.append((fix.label, reason))
+                for fix in chosen:
+                    result.record(fix, apply_one(doc, fix, handler))
     return result
 
 
-def _apply_one(doc, fix, handler):
-    """Run one fix in a sub-transaction that is rolled back if it is skipped."""
-    sub = DB.SubTransaction(doc)
-    sub.Start()
-    reason = S("skip.revit_error", u"")
-    try:
-        reason = handler(doc, fix)
-    except Exception as error:
-        reason = S("skip.revit_error",
-                   getattr(error, "Message", None) or error)
-    finally:
-        if reason is None:
-            sub.Commit()
-        else:
-            sub.RollBack()
-    return reason
-
-
-def _rename(doc, fix):
-    if not DB.WorksetTable.IsWorksetNameUnique(doc, fix.name):
-        return S("skip.name_taken")
-    DB.WorksetTable.RenameWorkset(doc, fix.workset_id, fix.name)
-    return None
-
-
-def _move(doc, fix):
-    target = _find_workset(doc, fix.name)
-    to_move = [e for e in fix.link.elements()
-               if target is None
-               or id_value(e.WorksetId) != id_value(target.Id)]
-    if _owned_by_others(doc, to_move):
-        return S("skip.borrowed")
-    params = [e.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
-              for e in to_move]
-    if any(p is None or p.IsReadOnly for p in params):
-        return S("skip.read_only")
-    if target is None:
-        target = DB.Workset.Create(doc, fix.name)
-    target_id = id_value(target.Id)
-    for param in params:
-        param.Set(target_id)
-    return None
-
-
-def _delete(doc, fix):
-    if not can_delete_worksets():
-        return S("skip.cannot_delete")
-    remaining = workset_contents(doc, fix.workset_id)
-    if remaining:
-        return S("skip.not_empty", len(remaining))
-    active = doc.GetWorksetTable().GetActiveWorksetId()
-    settings = DB.DeleteWorksetSettings(
-        DB.DeleteWorksetOption.MoveElementsToWorkset, active)
-    if id_value(active) == id_value(fix.workset_id) \
-            or not DB.WorksetTable.CanDeleteWorkset(doc, fix.workset_id,
-                                                     settings):
-        return S("skip.cannot_delete")
-    DB.WorksetTable.DeleteWorkset(doc, fix.workset_id, settings)
-    return None
-
-
-def format_summary(result, undeletable, default_name=None):
+def format_summary(result, diagnosis):
     """Return the text of the closing dialog.
 
     Args:
         result (Result): the outcome of :func:`apply_fixes`, or None when
             nothing was applied.
-        undeletable (list[str]): empty worksets this Revit cannot delete.
-        default_name (str): the name of the default workset, which Revit does
-            not allow deleting.
+        diagnosis (Diagnosis): what :func:`diagnose` found.
 
     Returns:
         (str): the report.
     """
-    if result is None:
-        result = Result()
-        lines = [S("done.healthy")]
-    else:
-        lines = [S("done.applied", len(result.applied))]
-        lines.extend(u"- {}".format(label) for label in result.applied)
-    if result.skipped:
+    if not diagnosis.workshared:
+        return S("done.not_workshared")
+    lines = [S("done.healthy")] if result is None else result.lines()
+    if diagnosis.undeletable:
         lines.append(u"")
-        lines.append(S("done.skipped", len(result.skipped)))
-        lines.extend(u"- {}: {}".format(label, reason)
-                     for label, reason in result.skipped)
-    if undeletable:
+        lines.append(S("done.no_delete_api", u", ".join(diagnosis.undeletable)))
+    for name in diagnosis.defaults_named_as_link:
         lines.append(u"")
-        lines.append(S("done.no_delete_api", u", ".join(undeletable)))
-    if default_name:
-        lines.append(u"")
-        lines.append(S("done.default_kept", default_name))
+        lines.append(S("done.default_named_as_link", name))
     return u"\n".join(lines)

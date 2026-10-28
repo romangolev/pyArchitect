@@ -43,10 +43,10 @@ def main(manual):
     Args:
         manual (bool): ask which fixes to apply instead of applying them all.
     """
-    fixes, undeletable, default_name = diagnose(doc)
+    diagnosis = diagnose(doc)
+    fixes = diagnosis.fixes
     if not fixes:
-        message = format_summary(None, undeletable, default_name)
-        forms.alert(message, title=S("title"))
+        forms.alert(format_summary(None, diagnosis), title=S("title"))
         return
 
     if manual:
@@ -55,8 +55,7 @@ def main(manual):
             return
 
     result = apply_fixes(doc, fixes)
-    forms.alert(format_summary(result, undeletable, default_name),
-                title=S("title"))
+    forms.alert(format_summary(result, diagnosis), title=S("title"))
 
 
 if __name__ == '__main__':

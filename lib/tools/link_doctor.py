@@ -41,6 +41,10 @@ import Autodesk.Revit.DB as DB
 from core.localization import StringTable
 from core.selectionhelpers import id_value
 from core.transaction import WrappedTransaction, WrappedTransactionGroup
+from tools.worksets import S as WS
+from tools.worksets import (Fix, Result, apply_one, can_delete_worksets,
+                            delete, is_link_workset, move, owned_by_others,
+                            rename, user_worksets, workset_contents)
 
 
 S = StringTable({
@@ -116,23 +120,13 @@ S = StringTable({
         "es_es": u"Todos los vínculos están fijados y en su propio subproyecto. "
                  u"No hay nada que corregir.",
     },
-    "done.applied": {
-        "en_us": u"Applied {} fix(es).",
-        "ru": u"Применено исправлений: {}.",
-        "es_es": u"Se aplicaron {} corrección(es).",
-    },
-    "done.skipped": {
-        "en_us": u"Skipped {} fix(es):",
-        "ru": u"Пропущено исправлений ({}):",
-        "es_es": u"Se omitieron {} corrección(es):",
-    },
     "done.no_delete_api": {
         "en_us": u"{} empty link workset(s) were found, but Revit only allows "
-                 u"deleting worksets from version 2022: {}",
+                 u"deleting worksets from version 2023: {}",
         "ru": u"Найдено пустых наборов связей: {}, но удалять рабочие наборы "
-               u"Revit позволяет только с версии 2022: {}",
+               u"Revit позволяет только с версии 2023: {}",
         "es_es": u"Se encontraron {} subproyecto(s) de vínculos vacíos, pero "
-                 u"Revit solo permite eliminarlos desde la versión 2022: {}",
+                 u"Revit solo permite eliminarlos desde la versión 2023: {}",
     },
     "done.failed": {
         "en_us": u"Link Doctor could not finish:\n{}",
@@ -140,40 +134,8 @@ S = StringTable({
         "es_es": u"El doctor de vínculos no pudo terminar:\n{}",
     },
 
-    "skip.name_taken": {
-        "en_us": u"the name is already taken",
-        "ru": u"имя уже занято",
-        "es_es": u"el nombre ya está en uso",
-    },
-    "skip.not_empty": {
-        "en_us": u"it still holds {} element(s)",
-        "ru": u"в нём ещё есть элементы ({})",
-        "es_es": u"todavía contiene {} elemento(s)",
-    },
-    "skip.cannot_delete": {
-        "en_us": u"Revit does not allow deleting it (active or not editable)",
-        "ru": u"Revit не разрешает его удалить (активный или занят)",
-        "es_es": u"Revit no permite eliminarlo (activo o no editable)",
-    },
-    "skip.read_only": {
-        "en_us": u"its workset cannot be changed",
-        "ru": u"рабочий набор нельзя изменить",
-        "es_es": u"su subproyecto no se puede cambiar",
-    },
-    "skip.borrowed": {
-        "en_us": u"another user is editing it",
-        "ru": u"его редактирует другой пользователь",
-        "es_es": u"otro usuario lo está editando",
-    },
-    "skip.revit_error": {
-        "en_us": u"Revit refused the change: {}",
-        "ru": u"Revit отклонил изменение: {}",
-        "es_es": u"Revit rechazó el cambio: {}",
-    },
 })
 
-
-LINK_WORKSET_PREFIX = u"##"
 
 LEGACY_WORKSET_PATTERN = re.compile(r"(A[-_]{1}LNK|\.|00[-_]{1}|01[-_]{1})", re.I)
 
@@ -206,11 +168,6 @@ def file2ws_name(filename):
     return u"##_{}_{}".format(ext, name).upper()
 
 
-def can_delete_worksets():
-    """True when this Revit version can delete worksets (2022 and newer)."""
-    return hasattr(DB.WorksetTable, "DeleteWorkset")
-
-
 class Link(object):
     """A non-nested link type with its instances and the workset it wants.
 
@@ -236,40 +193,6 @@ class Link(object):
     def element_ids(self):
         """Return the ids of the type, its instances and its nested links."""
         return set(id_value(e.Id) for e in self.elements()) | self.nested_ids
-
-
-class Fix(object):
-    """One repair the user can tick on or off.
-
-    Attributes:
-        kind (str): one of ``KIND_RENAME``, ``KIND_MOVE``, ``KIND_PIN`` or
-            ``KIND_DELETE``.
-        label (str): the line shown in the list.
-        link (Link): the link it is about, or None for a delete.
-        workset_id (DB.WorksetId): the workset renamed or deleted; for a move,
-            the workset its rename would take over, if one was planned.
-        name (str): the new name, the move target, or the workset deleted.
-    """
-
-    def __init__(self, kind, label, link=None, workset_id=None, name=None):
-        self.kind = kind
-        self.label = label
-        self.link = link
-        self.workset_id = workset_id
-        self.name = name
-
-
-class Result(object):
-    """What :func:`apply_fixes` did.
-
-    Attributes:
-        applied (list[str]): labels of the fixes carried out.
-        skipped (list): ``(label, reason)`` pairs for fixes left alone.
-    """
-
-    def __init__(self):
-        self.applied = []
-        self.skipped = []
 
 
 def collect_links(doc):
@@ -308,26 +231,6 @@ def collect_links(doc):
         links.append(Link(link_type, instances.get(type_id, []),
                           nested.get(type_id, ())))
     return sorted(links, key=lambda link: link.file_name.lower())
-
-
-def user_worksets(doc):
-    """Return ``{workset id int: workset}`` for the user worksets."""
-    worksets = DB.FilteredWorksetCollector(doc) \
-        .OfKind(DB.WorksetKind.UserWorkset).ToWorksets()
-    return dict((ws.Id.IntegerValue, ws) for ws in worksets)
-
-
-def workset_contents(doc, workset_id):
-    """Return the ids of every element on a workset as ints."""
-    return set(id_value(element_id) for element_id in
-               DB.FilteredElementCollector(doc)
-               .WherePasses(DB.ElementWorksetFilter(workset_id, False))
-               .ToElementIds())
-
-
-def is_link_workset(name):
-    """True when the workset is owned by this tool."""
-    return name.startswith(LINK_WORKSET_PREFIX)
 
 
 def is_acceptable(workset_name, target):
@@ -383,7 +286,7 @@ def _diagnose_worksets(doc, links):
 
     for link in links:
         elements = link.elements()
-        current = [e.WorksetId.IntegerValue for e in elements]
+        current = [id_value(e.WorksetId) for e in elements]
         if all(is_acceptable(names.get(key, u""), link.target) for key in current):
             continue
 
@@ -407,7 +310,7 @@ def _diagnose_worksets(doc, links):
         to_move = [e for e, key in zip(elements, current)
                    if names.get(key) != link.target and key != rename_from]
         if to_move:
-            sources = sorted(set(names.get(e.WorksetId.IntegerValue, u"?")
+            sources = sorted(set(names.get(id_value(e.WorksetId), u"?")
                                  for e in to_move))
             source_text = u", ".join(u"'{}'".format(s) for s in sources)
             is_new = rename_from is None \
@@ -419,7 +322,7 @@ def _diagnose_worksets(doc, links):
                              S(label_key, link.file_name, source_text, link.target),
                              link=link, workset_id=leftover, name=link.target))
             moved_ids = set(id_value(e.Id) for e in to_move)
-            for key in set(e.WorksetId.IntegerValue for e in to_move):
+            for key in set(id_value(e.WorksetId) for e in to_move):
                 moved_away.setdefault(key, set()).update(
                     contents.get(key, set()) & moved_ids)
 
@@ -459,10 +362,10 @@ def apply_fixes(doc, fixes):
     by_kind = dict((kind, [f for f in fixes if f.kind == kind])
                    for kind in APPLY_ORDER)
     steps = (
-        (KIND_RENAME, "tx.rename", _rename),
-        (KIND_MOVE, "tx.move", _move),
+        (KIND_RENAME, "tx.rename", rename),
+        (KIND_MOVE, "tx.move", move),
         (KIND_PIN, "tx.pin", _pin),
-        (KIND_DELETE, "tx.delete", _delete),
+        (KIND_DELETE, "tx.delete", delete),
     )
 
     applied = []
@@ -474,12 +377,10 @@ def apply_fixes(doc, fixes):
                 continue
             with WrappedTransaction(doc, S(tx_name)):
                 for fix in by_kind[kind]:
-                    reason = _apply_one(doc, fix, handler)
+                    reason = apply_one(doc, fix, handler)
+                    result.record(fix, reason)
                     if reason is None:
                         applied.append(fix)
-                        result.applied.append(fix.label)
-                    else:
-                        result.skipped.append((fix.label, reason))
     return result
 
 
@@ -491,15 +392,15 @@ def _leftover_deletes(doc, applied, deletes):
     """
     if not can_delete_worksets():
         return []
-    renamed = set(f.workset_id.IntegerValue for f in applied
+    renamed = set(id_value(f.workset_id) for f in applied
                   if f.kind == KIND_RENAME)
-    planned = set(f.workset_id.IntegerValue for f in deletes)
+    planned = set(id_value(f.workset_id) for f in deletes)
     table = doc.GetWorksetTable()
     extra = []
     for fix in applied:
         if fix.kind != KIND_MOVE or fix.workset_id is None:
             continue
-        key = fix.workset_id.IntegerValue
+        key = id_value(fix.workset_id)
         if key in renamed or key in planned:
             continue
         planned.add(key)
@@ -511,84 +412,12 @@ def _leftover_deletes(doc, applied, deletes):
     return extra
 
 
-def _apply_one(doc, fix, handler):
-    """Run one fix in a sub-transaction that is rolled back if it is skipped."""
-    sub = DB.SubTransaction(doc)
-    sub.Start()
-    reason = S("skip.revit_error", u"")
-    try:
-        reason = handler(doc, fix)
-    except Exception as error:
-        reason = S("skip.revit_error", getattr(error, "Message", None) or error)
-    finally:
-        if reason is None:
-            sub.Commit()
-        else:
-            sub.RollBack()
-    return reason
-
-
-def _owned_by_others(doc, elements):
-    """True when another user has borrowed one of `elements`."""
-    if not doc.IsWorkshared:
-        return False
-    return any(DB.WorksharingUtils.GetCheckoutStatus(doc, e.Id)
-               == DB.CheckoutStatus.OwnedByOtherUser for e in elements)
-
-
-def _find_workset(doc, name):
-    """Return the user workset called `name`, or None."""
-    for ws in user_worksets(doc).values():
-        if ws.Name == name:
-            return ws
-    return None
-
-
-def _rename(doc, fix):
-    if not DB.WorksetTable.IsWorksetNameUnique(doc, fix.name):
-        return S("skip.name_taken")
-    DB.WorksetTable.RenameWorkset(doc, fix.workset_id, fix.name)
-    return None
-
-
-def _move(doc, fix):
-    target = _find_workset(doc, fix.name)
-    to_move = [e for e in fix.link.elements()
-               if target is None
-               or e.WorksetId.IntegerValue != target.Id.IntegerValue]
-    if _owned_by_others(doc, to_move):
-        return S("skip.borrowed")
-    params = [e.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
-              for e in to_move]
-    if any(p is None or p.IsReadOnly for p in params):
-        return S("skip.read_only")
-    if target is None:
-        target = DB.Workset.Create(doc, fix.name)
-    for param in params:
-        param.Set(target.Id.IntegerValue)
-    return None
-
-
 def _pin(doc, fix):
     unpinned = [i for i in fix.link.instances if not i.Pinned]
-    if _owned_by_others(doc, unpinned):
-        return S("skip.borrowed")
+    if owned_by_others(doc, unpinned):
+        return WS("skip.borrowed")
     for instance in unpinned:
         instance.Pinned = True
-    return None
-
-
-def _delete(doc, fix):
-    remaining = workset_contents(doc, fix.workset_id)
-    if remaining:
-        return S("skip.not_empty", len(remaining))
-    active = doc.GetWorksetTable().GetActiveWorksetId()
-    settings = DB.DeleteWorksetSettings(
-        DB.DeleteWorksetOption.MoveElementsToWorkset, active)
-    if active.IntegerValue == fix.workset_id.IntegerValue \
-            or not DB.WorksetTable.CanDeleteWorkset(doc, fix.workset_id, settings):
-        return S("skip.cannot_delete")
-    DB.WorksetTable.DeleteWorkset(doc, fix.workset_id, settings)
     return None
 
 
@@ -603,17 +432,7 @@ def format_summary(result, undeletable):
     Returns:
         (str): the report.
     """
-    if result is None:
-        result = Result()
-        lines = [S("done.healthy")]
-    else:
-        lines = [S("done.applied", len(result.applied))]
-        lines.extend(u"- {}".format(label) for label in result.applied)
-    if result.skipped:
-        lines.append(u"")
-        lines.append(S("done.skipped", len(result.skipped)))
-        lines.extend(u"- {}: {}".format(label, reason)
-                     for label, reason in result.skipped)
+    lines = [S("done.healthy")] if result is None else result.lines()
     if undeletable:
         lines.append(u"")
         lines.append(S("done.no_delete_api", len(undeletable),
