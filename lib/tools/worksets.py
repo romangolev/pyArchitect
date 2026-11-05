@@ -92,11 +92,13 @@ class Result(object):
     Attributes:
         applied (list[str]): labels of the fixes carried out.
         skipped (list): ``(label, reason)`` pairs for fixes left alone.
+        notes (list[str]): anything else the user has to know about the run.
     """
 
     def __init__(self):
         self.applied = []
         self.skipped = []
+        self.notes = []
 
     def record(self, fix, reason):
         """File `fix` as applied when `reason` is None, as skipped otherwise."""
@@ -114,6 +116,9 @@ class Result(object):
             lines.append(S("done.skipped", len(self.skipped)))
             lines.extend(u"- {}: {}".format(label, reason)
                          for label, reason in self.skipped)
+        for note in self.notes:
+            lines.append(u"")
+            lines.append(note)
         return lines
 
 

@@ -10,9 +10,14 @@ and pull-request details are added automatically to each GitHub release.
 - Review Worksets gives every linked file a workset of its own, named like
   the ones Review Links uses. A workset that holds only that link is renamed
   rather than replaced, so it keeps its visibility settings. Links are taken
-  off every other workset, and empty link worksets are deleted (Revit 2023
-  and newer). Revit's default worksets are never deleted or renamed. A click
-  applies every fix; Shift+click lets you pick them.
+  off every other workset, linked DWG files share one `##_DWG` workset
+  (other CAD formats get `##_DGN` and so on), and empty link worksets are
+  deleted (Revit 2023 and newer). Every level and grid goes on `Shared
+  Levels and Grids`. `Workset1`, which Revit does not let delete, is emptied
+  of placed model elements instead: when it was renamed, it gets its name
+  back and its elements move to a new workset with the name it had;
+  otherwise they move to `Model`. A click applies every fix; Shift+click
+  lets you pick them.
 
 ### Changed
 

@@ -65,7 +65,7 @@ Every tool has an embedded description. To see the description and hint, hover m
 | Coordination | Links 3D Views | Creates a 3D view per linked model |
 | Coordination | Link more | Creates many RVT, DWG or IFC links at once |
 | Coordination | Review Links | Link doctor: pins links, moves each one to its own `##_RVT_<FILE>` workset, renames or creates that workset when the linked file was renamed, and deletes empty worksets left by old links |
-| Coordination | Review Worksets | Workset doctor: gives every linked file its own `##_RVT_<FILE>` workset, renaming a workset that holds only that link, takes links off every other workset and deletes empty link worksets. Revit's default worksets are left as they are. Shift+Click picks the fixes |
+| Coordination | Review Worksets | Workset doctor: gives every linked file its own `##_RVT_<FILE>` workset, renaming a workset that holds only that link, takes links off every other workset, puts every linked DWG on `##_DWG` and deletes empty link worksets. Puts every level and grid on `Shared Levels and Grids`. Empties `Workset1`, which Revit does not let delete: a renamed one gets its name back and its elements move to a new workset with the name it had; otherwise they move to `Model`. Shift+Click picks the fixes |
 | Finishing | Ceiling Finishing | Creates ceiling finishing for the selected rooms, optionally offset by its own thickness |
 | Finishing | Floor Finishing | Creates floor finishing for the selected rooms, optionally offset by its own thickness |
 | Finishing | Wall Finishing | Creates a second layer of walls inside the selected rooms — useful for interior works specifications |

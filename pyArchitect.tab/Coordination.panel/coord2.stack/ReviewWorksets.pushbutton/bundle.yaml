@@ -11,24 +11,33 @@ tooltip:
     _________________________________________________________________
     Da a cada archivo vinculado su propio subproyecto
     (`##_RVT_<ARCHIVO>`), saca los vínculos de cualquier otro
-    subproyecto y borra los subproyectos de vínculos (`##`) vacíos. Los
-    subproyectos predeterminados de Revit se dejan como están.
+    subproyecto, pone todos los DWG vinculados en `##_DWG` y borra los
+    subproyectos de vínculos (`##`) vacíos. Pone los niveles y
+    rejillas en `Shared Levels and Grids`. Vacía `Workset1`, que Revit no permite eliminar: si se renombró,
+    recupera su nombre y sus elementos pasan a un subproyecto con el
+    nombre que tenía; si no, pasan a `Model`.
     Mayús+clic: elija qué correcciones aplicar.
   en_us: >-
     Workset doctor: reviews the worksets of the project.
     _________________________________________________________________
     Gives every linked file a workset of its own
-    (`##_RVT_<FILE>`), takes the links off every other workset and
-    deletes empty link worksets (`##`). Revit's default worksets are
-    left as they are. Shift+click: pick which fixes to apply.
+    (`##_RVT_<FILE>`), takes the links off every other workset, puts
+    every linked DWG on `##_DWG` and deletes empty link worksets (`##`).
+    Puts levels and grids on `Shared Levels and Grids`. Empties
+    `Workset1`, which Revit does not let delete: a renamed one gets its name back and its
+    elements move to a workset with the name it had; otherwise they
+    move to `Model`. Shift+click: pick which fixes to apply.
   ru: >-
     Доктор рабочих наборов: проверяет рабочие наборы проекта.
     _________________________________________________________________
     Даёт каждому связанному файлу собственный рабочий набор
-    (`##_RVT_<ФАЙЛ>`), убирает связи со всех других наборов и
-    удаляет пустые наборы связей (`##`). Рабочие наборы Revit по
-    умолчанию остаются как есть. Shift+клик: выбрать, какие
-    исправления применить.
+    (`##_RVT_<ФАЙЛ>`), убирает связи со всех других наборов,
+    переносит все связанные DWG в `##_DWG` и удаляет пустые наборы
+    связей (`##`). Переносит уровни и оси в `Shared Levels and Grids`.
+    Очищает `Workset1`, который
+    Revit не даёт удалить: переименованному возвращается имя, а его
+    элементы переносятся в набор с прежним именем; иначе — в `Model`.
+    Shift+клик: выбрать, какие исправления применить.
 
 author: Roman Golev
 engine:
