@@ -1,33 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
-import sys
-import types
 import unittest
 
-LIB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib")
-sys.path.insert(0, LIB)
+import revit_stubs
 
-
-def stub(name, **attrs):
-    module = types.ModuleType(name)
-    module.__dict__.update(attrs)
-    sys.modules.setdefault(name, module)
-    return sys.modules[name]
-
-
-class Anything(object):
-    def __getattr__(self, name):
-        return Anything()
-
-    def __call__(self, *args, **kwargs):
-        return Anything()
-
-
-stub("System", Version=object)
-stub("Autodesk")
-stub("Autodesk.Revit")
-sys.modules.setdefault("Autodesk.Revit.DB", Anything())
-stub("core.selectionhelpers", id_value=lambda element_id: element_id)
+revit_stubs.install()
 
 from tools.cad_links import group_by_format
 

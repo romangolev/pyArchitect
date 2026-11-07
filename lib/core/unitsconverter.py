@@ -11,17 +11,8 @@ class UnitConverter:
 
     @staticmethod
     def convertDouble(uiapp, doubleValue, units):
-
-          versionNumber = uiapp.Application.VersionNumber
-          value_converted = ''
-          if "2019" in versionNumber or "2020" in versionNumber:
-               from Autodesk.Revit.DB import UnitUtils, DisplayUnitType
-               value_converted = UnitUtils.ConvertFromInternalUnits(doubleValue, units)
-          else:
-               from Autodesk.Revit.DB import UnitUtils, UnitTypeId
-               value_converted = UnitUtils.ConvertFromInternalUnits(doubleValue, units)
-
-          return value_converted
+          from Autodesk.Revit.DB import UnitUtils
+          return UnitUtils.ConvertFromInternalUnits(doubleValue, units)
 
     @staticmethod
     def convertDoubleToM3(uiapp, doubleValue):

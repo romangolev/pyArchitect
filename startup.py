@@ -10,10 +10,6 @@ from pyrevit import forms
 import core
 
 # Toast notify for new updates
-try:
-    if core.update_needed() == True:
-        forms.toaster.send_toast("New update for pyArchitect extension available: {}".format(core.get_git_version()))
-    else:
-        pass
-except Exception:
-    pass
+version = core.newer_version()
+if version:
+    forms.toaster.send_toast("New update for pyArchitect extension available: {}".format(version))

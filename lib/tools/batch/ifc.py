@@ -7,6 +7,7 @@ import Autodesk.Revit.DB as DB
 from System import Convert
 
 from core.transaction import WrappedTransaction
+from core.views import view_type_3d
 from tools.batch.documents import OpenedBatchDocument, RevitDocumentOpener
 from tools.batch.ifc_setup import apply_setup, load_setup
 from tools.batch.strings import S
@@ -102,11 +103,10 @@ class IFCBatchExporter(object):
 
     @staticmethod
     def create_temporary_view(document):
-        collector = DB.FilteredElementCollector(document).OfClass(DB.ViewFamilyType)
-        for view_type in collector.ToElements():
-            if view_type.ViewFamily == DB.ViewFamily.ThreeDimensional:
-                return DB.View3D.CreateIsometric(document, view_type.Id)
-        raise Exception("No 3D view family type in the model")
+        view_type = view_type_3d(document)
+        if view_type is None:
+            raise Exception("No 3D view family type in the model")
+        return DB.View3D.CreateIsometric(document, view_type.Id)
 
     @staticmethod
     def build_options(settings, mapping_file, view):

@@ -1,46 +1,9 @@
 # -*- coding: utf-8 -*-
-import contextlib
-import os
-import sys
-import types
 import unittest
 
-LIB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib")
-sys.path.insert(0, LIB)
+import revit_stubs
 
-
-def stub(name, **attrs):
-    module = types.ModuleType(name)
-    module.__dict__.update(attrs)
-    sys.modules[name] = module
-    return module
-
-
-class Anything(object):
-    def __getattr__(self, name):
-        return Anything()
-
-    def __call__(self, *args, **kwargs):
-        return Anything()
-
-
-stub("System", Version=object)
-stub("Autodesk")
-stub("Autodesk.Revit")
-sys.modules["Autodesk.Revit.DB"] = Anything()
-stub("pyrevit")
-stub("pyrevit.coreutils")
-stub("pyrevit.coreutils.applocales", get_locale_string=lambda v: None)
-stub("core.selectionhelpers", id_value=lambda element_id: element_id)
-
-
-@contextlib.contextmanager
-def wrapped(*args):
-    yield
-
-
-stub("core.transaction", WrappedTransaction=wrapped,
-     WrappedTransactionGroup=wrapped)
+revit_stubs.install()
 
 import tools.workset_doctor as wd
 from tools.cad_links import CadLinks

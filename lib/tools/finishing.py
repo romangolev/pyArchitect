@@ -79,42 +79,27 @@ class FinishingRoom(object):
             DB.BuiltInParameter.ROOM_HEIGHT
         ).AsDouble()
         level = self.doc.GetElement(self.level_id)
+        if rswitches.get("Include Door Notches", False):
+            curves = list(self.generate_floor_outline())
+        else:
+            curves = [segment.GetCurve() for segment in self.outer_boundaries]
 
         if int(app.VersionNumber) <= 2022:
-            if rswitches["Include Door Notches"] == False:
-                floor_curves = DB.CurveArray()
-                for boundary_segment in self.outer_boundaries:
-                    floor_curves.Append((boundary_segment).GetCurve())
-
-            elif rswitches["Include Door Notches"] == True:
-                floor_curves = self.generate_floor_outline()
-
+            floor_curves = DB.CurveArray()
+            for curve in curves:
+                floor_curves.Append(curve)
             new_floor = self.doc.Create.NewFloor(
                 floor_curves, floor_type, level, False, DB.XYZ.BasisZ
             )
-
-        elif int(app.VersionNumber) > 2022:
-            if rswitches["Include Door Notches"] == False:
-                floor_curves_loop = DB.CurveLoop()
-                floor_curves = List[DB.Curve]()
-                for boundary_segment in self.outer_boundaries:
-                    floor_curves.Add((boundary_segment).GetCurve())
-                floor_curves_loop = DB.CurveLoop.Create(floor_curves)
-                curve_list = List[DB.CurveLoop]()
-                curve_list.Add(floor_curves_loop)
-            elif rswitches["Include Door Notches"] == True:
-                floor_curves_loop = DB.CurveLoop()
-                floor_curves = List[DB.Curve]()
-                main_array = self.generate_floor_outline()
-                for boundary_segment in main_array:
-                    floor_curves.Add(boundary_segment)
-                floor_curves_loop = DB.CurveLoop.Create(floor_curves)
-                curve_list = List[DB.CurveLoop]()
-                curve_list.Add(floor_curves_loop)
-
+        else:
+            floor_curves = List[DB.Curve]()
+            for curve in curves:
+                floor_curves.Add(curve)
+            curve_list = List[DB.CurveLoop]()
+            curve_list.Add(DB.CurveLoop.Create(floor_curves))
             new_floor = DB.Floor.Create(self.doc, curve_list, floor_type.Id, level.Id)
 
-        if rswitches["Consider Thickness"] == False:
+        if not rswitches["Consider Thickness"]:
             offset2 = floor_type.get_Parameter(
                 DB.BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM
             ).AsDouble()
@@ -123,7 +108,7 @@ class FinishingRoom(object):
             ).Set(
                 room_offset1 + offset2 if mode == "default" else room_offset2 + offset2
             )
-        if rswitches["Consider Thickness"] == True:
+        else:
             new_floor.get_Parameter(
                 DB.BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM
             ).Set(room_offset1 if mode == "default" else room_offset2)
@@ -933,11 +918,17 @@ class FinishingTool(object):
     def create_floors(self):
         selected_rooms = self.get_rooms()
         selected_rooms = [FinishingRoom(room) for room in selected_rooms]
-        switches = [
-            "Consider Thickness",
-            "Include Door Notches",
-            "Write Room Data to Text Parameter",
-        ]
+        self.create_floor_finishing(
+            selected_rooms,
+            [
+                "Consider Thickness",
+                "Include Door Notches",
+                "Write Room Data to Text Parameter",
+            ],
+        )
+
+    def create_floor_finishing(self, selected_rooms, switches, mode="default"):
+        """Create a floor per room, under the floor or, as a ceiling, above it."""
         floor_type, rswitches = self.pick_finishing_type_id(
             DB.BuiltInCategory.OST_Floors, switches
         )
@@ -956,6 +947,7 @@ class FinishingTool(object):
                             floor_type,
                             rswitches,
                             self.app,
+                            mode=mode,
                             room_parameter=room_parameter,
                         )
                     new_floors.append(new_floor)
@@ -1053,31 +1045,9 @@ class FinishingTool(object):
                                 room.make_openings(new_ceiling)
                 self.join_with_wall_finishing(new_ceilings)
 
-        elif int(self.app.VersionNumber) <= 2021:
-            ceiling_type, rswitches = self.pick_finishing_type_id(
-                DB.BuiltInCategory.OST_Floors,
+        else:
+            self.create_floor_finishing(
+                selected_rooms,
                 ["Consider Thickness", "Write Room Data to Text Parameter"],
+                mode="ceiling",
             )
-            room_parameter = None
-            if rswitches["Write Room Data to Text Parameter"]:
-                room_parameter = self.pick_room_parameter_assignment(
-                    DB.BuiltInCategory.OST_Floors
-                )
-            new_floors = []
-            with WrappedTransactionGroup(self.doc, "Create Floor"):
-                with self.finishing_walls_ignored(selected_rooms):
-                    for room in selected_rooms:
-                        with WrappedTransaction(self.doc, "Create Floor"):
-                            new_floor = room.make_finishing_floor(
-                                ceiling_type,
-                                rswitches,
-                                self.app,
-                                mode="ceiling",
-                                room_parameter=room_parameter,
-                            )
-                        new_floors.append(new_floor)
-
-                        if room.boundary_count > 1 and new_floor.IsValidObject:
-                            with WrappedTransaction(self.doc, "Create Opening(s)"):
-                                room.make_openings(new_floor)
-                self.join_with_wall_finishing(new_floors)

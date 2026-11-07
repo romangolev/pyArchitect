@@ -2,89 +2,45 @@
 # pylint: skip-file
 # by Roman Golev
 
-import sys
 import Autodesk.Revit.DB as DB
-from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS
-from Autodesk.Revit.UI.Selection import ObjectType
+from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS, \
+    get_selection_basic
+from core.unitsconverter import UnitConverter
 
 doc = __revit__.ActiveUIDocument.Document           # type: ignore
 uidoc = __revit__.ActiveUIDocument                  # type: ignore
 uiapp = __revit__                                   # type: ignore
-app = uiapp.Application
-t = DB.Transaction(doc)
 
-versionNumber = uiapp.Application.VersionNumber
-if int(versionNumber) < 2021:
-    from Autodesk.Revit.DB import UnitUtils
-elif int(versionNumber) >= 2021:
-        from Autodesk.Revit.DB import UnitUtils, UnitTypeId
-else:
-        from Autodesk.Revit.DB import UnitUtils, UnitTypeId
 
-categories = doc.Settings.Categories
-n = categories.Size
+def is_solid(item):
+    return isinstance(item, DB.Solid)
 
-# Get unput: selected by user elements
-def get_selection():
-    selobject = uidoc.Selection.GetElementIds()
-    if selobject.Count == 0:
+
+def element_volume(element):
+    """Return the volume of `element` in m³, from its geometry when needed."""
+    volume = element.get_Parameter(
+        DB.BuiltInParameter.HOST_VOLUME_COMPUTED).AsDouble()
+    if not volume:
+        volume = sum(item.Volume for item in element.get_Geometry(DB.Options())
+                     if is_solid(item))
+    return UnitConverter.convertDoubleToM3(uiapp, volume)
+
+
+def main():
+    selection = get_selection_basic(
+        uidoc, CustomISelectionFilterByIdInclude(ID_WALLS))
+    volumes = []
+    for item in selection:
+        element = doc.GetElement(item)
         try:
-            selection = uidoc.Selection.PickObjects(ObjectType.Element,
-                                                    CustomISelectionFilterByIdInclude(ID_WALLS),
-                                                    "Selection Objects")
-        except:
-            sys.exit()
-    elif selobject.Count != 0:
-        selection = selobject
-    return selection
+            volume = element_volume(element)
+        except Exception:
+            print("Couldn't get the volume of element {}".format(element.Id))
+            continue
+        volumes.append(volume)
+        print(volume)
+    print("Summary : {}".format(sum(volumes)) + " m³")
 
 
-selobject = get_selection()
-volumes = []
-
-def get_host_volume(elem):
-    vl = elem.get_Parameter(DB.BuiltInParameter.HOST_VOLUME_COMPUTED).AsDouble()
-    if int(versionNumber) < 2020 : 
-        return UnitUtils.ConvertToInternalUnits(vl, DB.DisplayUnitType.DUT_CUBIC_METERS)
-    if int(versionNumber) >= 2021: 
-        return UnitUtils.ConvertFromInternalUnits(vl, UnitTypeId.CubicMeters)
-
-def get_ifc_volume(el):
-    geo = el.get_Geometry(DB.Options())
-    vl = 0
-    for i in geo:
-        if "Solid" in i.ToString():
-            if int(versionNumber) < 2020 : 
-                vl += UnitUtils.ConvertToInternalUnits(i.Volume, DB.DisplayUnitType.DUT_CUBIC_METERS)
-            if int(versionNumber) >= 2021: 
-                vl += UnitUtils.ConvertFromInternalUnits(i.Volume, UnitTypeId.CubicMeters)
-    return vl
-
-
-
-if selobject.Count == 0:
-    print('Nothing selected')
-elif selobject.Count != 0:
-    for element in selobject:
-        el = doc.GetElement(element)
-        try:
-            vol = get_host_volume(el)
-            if float(vol) == 0.0:
-                raise ValueError
-            volumes.append(vol)
-            print(vol)
-        except ValueError:
-            try:
-                vol = get_ifc_volume(el)
-                print(vol)
-                volumes.append(vol)
-            except:
-                print("Couldn't get the volume of element {}".format(el.Id))
-        except:
-            print("Couldn't get the volume of element {}".format(el.Id))
-
-
-print("Summary : {}".format(sum(volumes)) + " m³")
-
-#TODO: Add option to calculate volume in case if it is no Volume property in model
-# Based on Geometry
+if __name__ == '__main__':
+    main()

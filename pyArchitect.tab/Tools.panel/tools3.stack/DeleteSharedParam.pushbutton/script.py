@@ -105,7 +105,7 @@ def confirm_delete(selected_names, shared_params, type_info):
         title='Delete Shared Parameters',
         cancel=True,
     )
-    return result is not None
+    return bool(result)
 
 
 def main():

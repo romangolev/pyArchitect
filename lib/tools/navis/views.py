@@ -4,6 +4,7 @@
 import Autodesk.Revit.DB as DB
 from System.Collections.Generic import List
 
+from core.views import view_type_3d
 from tools.navis.profiles import load_profiles
 from tools.navis.settings import load as load_settings
 
@@ -80,16 +81,7 @@ class NavisworksViewService(object):
         return self.create(profile, hidden_worksets), "CREATED"
 
     def create(self, profile=None, hidden_worksets=None):
-        view_type = next(
-            (
-                item
-                for item in DB.FilteredElementCollector(self.document).OfClass(
-                    DB.ViewFamilyType
-                )
-                if item.ViewFamily == DB.ViewFamily.ThreeDimensional
-            ),
-            None,
-        )
+        view_type = view_type_3d(self.document)
         if view_type is None:
             raise Exception("3D ViewFamilyType not found")
         view = DB.View3D.CreateIsometric(self.document, view_type.Id)

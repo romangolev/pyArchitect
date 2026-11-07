@@ -6,6 +6,7 @@ import shutil
 from tools.batch.contracts import BatchOperationContext, BatchOperationResult
 from tools.batch.strings import S
 from tools.export.persistence import save_sync_and_relinquish
+from tools.revit_documents import is_server_path
 
 
 SKIPPED = "SKIPPED"
@@ -119,7 +120,7 @@ class BatchProcessor(object):
     @staticmethod
     def _copy_model(source_path, destination):
         """Make a non-overwriting RVT copy which is safe for a batch edit."""
-        if source_path.strip().upper().startswith("RSN://"):
+        if is_server_path(source_path):
             raise ValueError(S("processor.rsn_not_copyable"))
         if not os.path.isdir(destination):
             raise ValueError(S("processor.destination_missing", destination))

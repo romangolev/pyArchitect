@@ -6,11 +6,10 @@ clr.AddReference('System.Windows.Forms')
 from pyrevit.forms import WPFWindow
 import os.path as op
 from System.Windows import MessageBox
-from Autodesk.Revit.UI.Selection import ObjectType
 from Autodesk.Revit.DB import Transaction, StorageType
 import collections
-import sys
-from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS
+from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS, \
+    get_selection_basic
 from core.unitsconverter import UnitConverter
 
 doc = __revit__.ActiveUIDocument.Document
@@ -24,18 +23,6 @@ try:
 except NameError:
     shift_click = False
 
-
-
-def get_selection():
-    selobject = uidoc.Selection.GetElementIds()
-    if selobject.Count == 0:
-        try:
-            selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdExclude(ID_MODEL_ELEMENTS), "Selection Objects")
-        except Exception:
-            sys.exit()
-    elif selobject.Count != 0:
-        selection = selobject
-    return selection
 
 
 class ManageParameters:
@@ -200,8 +187,7 @@ class CopyValues:
                     return "Skipped"
             elif self.param_to.StorageType == StorageType.Double:
                 try:
-                    value_converted = UnitConverter.convertDouble(uiapp, value, units)
-                    self.setValueTo(round(value_converted))
+                    self.setValueTo(value)
                     return "Success"
                 except Exception:
                     return "Skipped"
@@ -348,6 +334,7 @@ class MyWindow(WPFWindow):
 
 
 if __name__ == '__main__':
-    selection = get_selection()
+    selection = get_selection_basic(
+        uidoc, CustomISelectionFilterByIdExclude(ID_MODEL_ELEMENTS))
     paraMan = ManageParameters(selection)
     MyWindow('ui.xaml').ShowDialog()

@@ -6,6 +6,7 @@ import Autodesk.Revit.DB as DB
 from Autodesk.Revit.DB import ElementId
 from pyrevit import forms
 from System.Collections.Generic import List
+from core.views import view_type_3d
 
 doc = __revit__.ActiveUIDocument.Document # type: ignore
 uidoc = __revit__.ActiveUIDocument  # type: ignore
@@ -32,20 +33,12 @@ def findlinks():
     elif links.Count > 0: 
         return True
 
-def get_viewFamTypeId(doc):
-    collector3d = DB.FilteredElementCollector(doc).\
-    OfClass(DB.ViewFamilyType).ToElements()
-    for el in collector3d:
-        if el.ViewFamily == DB.ViewFamily.ThreeDimensional:
-            viewFamTypeId = el.Id
-            return viewFamTypeId
-
 def create3D(links):
     element_collection = (List[ElementId](li.Id for li in links)) # type: ignore
     for l in links:
         el = doc.GetElement(l.Id)
         if l.GetType().ToString() == "Autodesk.Revit.DB.RevitLinkInstance" :
-            view3d = DB.View3D.CreateIsometric(doc, get_viewFamTypeId(doc))
+            view3d = DB.View3D.CreateIsometric(doc, view_type_3d(doc).Id)
             try:
                 view3d.Name = l.GetLinkDocument().Title
             except:

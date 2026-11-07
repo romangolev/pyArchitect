@@ -28,6 +28,14 @@ and pull-request details are added automatically to each GitHub release.
 ### Fixed
 
 - Review Links works on Revit 2026.
+- Delete Shared Parameters no longer deletes when you click Cancel.
+- Copy Parameter Values keeps number values as they are instead of
+  rescaling them.
+- Plates Volume, Volume Query, Section from Wall and Create Ceiling (Revit
+  2021 and earlier) run again instead of stopping with an error.
+- Join tools only join elements that actually touch.
+- Select All lists each category once.
+- Revit no longer stalls at startup when GitHub cannot be reached.
 
 ## [1.4.6]
 

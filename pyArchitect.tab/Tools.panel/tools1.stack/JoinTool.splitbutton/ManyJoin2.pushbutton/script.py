@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
-# by Roman Golev 
+# by Roman Golev
 
 import sys
-import traceback
-import Autodesk.Revit.DB as DB
 from Autodesk.Revit.UI.Selection import ObjectType
 from core.selectionhelpers import CustomISelectionFilterByIdExclude, ID_MODEL_ELEMENTS
-from core.transaction import WrappedTransaction, WrappedTransactionGroup
+from core.transaction import WrappedTransaction
+from tools.joining import join_intersecting
 
 uidoc = __revit__.ActiveUIDocument                       # type: ignore
 doc = __revit__.ActiveUIDocument.Document                # type: ignore
@@ -25,7 +24,7 @@ def main():
         selection2 = uidoc.Selection.PickObjects(ObjectType.Element,
                                                   element_filter2,
                                                     "Selection Group 2")
-    except:
+    except Exception:
         sys.exit()
 
     if selection1.Count == 0 or selection2.Count == 0:
@@ -33,33 +32,10 @@ def main():
         print("Both selection groups should contain elements")
         sys.exit()
 
-    with WrappedTransactionGroup(doc, "Join Elements"):
-        with WrappedTransaction(doc, "Multiple Join", warning_suppressor=True):
-            for A in selection1:
-                for B in selection2:
-                    try:
-                        join = DB.JoinGeometryUtils.JoinGeometry(doc,
-                                            doc.GetElement(A.ElementId),
-                                            doc.GetElement(B.ElementId))
-                    except Exception:
-                        pass
-        with WrappedTransaction(doc, "Unjoin", warning_suppressor=True):
-            unjoin_notconnected_elements()
-
-def unjoin_notconnected_elements():
-    """Disconnect elements that do not intersect"""
-    warning1_guid = "1b9dacf3-db22-45d5-b071-42516278ffb1" # 'Highlighted elements are joined but do not intersect.'
-    joinedwarning = [w for w in doc.GetWarnings()\
-                      if str(w.GetFailureDefinitionId().Guid) == warning1_guid]
-    if joinedwarning:
-            for i in joinedwarning:
-                items = i.GetFailingElements()
-                items = [doc.GetElement(i) for i in items]
-                if items.Count == 2 :
-                    try:
-                        DB.JoinGeometryUtils.UnjoinGeometry(doc, items[0], items[1])
-                    except:
-                        print(traceback.format_exc())
+    elements1 = [doc.GetElement(ref.ElementId) for ref in selection1]
+    elements2 = [doc.GetElement(ref.ElementId) for ref in selection2]
+    with WrappedTransaction(doc, "Join Elements", warning_suppressor=True):
+        join_intersecting(doc, elements1, elements2)
 
 if __name__ == '__main__':
     main()

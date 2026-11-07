@@ -24,21 +24,3 @@ class BatchOperation(object):
 
     def execute(self, context):
         raise NotImplementedError
-
-
-class BatchOperationRegistry(object):
-    def __init__(self, operations=None):
-        self._operations = {}
-        for operation in operations or []:
-            self.register(operation)
-
-    def register(self, operation):
-        if not operation.operation_id:
-            raise ValueError("Batch operations require an operation_id")
-        self._operations[operation.operation_id] = operation
-
-    def get(self, operation_id):
-        return self._operations[operation_id]
-
-    def all(self):
-        return self._operations.values()

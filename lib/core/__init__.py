@@ -3,14 +3,8 @@
 import os.path as op
 from System import Version
 
-class Core(object):
-   """
-   Extension Coreclass
-   """
-   @staticmethod
-   def return_ext_dir():
-      A_EXT_DIR = op.dirname(op.dirname(__file__))
-      return A_EXT_DIR
+VERSION_URL = 'https://raw.githubusercontent.com/romangolev/pyArchitect/main/lib/core/version'
+
 
 def get_local_version():
     with open(op.join(op.dirname(__file__), 'version'), 'r') as version_file:
@@ -18,21 +12,22 @@ def get_local_version():
     return version
 
 # Get version inside the github repository
-def get_git_version():
+def get_git_version(timeout=3):
    try:
       import urllib2
    except ImportError:
       import urllib.request as urllib2
-   data = urllib2.urlopen('https://raw.githubusercontent.com/romangolev/pyArchitect/main/lib/core/version')
-   for line in data: 
-      gitversion = line
-   return gitversion
+   text = urllib2.urlopen(VERSION_URL, timeout=timeout).read()
+   if not isinstance(text, str):
+      text = text.decode('utf-8')
+   return text.strip()
 
-def update_needed():
+def newer_version():
+   """Return the version on GitHub when it is newer than this one, else None."""
    try:
-      if Version(get_local_version()) < Version(get_git_version()):
-         return True
-      else:
-         return False
+      remote = get_git_version()
+      if Version(remote) > Version(get_local_version()):
+         return remote
    except Exception:
-      return False
+      pass
+   return None

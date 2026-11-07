@@ -1,38 +1,30 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
-# by Roman Golev 
+# by Roman Golev
 
 import sys
-import Autodesk.Revit.DB as DB
 from Autodesk.Revit.DB import BuiltInParameter, XYZ, Transform, BoundingBoxXYZ, \
                                 ViewSection, ViewFamilyType, FilteredElementCollector, \
                                 ViewFamily
 
 from pyrevit import forms
-from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS, ID_SEPARATION_LINES
-from Autodesk.Revit.UI.Selection import ObjectType
+from core.selectionhelpers import CustomISelectionFilterByIdInclude, ID_WALLS, \
+    ID_SEPARATION_LINES, get_selection_basic, id_value
+from core.transaction import WrappedTransaction, WrappedTransactionGroup
 
 doc = __revit__.ActiveUIDocument.Document # type: ignore
 uidoc = __revit__.ActiveUIDocument # type: ignore
-transaction = DB.Transaction(doc)
-transaction_group = DB.TransactionGroup(doc)
 
-# Get unput: selected by user elements
-def get_selection():
-     selobject = uidoc.Selection.GetElementIds()
-     if selobject.Count == 0:
-          try:
-               selection = uidoc.Selection.PickObjects(ObjectType.Element, CustomISelectionFilterByIdInclude(ID_WALLS + ID_SEPARATION_LINES), "Selection Objects")
-          except:
-               sys.exit()
-     elif selobject.Count != 0:
-          selection = selobject
-     return selection
+SUPPORTED = ID_WALLS + ID_SEPARATION_LINES
 
 
-def create_section(el, doc, viewFamilyTypeId, transaction, flip):
+def unsupported(elements):
+    return [e for e in elements
+            if e.Category is None or id_value(e.Category.Id) not in SUPPORTED]
+
+
+def create_section(ref_elem, doc, viewFamilyTypeId, flip):
     offset = 100/304.8 # 100mm offset as Double
-    ref_elem = doc.GetElement(el)
     # Determine section box
     lc = ref_elem.Location
     line = lc.Curve
@@ -44,12 +36,12 @@ def create_section(el, doc, viewFamilyTypeId, transaction, flip):
     else:
         v = p - q
 
-    if ref_elem.Category.Id.ToString() == "-2000011":
+    if id_value(ref_elem.Category.Id) in ID_WALLS:
         w = v.GetLength()
         d = ref_elem.WallType.Width
         BaseOffset = ref_elem.get_Parameter(BuiltInParameter.WALL_BASE_OFFSET).AsDouble()
         UnconnectedHeight = ref_elem.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble()
-    elif ref_elem.Category.Id.ToString() == "-2000066":
+    else:
         w = ref_elem.get_Parameter(BuiltInParameter.CURVE_ELEM_LENGTH).AsDouble()
         d = 300/304.8 # 300mm as Double
         BaseOffset = 0
@@ -67,7 +59,7 @@ def create_section(el, doc, viewFamilyTypeId, transaction, flip):
         midpoint = p + 0.5*v
     else:
         midpoint = q + 0.5*v
-    
+
     walldir = fc*v.Normalize()
     up = XYZ.BasisZ
     viewdir = walldir.CrossProduct(up)
@@ -84,30 +76,22 @@ def create_section(el, doc, viewFamilyTypeId, transaction, flip):
     sectionBox.Max = max # scope box top
 
     # Create ref_elem section view
-    transaction.Start('Create Section')
-    try:
-        newSection = ViewSection.CreateSection(doc, viewFamilyTypeId, sectionBox)
-        transaction.Commit()
-        return newSection
-    except Exception as e:
-        transaction.RollBack()
-        transaction.Dispose()
-        print(e)
+    with WrappedTransaction(doc, 'Create Section'):
+        return ViewSection.CreateSection(doc, viewFamilyTypeId, sectionBox)
 
 
 def main():
-    # Get selection
-    sel = get_selection()
+    selection = get_selection_basic(
+        uidoc, CustomISelectionFilterByIdInclude(SUPPORTED))
+    elements = [doc.GetElement(item) for item in selection]
 
     # Check selected elements
-    if not sel:
+    if not elements:
         forms.alert("Please, select ref_elem", "Section For Wall")
         sys.exit()
-    for element in sel:
-        if doc.GetElement(element).Category.Id.ToString() == ID_WALLS[0] \
-        or doc.GetElement(element).Category.Id.ToString() == ID_SEPARATION_LINES[0]:
-            forms.alert("The tool works only with walls and separation liners", "Section For Wall")
-            sys.exit()
+    if unsupported(elements):
+        forms.alert("The tool works only with walls and separation liners", "Section For Wall")
+        sys.exit()
 
     #Get section types
     sec_types = []
@@ -135,15 +119,14 @@ def main():
         sys.exit()
 
     viewFamilyTypeId = res[options].Id
-    
+
     #Make section(s)
-    if len(sel) == 1:
-        create_section(sel[0], doc, viewFamilyTypeId, transaction, sw["Flip section"])
-    elif len(sel) > 1:
-        transaction_group.Start("Create multiple sections")
-        for el in sel:
-            create_section(el, doc, viewFamilyTypeId, transaction, sw["Flip section"])
-        transaction_group.Assimilate()
+    with WrappedTransactionGroup(doc, "Create multiple sections"):
+        for element in elements:
+            try:
+                create_section(element, doc, viewFamilyTypeId, sw["Flip section"])
+            except Exception as e:
+                print(e)
 
 if __name__ == '__main__':
     main()

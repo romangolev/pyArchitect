@@ -9,6 +9,7 @@ import Autodesk.Revit.DB as DB
 from Autodesk.Revit.UI import *
 from Autodesk.Revit.DB import FilteredWorksetCollector
 from pyrevit import forms
+from core.views import view_type_3d
 
 doc = __revit__.ActiveUIDocument.Document # type: ignore
 uidoc = __revit__.ActiveUIDocument  # type: ignore
@@ -28,11 +29,7 @@ if doc.IsWorkshared == True:
 else:
     forms.alert("File is not workshared")
 
-collector3d = DB.FilteredElementCollector(doc).\
-OfClass(Autodesk.Revit.DB.ViewFamilyType).ToElements()
-for el in collector3d:
-    if el.ViewFamily == DB.ViewFamily.ThreeDimensional:
-        viewFamTypeId = el.Id
+viewFamTypeId = view_type_3d(doc).Id
 
 views3d = []
 def create3D(worksets):

@@ -3,7 +3,6 @@
 # by Roman Golev 
 
 from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
-from Autodesk.Revit.DB import CategoryType, ElementType
 import sys
 
 ID_MODEL_ELEMENTS = [-2000270, -2001017, -2008155, -2000095, -2009639, -2005009,
@@ -89,18 +88,6 @@ class CustomISelectionFilterByIdExclude(ISelectionFilter):
         return True
 
 
-class CustomISelectionFilterByNameInclude(ISelectionFilter):
-    def __init__(self, nom_categorie):
-        self.nom_categorie = nom_categorie
-    def AllowElement(self, e):
-        if e.Category.Name == self.nom_categorie:
-            return True
-        else:
-            return False
-    def AllowReference(self, ref, point):
-        return True
-    
-
 def id_value(element_id):
     """Return an ElementId as an int across Revit versions.
 
@@ -120,36 +107,6 @@ def id_value(element_id):
             continue
     return -1
 
-
-class CustomISelectionFilterModelCats(ISelectionFilter):
-    """Allows only placed model elements.
-
-    The category has to belong to the model category type, but that alone also
-    lets through materials, project information and every element type, which
-    Revit files under model categories too.  So element types are refused, and
-    so is anything without model extents, which is what materials and project
-    information have in common.
-
-    The category set is resolved once, on construction, so AllowElement stays
-    a cheap integer comparison instead of walking the settings on every pick.
-    """
-
-    def __init__(self, doc):
-        self.model_categories = set(
-            id_value(category.Id)
-            for category in doc.Settings.Categories
-            if category.CategoryType == CategoryType.Model
-        )
-
-    def AllowElement(self, e):
-        if isinstance(e, ElementType) or e.Category is None:
-            return False
-        if id_value(e.Category.Id) not in self.model_categories:
-            return False
-        return e.get_BoundingBox(None) is not None
-
-    def AllowReference(self, ref, point):
-        return False
 
 # Get unput: selected by user elements
 def get_selection_basic(uidoc, filter):
